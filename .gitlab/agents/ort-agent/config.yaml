@@ -1,7 +1,7 @@
 ci_access:
   projects:
     - id: "pcs-8/test-orientasi"
-    - id: "pcs-8/test-orientasi-react"
+    - id: "pcs-8/orientasi-frontend-test"
 
 user_access:
   access_as:
