@@ -1,0 +1,16 @@
+stages:
+  - test-koneksi
+
+cek-openshift-job:
+  stage: test-koneksi
+  image: quay.io/openshift/origin-cli:latest
+  script:
+    # 1. Mengaktifkan konteks Agent
+    - kubectl config use-context pcs-8/test-orientasi:ort-agent
+
+    # 2. Test apakah bisa melihat resource di namespace target
+    # Kita pakai 'oc' karena ini image OpenShift CLI
+    - oc get all -n test-orientasi
+
+    # 3. Cek identitas ServiceAccount
+    - oc whoami
