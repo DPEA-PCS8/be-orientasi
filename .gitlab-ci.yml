@@ -4,6 +4,8 @@ stages:
 cek-openshift-job:
   stage: test-koneksi
   image: quay.io/openshift/origin-cli:latest
+  tags:
+    - dev-container
   script:
     # 1. Mengaktifkan konteks Agent
     - kubectl config use-context pcs-8/test-orientasi:ort-agent
