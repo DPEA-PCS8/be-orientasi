@@ -1,3 +1,11 @@
+image: docker:25.0.3
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+services:
+  - docker:dind
+
 stages:
   - test-koneksi
 
