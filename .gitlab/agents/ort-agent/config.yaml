@@ -1,3 +1,6 @@
 user_access:
   access_as:
     agent: {}
+  projects:
+    - id: "pcs-8/test-orientasi"         # Backend
+    - id: "pcs-8/orientasi-frontend-test" # Frontend
