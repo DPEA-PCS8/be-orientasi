@@ -11,7 +11,7 @@ public class TestController {
     @GetMapping("/hello" )
     public ResponseEntity<BaseResponse> hello() {
         return ResponseEntity.ok(
-                new BaseResponse(200, "Success", "Hello, World!")
+                new BaseResponse(200, "Success", "Hello, World Testt!!! is it updated?")
         );
     }
 
