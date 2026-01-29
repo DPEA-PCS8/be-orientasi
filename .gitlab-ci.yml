@@ -29,6 +29,6 @@ deploy-to-ocp:
   script:
     - kubectl config use-context pcs-8/test-orientasi:ort-agent
 
-    - oc start-build test-orientasi-spring --from-file=target/my-app.jar -n test-orientasi --follow
+    - oc start-build test-orientasi-spring --from-file=target/orientasi-0.0.1-SNAPSHOT.jar -n test-orientasi --follow
 
     - oc rollout status deployment/test-orientasi-spring -n test-orientasi
