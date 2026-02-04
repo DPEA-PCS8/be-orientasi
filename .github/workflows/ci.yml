@@ -16,26 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to OpenShift
+      - name: Build image with podman
         run: |
-          oc login --token=${{ secrets.OCP_TOKEN }} \
-            --server=${{ secrets.OCP_SERVER }} \
-            --insecure-skip-tls-verify=true
-
-      - name: Login registry
-        run: |
-          docker login $REGISTRY \
-            -u $(oc whoami) \
-            -p $(oc whoami -t)
-
-      - name: Build image
-        run: |
-          docker build -t $REGISTRY/$NAMESPACE/$IMAGE_NAME:latest .
+          podman build -t image-registry.openshift-image-registry.svc:5000/$NAMESPACE/$IMAGE_NAME:latest .
 
       - name: Push image
         run: |
-          docker push $REGISTRY/$NAMESPACE/$IMAGE_NAME:latest
+          podman push image-registry.openshift-image-registry.svc:5000/$NAMESPACE/$IMAGE_NAME:latest
 
-      - name: Rollout
+      - name: Restart deployment
         run: |
           oc rollout restart deployment/$IMAGE_NAME -n $NAMESPACE
