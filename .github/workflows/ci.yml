@@ -15,11 +15,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Authenticate to OpenShift
-        run: |
-          oc login --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) --server=https://kubernetes.default.svc
-
+      
       - name: Trigger OpenShift Build
         run: |
           oc start-build backend-app -n ${{ env.NAMESPACE }} --follow
