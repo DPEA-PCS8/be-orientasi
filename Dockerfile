@@ -1,9 +1,20 @@
+# Stage 1: Build with Maven
+FROM maven:3.9.3-eclipse-temurin-17 as build
+
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+
+RUN mvn clean package -DskipTests
+
+# Stage 2: Runtime image
 FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
-COPY target/*.jar app.jar
+
+COPY --from=build /app/target/*.jar app.jar
 
 ENV TZ=Asia/Jakarta
 EXPOSE 8080
 
-ENTRYPOINT ["java","-jar","app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
