@@ -1,25 +1,41 @@
-name: Build and Deploy to OpenShift
+name: Build & Deploy to OpenShift
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-deploy:
+    runs-on: self-hosted
+
+    env:
+      REGISTRY: image-registry.openshift-image-registry.svc:5000
+      NAMESPACE: test-orientasi
+      IMAGE_NAME: backend-orientasi
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Login to OpenShift Registry
-      run: |
-        docker login ${{ secrets.OCP_REGISTRY }} \
-          -u ${{ secrets.OCP_USER }} \
-          -p ${{ secrets.OCP_TOKEN }}
+      - name: Login to OpenShift
+        run: |
+          oc login --token=${{ secrets.OCP_TOKEN }} \
+            --server=${{ secrets.OCP_SERVER }} \
+            --insecure-skip-tls-verify=true
 
-    - name: Build image
-      run: |
-        docker build -t ${{ secrets.OCP_REGISTRY }}/test-orientasi/test-orientasi-fe:latest .
+      - name: Login registry
+        run: |
+          docker login $REGISTRY \
+            -u $(oc whoami) \
+            -p $(oc whoami -t)
 
-    - name: Push image
-      run: |
-        docker push ${{ secrets.OCP_REGISTRY }}/test-orientasi/test-orientasi-fe:latest
+      - name: Build image
+        run: |
+          docker build -t $REGISTRY/$NAMESPACE/$IMAGE_NAME:latest .
+
+      - name: Push image
+        run: |
+          docker push $REGISTRY/$NAMESPACE/$IMAGE_NAME:latest
+
+      - name: Rollout
+        run: |
+          oc rollout restart deployment/$IMAGE_NAME -n $NAMESPACE
