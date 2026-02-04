@@ -9,17 +9,23 @@ jobs:
     runs-on: self-hosted
 
     env:
+      # Menggunakan internal registry service agar lebih cepat (sesama cluster)
       REGISTRY: image-registry.openshift-image-registry.svc:5000
       NAMESPACE: test-orientasi
-      IMAGE_NAME: backend-orientasi
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Authenticate to OpenShift
+        run: |
+          oc login --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) --server=https://kubernetes.default.svc
+
       - name: Trigger OpenShift Build
         run: |
-          oc start-build backend-orientasi -n test-orientasi --follow
+          oc start-build backend-app -n ${{ env.NAMESPACE }} --follow
+
       - name: Rollout restart
         run: |
-          oc rollout restart deployment/backend-orientasi -n test-orientasi
-
+          oc rollout restart deployment/backend-app -n ${{ env.NAMESPACE }}
+          
+          oc rollout status deployment/backend-app -n ${{ env.NAMESPACE }}
