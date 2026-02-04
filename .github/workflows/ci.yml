@@ -1,0 +1,25 @@
+name: Build and Deploy to OpenShift
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to OpenShift Registry
+      run: |
+        docker login ${{ secrets.OCP_REGISTRY }} \
+          -u ${{ secrets.OCP_USER }} \
+          -p ${{ secrets.OCP_TOKEN }}
+
+    - name: Build image
+      run: |
+        docker build -t ${{ secrets.OCP_REGISTRY }}/test-orientasi/test-orientasi-fe:latest .
+
+    - name: Push image
+      run: |
+        docker push ${{ secrets.OCP_REGISTRY }}/test-orientasi/test-orientasi-fe:latest
