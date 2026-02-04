@@ -16,14 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image with podman
+      - name: Trigger OpenShift Build
         run: |
-          podman build -t image-registry.openshift-image-registry.svc:5000/$NAMESPACE/$IMAGE_NAME:latest .
+          oc start-build backend-orientasi -n test-orientasi --follow
+      - name: Rollout restart
+        run: |
+          oc rollout restart deployment/backend-orientasi -n test-orientasi
 
-      - name: Push image
-        run: |
-          podman push image-registry.openshift-image-registry.svc:5000/$NAMESPACE/$IMAGE_NAME:latest
-
-      - name: Restart deployment
-        run: |
-          oc rollout restart deployment/$IMAGE_NAME -n $NAMESPACE
