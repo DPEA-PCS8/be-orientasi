@@ -20,7 +20,7 @@ spring:
     
   # LDAP Configuration
   ldap:
-    urls: ldap://corp.ojk.go.id:389
+    urls: ldap://10.225.100.151:389
     base: dc=corp,dc=ojk,dc=go,dc=id
 
 server:
