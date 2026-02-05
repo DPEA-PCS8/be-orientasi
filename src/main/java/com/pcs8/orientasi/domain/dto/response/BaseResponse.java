@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.domain.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BaseResponse {
-    Integer status;
-    String message;
-    Object data;
+    
+    @JsonProperty("status")
+    private Integer status;
+    
+    @JsonProperty("message")
+    private String message;
+    
+    @JsonProperty("data")
+    private Object data;
 }
