@@ -115,7 +115,10 @@ public class AuthHeaderFilter implements Filter {
      * Check apakah endpoint adalah public endpoint (tidak memerlukan Bearer token)
      */
     private boolean isPublicEndpoint(String path) {
-        return PUBLIC_ENDPOINTS.stream().anyMatch(path::startsWith);
+        if (path == null) {
+            return false;
+        }
+        return PUBLIC_ENDPOINTS.contains(path);
     }
 
     /**
