@@ -93,8 +93,8 @@ public class LdapServiceImpl implements LdapService {
                     "physicalDeliveryOfficeName"
             });
 
-            String searchFilter = "(sAMAccountName=" + username + ")";
-            NamingEnumeration<SearchResult> results = ctx.search(ldapBase, searchFilter, searchControls);
+            String searchFilter = "(sAMAccountName={0})";
+            NamingEnumeration<SearchResult> results = ctx.search(ldapBase, searchFilter, new Object[]{username}, searchControls);
 
             if (results.hasMore()) {
                 SearchResult result = results.next();
