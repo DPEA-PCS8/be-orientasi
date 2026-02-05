@@ -4,7 +4,6 @@ import com.pcs8.orientasi.service.PasswordEncryptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
@@ -31,7 +30,6 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     private static final String ALGORITHM = "AES";
     private static final int KEY_SIZE = 256; // 256-bit key
     
-    private final BCryptPasswordEncoder bCryptEncoder = new BCryptPasswordEncoder();
     private final SecretKey secretKey;
 
     public PasswordEncryptionServiceImpl(@Value("${aes.encryption.key:}") String encryptionKeyFromConfig) {
@@ -81,11 +79,6 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             log.error("Error decrypting password: {}", e.getMessage());
             throw new RuntimeException("Failed to decrypt password", e);
         }
-    }
-
-    @Override
-    public boolean matches(String rawPassword, String encryptedPassword) {
-        return bCryptEncoder.matches(rawPassword, encryptedPassword);
     }
 
     /**

@@ -13,9 +13,4 @@ public interface PasswordEncryptionService {
      * Digunakan sebelum kirim ke LDAP untuk authentication.
      */
     String decrypt(String encryptedPassword);
-
-    /**
-     * Check apakah password match dengan encrypted version (untuk BCrypt).
-     */
-    boolean matches(String rawPassword, String encryptedPassword);
 }
