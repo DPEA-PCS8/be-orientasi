@@ -28,7 +28,7 @@ public class LdapServiceImpl implements LdapService {
     public UserInfo authenticate(String username, String password) {
         // Handle both corp/username and corp\'username formats
         String cleanUsername = extractUsername(username);
-        String userPrincipalName = cleanUsername + "@corp.ojk.go.id";
+        String userPrincipalName = cleanUsername + "@devojk.go.id";
 
         log.info("Attempting LDAP authentication for user: {}", cleanUsername);
 
