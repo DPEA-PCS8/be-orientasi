@@ -12,6 +12,7 @@ import com.pcs8.orientasi.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,49 +29,27 @@ public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
-    private final LdapService ldapService;
-    private final UserService userService;
-    private final PasswordEncryptionService passwordEncryptionService;
-    private final JwtConfig jwtConfig;
+    @Autowired
+    private LdapService ldapService;
 
-    public AuthController(
-            LdapService ldapService,
-            UserService userService,
-            PasswordEncryptionService passwordEncryptionService,
-            JwtConfig jwtConfig) {
-        this.ldapService = ldapService;
-        this.userService = userService;
-        this.passwordEncryptionService = passwordEncryptionService;
-        this.jwtConfig = jwtConfig;
-    }
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private PasswordEncryptionService passwordEncryptionService;
+
+    @Autowired
+    private JwtConfig jwtConfig;
 
     /**
-     * Login endpoint dengan AES password decryption.
-     * 
-     * Request body:
-     * {
-     *   "username": "corp/johndoe",
-     *   "password": "U2FsdGVkX1..." (AES encrypted, Base64 encoded)
-     * }
-     * 
-     * Response:
-     * {
-     *   "status": 200,
-     *   "message": "Login successful",
-     *   "data": {
-     *     "token": "eyJhbGciOiJIUzI1...",
-     *     "token_type": "Bearer",
-     *     "expires_in": 86400,
-     *     "user_info": { ... }
-     *   }
-     * }
+     * Login endpoint dengan RSA password decryption.
      */
     @PostMapping("/login")
     public ResponseEntity<BaseResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login attempt for user: {}", request.getUsername());
 
         try {
-            // Step 1: Decrypt password (AES decrypt)
+            // Step 1: Decrypt password (RSA decrypt)
             String decryptedPassword = passwordEncryptionService.decrypt(request.getPassword());
             log.debug("Password decrypted successfully for user: {}", request.getUsername());
 
@@ -87,7 +66,7 @@ public class AuthController {
                     .uuid(savedUser.getUuid().toString())
                     .username(savedUser.getUsername())
                     .fullName(savedUser.getFullName())
-                    .displayName(savedUser.getFullName()) // Alias for compatibility
+                    .displayName(savedUser.getFullName())
                     .email(savedUser.getEmail())
                     .department(savedUser.getDepartment())
                     .title(savedUser.getTitle())
@@ -109,7 +88,7 @@ public class AuthController {
             LoginResponse loginResponse = LoginResponse.builder()
                     .token(token)
                     .tokenType("Bearer")
-                    .expiresIn(jwtConfig.getJwtExpiration() / 1000) // Convert to seconds
+                    .expiresIn(jwtConfig.getJwtExpiration() / 1000)
                     .userInfo(responseUserInfo)
                     .build();
 
