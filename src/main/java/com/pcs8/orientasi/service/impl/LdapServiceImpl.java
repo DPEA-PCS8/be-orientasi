@@ -26,7 +26,6 @@ public class LdapServiceImpl implements LdapService {
 
     @Override
     public UserInfo authenticate(String username, String password) {
-        // Handle both corp/username and corp\'username formats
         String cleanUsername = extractUsername(username);
         String userPrincipalName = cleanUsername + "@devojk.go.id";
 
@@ -44,7 +43,6 @@ public class LdapServiceImpl implements LdapService {
             ctx = new InitialDirContext(env);
             log.info("LDAP authentication successful for user: {}", cleanUsername);
 
-            // Fetch user attributes
             UserInfo userInfo = fetchUserAttributes(ctx, cleanUsername);
             return userInfo;
 
@@ -100,7 +98,6 @@ public class LdapServiceImpl implements LdapService {
                 SearchResult result = results.next();
                 Attributes attrs = result.getAttributes();
 
-                // Log semua atribut yang ditemukan
                 logAllAttributes(attrs, username);
 
                 String displayName = getAttributeValue(attrs, "displayName");
@@ -108,7 +105,7 @@ public class LdapServiceImpl implements LdapService {
                 return UserInfo.builder()
                         .username(getAttributeValue(attrs, "sAMAccountName"))
                         .displayName(displayName)
-                        .fullName(displayName) // Set fullName sama dengan displayName
+                        .fullName(displayName)
                         .email(getAttributeValue(attrs, "mail"))
                         .department(getAttributeValue(attrs, "department"))
                         .title(getAttributeValue(attrs, "title"))

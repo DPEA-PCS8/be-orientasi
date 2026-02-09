@@ -6,6 +6,7 @@ import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,11 +18,8 @@ public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
-    private final MstUserRepository mstUserRepository;
-
-    public UserServiceImpl(MstUserRepository mstUserRepository) {
-        this.mstUserRepository = mstUserRepository;
-    }
+    @Autowired
+    private MstUserRepository mstUserRepository;
 
     @Override
     @Transactional
@@ -32,7 +30,6 @@ public class UserServiceImpl implements UserService {
         Optional<MstUser> existingUser = mstUserRepository.findByUsername(username);
 
         if (existingUser.isPresent()) {
-            // Update existing user
             MstUser user = existingUser.get();
             user.setFullName(ldapUserInfo.getDisplayName());
             user.setEmail(ldapUserInfo.getEmail());
@@ -44,7 +41,6 @@ public class UserServiceImpl implements UserService {
             log.info("Updated existing user: {} with UUID: {}", username, savedUser.getUuid());
             return savedUser;
         } else {
-            // Create new user
             MstUser newUser = MstUser.builder()
                     .username(username)
                     .fullName(ldapUserInfo.getDisplayName())
