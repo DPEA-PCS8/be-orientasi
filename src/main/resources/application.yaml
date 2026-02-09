@@ -27,3 +27,23 @@ server:
   port: 8080
   servlet:
     context-path: /api
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-here-change-this-in-production-min-32-chars}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
+
+# AES Encryption Configuration
+aes:
+  encryption:
+    key: ${AES_ENCRYPTION_KEY:}  # Base64-encoded 256-bit AES key. Harus diisi untuk production.
+
+# API Security Configuration
+app:
+  api-key: ${API_KEY:da39b92f-a1b8-46d5-a10c-d08b1cc92218}
+
+# Logging
+logging:
+  level:
+    com.pcs8.orientasi: INFO
+    org.springframework.security: DEBUG
