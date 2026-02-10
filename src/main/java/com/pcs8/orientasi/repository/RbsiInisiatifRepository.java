@@ -6,13 +6,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface RbsiInisiatifRepository extends JpaRepository<RbsiInisiatif, Long> {
+public interface RbsiInisiatifRepository extends JpaRepository<RbsiInisiatif, UUID> {
 
-    List<RbsiInisiatif> findByProgramIdAndTahunOrderByNomorInisiatifAsc(Long programId, Integer tahun);
+    List<RbsiInisiatif> findByProgramIdAndTahunOrderByNomorInisiatifAsc(UUID programId, Integer tahun);
 
-    Optional<RbsiInisiatif> findByProgramIdAndTahunAndNomorInisiatif(Long programId, Integer tahun, String nomorInisiatif);
+    Optional<RbsiInisiatif> findByProgramIdAndTahunAndNomorInisiatif(UUID programId, Integer tahun, String nomorInisiatif);
 
-    boolean existsByProgramIdAndTahunAndNomorInisiatif(Long programId, Integer tahun, String nomorInisiatif);
+    boolean existsByProgramIdAndTahunAndNomorInisiatif(UUID programId, Integer tahun, String nomorInisiatif);
 }

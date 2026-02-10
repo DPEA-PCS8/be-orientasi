@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -17,7 +18,7 @@ public class RbsiProgramRequest {
 
     @JsonProperty("rbsi_id")
     @NotNull(message = "Rbsi id is required")
-    private Long rbsiId;
+    private UUID rbsiId;
 
     @JsonProperty("tahun")
     @NotNull(message = "Tahun is required")

@@ -9,34 +9,35 @@ import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface RbsiService {
 
     RbsiResponse createRbsi(RbsiRequest request);
 
-    RbsiResponse getRbsi(Long id, Integer tahun);
+    RbsiResponse getRbsi(UUID id, Integer tahun);
 
     List<RbsiResponse> getAllRbsi();
 
-    RbsiResponse updateRbsi(Long id, RbsiRequest request);
+    RbsiResponse updateRbsi(UUID id, RbsiRequest request);
 
-    void deleteRbsi(Long id);
+    void deleteRbsi(UUID id);
 
     RbsiProgramResponse createOrUpdateProgram(RbsiProgramRequest request);
 
-    RbsiProgramResponse updateProgram(Long programId, RbsiProgramRequest request);
+    RbsiProgramResponse updateProgram(UUID programId, RbsiProgramRequest request);
 
-    void deleteProgram(Long programId);
+    void deleteProgram(UUID programId);
 
     RbsiInisiatifResponse createOrUpdateInisiatif(RbsiInisiatifRequest request);
 
-    RbsiInisiatifResponse updateInisiatif(Long inisiatifId, RbsiInisiatifRequest request);
+    RbsiInisiatifResponse updateInisiatif(UUID inisiatifId, RbsiInisiatifRequest request);
 
-    void deleteInisiatif(Long inisiatifId);
+    void deleteInisiatif(UUID inisiatifId);
 
-    List<RbsiProgramResponse> getProgramsByRbsiAndTahun(Long rbsiId, Integer tahun);
+    List<RbsiProgramResponse> getProgramsByRbsiAndTahun(UUID rbsiId, Integer tahun);
 
-    List<RbsiHistoryResponse> getHistory(Long rbsiId);
+    List<RbsiHistoryResponse> getHistory(UUID rbsiId);
 
-    RbsiHistoryResponse getHistoryByTahun(Long rbsiId, Integer tahun);
+    RbsiHistoryResponse getHistoryByTahun(UUID rbsiId, Integer tahun);
 }

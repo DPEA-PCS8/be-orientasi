@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -14,7 +15,7 @@ public class RbsiInisiatifRequest {
 
     @JsonProperty("program_id")
     @NotNull(message = "Program id is required")
-    private Long programId;
+    private UUID programId;
 
     @JsonProperty("tahun")
     @NotNull(message = "Tahun is required")

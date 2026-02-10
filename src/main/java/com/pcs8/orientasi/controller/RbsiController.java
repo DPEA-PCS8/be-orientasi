@@ -10,22 +10,21 @@ import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 import com.pcs8.orientasi.service.RbsiService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/rbsi")
+@RequiredArgsConstructor
 public class RbsiController {
 
     private final RbsiService rbsiService;
-
-    public RbsiController(RbsiService rbsiService) {
-        this.rbsiService = rbsiService;
-    }
 
     @PostMapping
     public ResponseEntity<BaseResponse> createRbsi(@Valid @RequestBody RbsiRequest request) {
@@ -41,19 +40,19 @@ public class RbsiController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BaseResponse> getRbsi(@PathVariable Long id, @RequestParam(required = false) Integer tahun) {
+    public ResponseEntity<BaseResponse> getRbsi(@PathVariable UUID id, @RequestParam(required = false) Integer tahun) {
         RbsiResponse response = rbsiService.getRbsi(id, tahun);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<BaseResponse> updateRbsi(@PathVariable Long id, @Valid @RequestBody RbsiRequest request) {
+    public ResponseEntity<BaseResponse> updateRbsi(@PathVariable UUID id, @Valid @RequestBody RbsiRequest request) {
         RbsiResponse response = rbsiService.updateRbsi(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "RBSI updated", response));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<BaseResponse> deleteRbsi(@PathVariable Long id) {
+    public ResponseEntity<BaseResponse> deleteRbsi(@PathVariable UUID id) {
         rbsiService.deleteRbsi(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "RBSI deleted", null));
     }
@@ -66,19 +65,19 @@ public class RbsiController {
     }
 
     @PutMapping("/programs/{id}")
-    public ResponseEntity<BaseResponse> updateProgram(@PathVariable Long id, @Valid @RequestBody RbsiProgramRequest request) {
+    public ResponseEntity<BaseResponse> updateProgram(@PathVariable UUID id, @Valid @RequestBody RbsiProgramRequest request) {
         RbsiProgramResponse response = rbsiService.updateProgram(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Program updated", response));
     }
 
     @DeleteMapping("/programs/{id}")
-    public ResponseEntity<BaseResponse> deleteProgram(@PathVariable Long id) {
+    public ResponseEntity<BaseResponse> deleteProgram(@PathVariable UUID id) {
         rbsiService.deleteProgram(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Program deleted", null));
     }
 
     @GetMapping("/{rbsiId}/programs")
-    public ResponseEntity<BaseResponse> getProgramsByRbsi(@PathVariable Long rbsiId, @RequestParam(required = false) Integer tahun) {
+    public ResponseEntity<BaseResponse> getProgramsByRbsi(@PathVariable UUID rbsiId, @RequestParam(required = false) Integer tahun) {
         RbsiResponse rbsi = rbsiService.getRbsi(rbsiId, tahun);
         List<RbsiProgramResponse> programs = rbsi.getPrograms();
         if (programs == null) {
@@ -95,25 +94,25 @@ public class RbsiController {
     }
 
     @PutMapping("/inisiatifs/{id}")
-    public ResponseEntity<BaseResponse> updateInisiatif(@PathVariable Long id, @Valid @RequestBody RbsiInisiatifRequest request) {
+    public ResponseEntity<BaseResponse> updateInisiatif(@PathVariable UUID id, @Valid @RequestBody RbsiInisiatifRequest request) {
         RbsiInisiatifResponse response = rbsiService.updateInisiatif(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Inisiatif updated", response));
     }
 
     @DeleteMapping("/inisiatifs/{id}")
-    public ResponseEntity<BaseResponse> deleteInisiatif(@PathVariable Long id) {
+    public ResponseEntity<BaseResponse> deleteInisiatif(@PathVariable UUID id) {
         rbsiService.deleteInisiatif(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Inisiatif deleted", null));
     }
 
     @GetMapping("/{rbsiId}/history")
-    public ResponseEntity<BaseResponse> getHistory(@PathVariable Long rbsiId) {
+    public ResponseEntity<BaseResponse> getHistory(@PathVariable UUID rbsiId) {
         List<RbsiHistoryResponse> history = rbsiService.getHistory(rbsiId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", history));
     }
 
     @GetMapping("/{rbsiId}/history/{tahun}")
-    public ResponseEntity<BaseResponse> getHistoryByTahun(@PathVariable Long rbsiId, @PathVariable Integer tahun) {
+    public ResponseEntity<BaseResponse> getHistoryByTahun(@PathVariable UUID rbsiId, @PathVariable Integer tahun) {
         RbsiHistoryResponse history = rbsiService.getHistoryByTahun(rbsiId, tahun);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", history));
     }

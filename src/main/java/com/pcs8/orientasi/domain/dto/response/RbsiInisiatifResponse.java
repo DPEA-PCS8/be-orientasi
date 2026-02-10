@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,10 +15,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RbsiInisiatifResponse {
 
-    private Long id;
+    private UUID id;
 
     @JsonProperty("program_id")
-    private Long programId;
+    private UUID programId;
 
     @JsonProperty("tahun")
     private Integer tahun;

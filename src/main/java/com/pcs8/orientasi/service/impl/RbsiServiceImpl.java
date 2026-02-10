@@ -17,6 +17,7 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.RbsiProgramRepository;
 import com.pcs8.orientasi.repository.RbsiRepository;
 import com.pcs8.orientasi.service.RbsiService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,9 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RbsiServiceImpl implements RbsiService {
 
     private static final Logger log = LoggerFactory.getLogger(RbsiServiceImpl.class);
@@ -35,16 +38,6 @@ public class RbsiServiceImpl implements RbsiService {
     private final RbsiRepository rbsiRepository;
     private final RbsiProgramRepository programRepository;
     private final RbsiInisiatifRepository inisiatifRepository;
-
-    public RbsiServiceImpl(
-            RbsiRepository rbsiRepository,
-            RbsiProgramRepository programRepository,
-            RbsiInisiatifRepository inisiatifRepository
-    ) {
-        this.rbsiRepository = rbsiRepository;
-        this.programRepository = programRepository;
-        this.inisiatifRepository = inisiatifRepository;
-    }
 
     @Override
     @Transactional
@@ -64,7 +57,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional(readOnly = true)
-    public RbsiResponse getRbsi(Long id, Integer tahun) {
+    public RbsiResponse getRbsi(UUID id, Integer tahun) {
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
@@ -87,7 +80,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public RbsiResponse updateRbsi(Long id, RbsiRequest request) {
+    public RbsiResponse updateRbsi(UUID id, RbsiRequest request) {
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
@@ -103,7 +96,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public void deleteRbsi(Long id) {
+    public void deleteRbsi(UUID id) {
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
         rbsiRepository.delete(rbsi);
@@ -137,7 +130,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public RbsiProgramResponse updateProgram(Long programId, RbsiProgramRequest request) {
+    public RbsiProgramResponse updateProgram(UUID programId, RbsiProgramRequest request) {
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
 
@@ -180,7 +173,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public void deleteProgram(Long programId) {
+    public void deleteProgram(UUID programId) {
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
         programRepository.delete(program);
@@ -215,7 +208,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public RbsiInisiatifResponse updateInisiatif(Long inisiatifId, RbsiInisiatifRequest request) {
+    public RbsiInisiatifResponse updateInisiatif(UUID inisiatifId, RbsiInisiatifRequest request) {
         RbsiInisiatif inisiatif = inisiatifRepository.findById(inisiatifId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
 
@@ -249,7 +242,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional
-    public void deleteInisiatif(Long inisiatifId) {
+    public void deleteInisiatif(UUID inisiatifId) {
         RbsiInisiatif inisiatif = inisiatifRepository.findById(inisiatifId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
         inisiatifRepository.delete(inisiatif);
@@ -258,7 +251,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RbsiProgramResponse> getProgramsByRbsiAndTahun(Long rbsiId, Integer tahun) {
+    public List<RbsiProgramResponse> getProgramsByRbsiAndTahun(UUID rbsiId, Integer tahun) {
         List<RbsiProgram> programs = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, tahun);
         return programs.stream()
                 .map(program -> mapToProgramResponse(program, true))
@@ -267,7 +260,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RbsiHistoryResponse> getHistory(Long rbsiId) {
+    public List<RbsiHistoryResponse> getHistory(UUID rbsiId) {
         rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
@@ -287,7 +280,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional(readOnly = true)
-    public RbsiHistoryResponse getHistoryByTahun(Long rbsiId, Integer tahun) {
+    public RbsiHistoryResponse getHistoryByTahun(UUID rbsiId, Integer tahun) {
         rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
@@ -298,7 +291,7 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
     }
 
-    private Integer resolveTahun(Long rbsiId, Integer tahun) {
+    private Integer resolveTahun(UUID rbsiId, Integer tahun) {
         if (tahun != null) {
             return tahun;
         }

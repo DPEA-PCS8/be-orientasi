@@ -4,9 +4,9 @@ import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.dto.response.LoginResponse.UserInfo;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,12 +14,12 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
-    @Autowired
-    private MstUserRepository mstUserRepository;
+    private final MstUserRepository mstUserRepository;
 
     @Override
     @Transactional
