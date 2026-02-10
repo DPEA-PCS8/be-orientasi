@@ -4,9 +4,9 @@ spring:
     
   # Database Configuration
   datasource:
-    url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:pcs8_orientasi};encrypt=true;trustServerCertificate=true
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
+    url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:testing_prompt0};encrypt=true;trustServerCertificate=true
+    username: ${DB_USERNAME:admin.pcs8}
+    password: ${DB_PASSWORD:SQL2022}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     
   jpa:

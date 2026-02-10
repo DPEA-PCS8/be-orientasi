@@ -1,9 +1,9 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.service.PasswordEncryptionService;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +34,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     @Value("${rsa.encryption.public-key}")
     private String publicKeyFromConfig;
 
-    @Autowired
+    @PostConstruct
     public void init() {
         log.info("Initializing RSA encryption service");
         try {
