@@ -29,9 +29,6 @@ public class RbsiInisiatifResponse {
     @JsonProperty("nama_inisiatif")
     private String namaInisiatif;
 
-    @JsonProperty("pksi_id")
-    private Long pksiId;
-
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 

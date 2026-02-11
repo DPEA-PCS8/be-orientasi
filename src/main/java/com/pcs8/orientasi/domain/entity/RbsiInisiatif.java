@@ -38,7 +38,4 @@ public class RbsiInisiatif extends BaseEntity {
 
     @Column(name = "nama_inisiatif", nullable = false, length = 255)
     private String namaInisiatif;
-
-    @Column(name = "pksi_id")
-    private Long pksiId;
 }

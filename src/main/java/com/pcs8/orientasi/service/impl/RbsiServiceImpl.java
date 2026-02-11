@@ -199,7 +199,6 @@ public class RbsiServiceImpl implements RbsiService {
                         .build());
 
         inisiatif.setNamaInisiatif(request.getNamaInisiatif());
-        inisiatif.setPksiId(request.getPksiId());
 
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(inisiatif);
         log.info("Inisiatif saved: {}", savedInisiatif.getId());
@@ -233,7 +232,6 @@ public class RbsiServiceImpl implements RbsiService {
         inisiatif.setTahun(request.getTahun());
         inisiatif.setNomorInisiatif(request.getNomorInisiatif());
         inisiatif.setNamaInisiatif(request.getNamaInisiatif());
-        inisiatif.setPksiId(request.getPksiId());
 
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(inisiatif);
         log.info("Inisiatif updated: {}", savedInisiatif.getId());
@@ -311,7 +309,6 @@ public class RbsiServiceImpl implements RbsiService {
                     .build());
 
             inisiatif.setNamaInisiatif(item.getNamaInisiatif());
-            inisiatif.setPksiId(item.getPksiId());
             inisiatifRepository.save(inisiatif);
         }
     }
@@ -355,7 +352,6 @@ public class RbsiServiceImpl implements RbsiService {
                 .tahun(inisiatif.getTahun())
                 .nomorInisiatif(inisiatif.getNomorInisiatif())
                 .namaInisiatif(inisiatif.getNamaInisiatif())
-                .pksiId(inisiatif.getPksiId())
                 .createdAt(inisiatif.getCreatedAt())
                 .updatedAt(inisiatif.getUpdatedAt())
                 .build();

@@ -28,7 +28,4 @@ public class RbsiInisiatifRequest {
     @JsonProperty("nama_inisiatif")
     @NotBlank(message = "Nama inisiatif is required")
     private String namaInisiatif;
-
-    @JsonProperty("pksi_id")
-    private Long pksiId;
 }
