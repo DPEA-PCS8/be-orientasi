@@ -4,7 +4,7 @@ spring:
     
   # Database Configuration
   datasource:
-    url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:pcs8_orientasi};encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:pcs_orientasi};encrypt=true;trustServerCertificate=true
     username: ${DB_USERNAME:}
     password: ${DB_PASSWORD:}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -36,8 +36,8 @@ jwt:
 # RSA Encryption Configuration
 rsa:
   encryption:
-    private-key: ${RSA_PRIVATE_KEY:}
-    public-key: ${RSA_PUBLIC_KEY:}
+    private-key: ${RSA_PRIVATE_KEY:}  # Empty by default - will auto-generate on startup
+    public-key: ${RSA_PUBLIC_KEY:}    # Empty by default - will auto-generate on startup
 # API Security Configuration
 app:
   api-key: ${API_KEY:da39b92f-a1b8-46d5-a10c-d08b1cc92218}
