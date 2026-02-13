@@ -5,8 +5,8 @@ spring:
   # Database Configuration
   datasource:
     url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:pcs8_orientasi};encrypt=true;trustServerCertificate=true
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
+    username: ${DB_USERNAME:admin.pcs8}
+    password: ${DB_PASSWORD:SQL2022}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     
   jpa:
@@ -36,8 +36,8 @@ jwt:
 # RSA Encryption Configuration
 rsa:
   encryption:
-    private-key: ${RSA_PRIVATE_KEY:}  # Empty by default - will auto-generate on startup
-    public-key: ${RSA_PUBLIC_KEY:}    # Empty by default - will auto-generate on startup
+    private-key: ${RSA_PRIVATE_KEY:MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmbgLe0yjhRHHX9/8Fd8aS0Qc1BhfQTDeZRufmfD063vfiv16nAKnZc38INXDbqJTrrrbWBC+YxGJv1+74o26E1MHfQesYAzTrkm2+ff91neDVKmq4uPn+hCN5VSezoOwbsyFbi5kReN/byLBlObnFT2QiDduxcSxYZELWspViYhF+wzTSIeLsDsy9FqdsJDVyA8L1lmqosWNmiSpvn//kj+QkKKVsTcKfn8xz/5eE6HkdC+BGfwcn7O8yIpPK2aSz6zf/QvmXZ8ScNIjGI/9lyE0bO5M6pzuMUDpSkGEtSPVA7vqTUpPTRXkg+oew9ZvxjNTO2PKw3qLkhSIxAIT3AgMBAAECggEAAckGUNuVAa2ZRwbK/oUFZUfGuwPgt4RJyGQhUrCce4guwojo/AOezs1VXIIuPrz1M/4AyhTrackZgTegwZwHMHeTyNBNNEm8hJZihPuXBOz3n3HACVE6pUdHliKatWuRfM6UGgZKUwyn4hSqB7vxyTML0O2zIJklL6GLsf/iaFa+h4+YNxRisBL5U5WwRAOOrEtPBFMuUXW31ftcgys6lUhsJADBWVPKQ7sVEzVn16DFa9/aDEQt29ah2fZxUjhTPlD3Wn28LdYcsO1FPF5zjDBRBzBbSUNrm2qBAaT6Zc7oD5SAwQ/wp892KOkRY9aFhBP2PYWd3zpmCCOS2iJ3CQKBgQDCRYUuCymZV45qK4LISXZACodUNNb0Fqrk0iUy1Iu5/L7c0+fwFv/vMNCVVc/tyBevZghDICkcv82+W3IKr4K14h3zdesLgNpqyH/MuZn90VU8DMvuYC+vIgXEkh2jkHQDpY2pGN18COEktwyDq4HZ4AcbdqXDu6RorxJkUdM0fQKBgQDbT8ZNLXFFaDKspw6lV+kQxRSJGvxoIpTFVa8qwiNLLnXV/3LVWUJSVTE+S4fFCW24XVU2almC+w+lJrJAw1fbSSr5t+xCulC1lFt1K5sm2sfV4SQXVgWdlwqUSWAnS4PJAjr13rYD2l8+EKER5LXnuNvpmcy2esX3vLFhHmydgwKBgFg0sG9jahPRiTvzXYIKuMIDBcbZ5u8Ui6sxLuqRTo+3jgE9xYVhK/syMsJbH/labEabEQ1JQOFoxMW1R2ZKohJrBCZSV9H1QzZQqpYNfzmbHhQRy1YEHiJqVCwYG5T0NXiiZltsisOSVIcTBX+TE3YVHaT+jez8+Xz+YF9kN30RAoGBAKxtyWTOsLs4VHdIlYxMVRN5UE8H56HcZonMd3+vyd4HdmA9isTRfAKNtrza17GEWz7UKvYwoZYI3OElTor6yy2/FknmYJyKLoDFVy8FjOP8qZewfxbV7G5d3dR+6Fmc1s2IsmCzrPnUjIOYwXr3DkpVHppI8Rob52CDfBb2u8EPAoGAKmOXcgeAk4qeVF+cbar/NQbO3NkieFUTTGbCPgdONPSd7y4lKboYxQwmKFWLVKP+B1ByTQJtWxqLT3clkRAiVJPpAirckvLzN3cnatuSkhBPSRVajoiXEdXvttXM8BbjEcNfATEAoYRasW6/RL1Beu+ftydDXE1cTDvYqy6NsaM=}  # Empty by default - will auto-generate on startup
+    public-key: ${RSA_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApm4C3tMo4URx1/f/BXfGktEHNQYX0Ew3mUbn5nw9Ot734r9epwCp2XN/CDVw26iU66621gQvmMRib9fu+KNuhNTB30HrGAM065Jtvn3/dZ3g1SpquLj5/oQjeVUns6DsG7MhW4uZEXjf28iwZTm5xU9kIg3bsXEsWGRC1rKVYmIRfsM00iHi7A7MvRanbCQ1cgPC9ZZqqLFjZokqb5//5I/kJCilbE3Cn5/Mc/+XhOh5HQvgRn8HJ+zvMiKTytmks+s3/0L5l2fEnDSIxiP/ZchNGzuTOqc7jFA6UpBhLUj1QO76k1KT00V5IPqHsPWb8YzUztjysN6i5IUiMQCE9wIDAQAB}    # Empty by default - will auto-generate on startup
 # API Security Configuration
 app:
   api-key: ${API_KEY:da39b92f-a1b8-46d5-a10c-d08b1cc92218}
