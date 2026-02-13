@@ -289,6 +289,130 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public List<RbsiProgramResponse> copyProgramsFromYear(UUID rbsiId, Integer fromTahun, Integer toTahun) {
+        Rbsi rbsi = rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        // Check if target year already has programs
+        List<RbsiProgram> existingPrograms = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, toTahun);
+        if (!existingPrograms.isEmpty()) {
+            throw new BadRequestException("Tahun " + toTahun + " sudah memiliki program. Hapus terlebih dahulu jika ingin menyalin.");
+        }
+
+        // Get source programs
+        List<RbsiProgram> sourcePrograms = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, fromTahun);
+        if (sourcePrograms.isEmpty()) {
+            throw new BadRequestException("Tidak ada program di tahun " + fromTahun + " untuk disalin.");
+        }
+
+        List<RbsiProgramResponse> copiedPrograms = new ArrayList<>();
+
+        for (RbsiProgram sourceProgram : sourcePrograms) {
+            // Create new program
+            RbsiProgram newProgram = RbsiProgram.builder()
+                    .rbsi(rbsi)
+                    .tahun(toTahun)
+                    .nomorProgram(sourceProgram.getNomorProgram())
+                    .namaProgram(sourceProgram.getNamaProgram())
+                    .build();
+            RbsiProgram savedProgram = programRepository.save(newProgram);
+
+            // Copy inisiatifs
+            List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
+                    .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), fromTahun);
+            
+            for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
+                RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
+                        .program(savedProgram)
+                        .tahun(toTahun)
+                        .nomorInisiatif(sourceInisiatif.getNomorInisiatif())
+                        .namaInisiatif(sourceInisiatif.getNamaInisiatif())
+                        .build();
+                inisiatifRepository.save(newInisiatif);
+            }
+
+            copiedPrograms.add(mapToProgramResponse(savedProgram, true));
+        }
+
+        log.info("Copied {} programs from year {} to year {} for RBSI {}", copiedPrograms.size(), fromTahun, toTahun, rbsiId);
+        return copiedPrograms;
+    }
+
+    @Override
+    @Transactional
+    public RbsiProgramResponse copyProgram(UUID programId, Integer toTahun) {
+        RbsiProgram sourceProgram = programRepository.findById(programId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
+
+        Rbsi rbsi = sourceProgram.getRbsi();
+
+        // Check if same nomor_program already exists in target year
+        boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgram(
+                rbsi.getId(), toTahun, sourceProgram.getNomorProgram());
+        if (exists) {
+            throw new BadRequestException("Program dengan nomor " + sourceProgram.getNomorProgram() + 
+                    " sudah ada di tahun " + toTahun);
+        }
+
+        // Create new program
+        RbsiProgram newProgram = RbsiProgram.builder()
+                .rbsi(rbsi)
+                .tahun(toTahun)
+                .nomorProgram(sourceProgram.getNomorProgram())
+                .namaProgram(sourceProgram.getNamaProgram())
+                .build();
+        RbsiProgram savedProgram = programRepository.save(newProgram);
+
+        // Copy inisiatifs
+        List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
+                .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), sourceProgram.getTahun());
+        
+        for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
+            RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
+                    .program(savedProgram)
+                    .tahun(toTahun)
+                    .nomorInisiatif(sourceInisiatif.getNomorInisiatif())
+                    .namaInisiatif(sourceInisiatif.getNamaInisiatif())
+                    .build();
+            inisiatifRepository.save(newInisiatif);
+        }
+
+        log.info("Copied program {} to year {} with {} inisiatifs", programId, toTahun, sourceInisiatifs.size());
+        return mapToProgramResponse(savedProgram, true);
+    }
+
+    @Override
+    @Transactional
+    public RbsiInisiatifResponse copyInisiatif(UUID inisiatifId, UUID toProgramId) {
+        RbsiInisiatif sourceInisiatif = inisiatifRepository.findById(inisiatifId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
+
+        RbsiProgram targetProgram = programRepository.findById(toProgramId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program tujuan tidak ditemukan"));
+
+        // Check if same nomor_inisiatif already exists in target program
+        boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatif(
+                toProgramId, targetProgram.getTahun(), sourceInisiatif.getNomorInisiatif());
+        if (exists) {
+            throw new BadRequestException("Inisiatif dengan nomor " + sourceInisiatif.getNomorInisiatif() + 
+                    " sudah ada di program tujuan");
+        }
+
+        // Create new inisiatif
+        RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
+                .program(targetProgram)
+                .tahun(targetProgram.getTahun())
+                .nomorInisiatif(sourceInisiatif.getNomorInisiatif())
+                .namaInisiatif(sourceInisiatif.getNamaInisiatif())
+                .build();
+        RbsiInisiatif savedInisiatif = inisiatifRepository.save(newInisiatif);
+
+        log.info("Copied inisiatif {} to program {}", inisiatifId, toProgramId);
+        return mapToInisiatifResponse(savedInisiatif);
+    }
+
     private Integer resolveTahun(UUID rbsiId, Integer tahun) {
         if (tahun != null) {
             return tahun;

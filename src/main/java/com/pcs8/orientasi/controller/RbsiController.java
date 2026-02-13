@@ -116,4 +116,32 @@ public class RbsiController {
         RbsiHistoryResponse history = rbsiService.getHistoryByTahun(rbsiId, tahun);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", history));
     }
+
+    @PostMapping("/{rbsiId}/copy-programs")
+    public ResponseEntity<BaseResponse> copyProgramsFromYear(
+            @PathVariable UUID rbsiId,
+            @RequestParam Integer fromTahun,
+            @RequestParam Integer toTahun) {
+        List<RbsiProgramResponse> copiedPrograms = rbsiService.copyProgramsFromYear(rbsiId, fromTahun, toTahun);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "Programs copied successfully", copiedPrograms));
+    }
+
+    @PostMapping("/programs/{programId}/copy")
+    public ResponseEntity<BaseResponse> copyProgram(
+            @PathVariable UUID programId,
+            @RequestParam Integer toTahun) {
+        RbsiProgramResponse copiedProgram = rbsiService.copyProgram(programId, toTahun);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "Program copied successfully", copiedProgram));
+    }
+
+    @PostMapping("/inisiatifs/{inisiatifId}/copy")
+    public ResponseEntity<BaseResponse> copyInisiatif(
+            @PathVariable UUID inisiatifId,
+            @RequestParam UUID toProgramId) {
+        RbsiInisiatifResponse copiedInisiatif = rbsiService.copyInisiatif(inisiatifId, toProgramId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "Inisiatif copied successfully", copiedInisiatif));
+    }
 }
