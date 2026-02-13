@@ -40,4 +40,10 @@ public interface RbsiService {
     List<RbsiHistoryResponse> getHistory(UUID rbsiId);
 
     RbsiHistoryResponse getHistoryByTahun(UUID rbsiId, Integer tahun);
+
+    List<RbsiProgramResponse> copyProgramsFromYear(UUID rbsiId, Integer fromTahun, Integer toTahun);
+
+    RbsiProgramResponse copyProgram(UUID programId, Integer toTahun);
+
+    RbsiInisiatifResponse copyInisiatif(UUID inisiatifId, UUID toProgramId);
 }
