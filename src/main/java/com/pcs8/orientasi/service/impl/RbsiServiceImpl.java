@@ -374,8 +374,8 @@ public class RbsiServiceImpl implements RbsiService {
         
         int inisiatifIndex = 1;
         for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
-            // Generate new inisiatif number with new program prefix
-            String newInisiatifNumber = String.format("%s.%02d", targetNomorProgram, inisiatifIndex);
+            // Generate new inisiatif number with new program prefix (no zero padding)
+            String newInisiatifNumber = String.format("%s.%d", targetNomorProgram, inisiatifIndex);
             
             RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
                     .program(savedProgram)
