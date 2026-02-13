@@ -130,8 +130,9 @@ public class RbsiController {
     @PostMapping("/programs/{programId}/copy")
     public ResponseEntity<BaseResponse> copyProgram(
             @PathVariable UUID programId,
-            @RequestParam Integer toTahun) {
-        RbsiProgramResponse copiedProgram = rbsiService.copyProgram(programId, toTahun);
+            @RequestParam Integer toTahun,
+            @RequestParam(required = false) String newNomorProgram) {
+        RbsiProgramResponse copiedProgram = rbsiService.copyProgram(programId, toTahun, newNomorProgram);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Program copied successfully", copiedProgram));
     }
@@ -139,8 +140,9 @@ public class RbsiController {
     @PostMapping("/inisiatifs/{inisiatifId}/copy")
     public ResponseEntity<BaseResponse> copyInisiatif(
             @PathVariable UUID inisiatifId,
-            @RequestParam UUID toProgramId) {
-        RbsiInisiatifResponse copiedInisiatif = rbsiService.copyInisiatif(inisiatifId, toProgramId);
+            @RequestParam UUID toProgramId,
+            @RequestParam(required = false) String newNomorInisiatif) {
+        RbsiInisiatifResponse copiedInisiatif = rbsiService.copyInisiatif(inisiatifId, toProgramId, newNomorInisiatif);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Inisiatif copied successfully", copiedInisiatif));
     }

@@ -43,7 +43,7 @@ public interface RbsiService {
 
     List<RbsiProgramResponse> copyProgramsFromYear(UUID rbsiId, Integer fromTahun, Integer toTahun);
 
-    RbsiProgramResponse copyProgram(UUID programId, Integer toTahun);
+    RbsiProgramResponse copyProgram(UUID programId, Integer toTahun, String newNomorProgram);
 
-    RbsiInisiatifResponse copyInisiatif(UUID inisiatifId, UUID toProgramId);
+    RbsiInisiatifResponse copyInisiatif(UUID inisiatifId, UUID toProgramId, String newNomorInisiatif);
 }
