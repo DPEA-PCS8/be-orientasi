@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mst_rbsi_program", uniqueConstraints = {
+@Table(name = "trn_rbsi_program", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"rbsi_id", "tahun", "nomor_program"})
 })
 @Data

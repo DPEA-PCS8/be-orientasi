@@ -9,7 +9,10 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "mst_user")
@@ -42,4 +45,21 @@ public class MstUser extends BaseEntity {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @lombok.Builder.Default
+    private Set<MstUserRole> userRoles = new HashSet<>();
+
+    // Helper method to check if user has any role
+    public boolean hasRole() {
+        return userRoles != null && !userRoles.isEmpty();
+    }
+
+    // Helper method to get role names
+    public Set<String> getRoleNames() {
+        if (userRoles == null) return new HashSet<>();
+        return userRoles.stream()
+                .map(ur -> ur.getRole().getRoleName())
+                .collect(Collectors.toSet());
+    }
 }
