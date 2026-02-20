@@ -54,8 +54,12 @@ public class UserServiceImpl implements UserService {
             log.info("Created new user: {} with UUID: {}", username, savedUser.getUuid());
         }
 
-        // Re-fetch user with roles eagerly loaded to avoid lazy loading issues
-        return mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
+
+        // Re-fetch user with roles eagerly loaded
+        MstUser userWithRoles = mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
+        log.info("User {} has {} role(s) after re-fetch", username, userWithRoles.getUserRoles().size());
+
+        return userWithRoles;
     }
 
     @Override
