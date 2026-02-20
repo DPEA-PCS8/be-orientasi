@@ -2,6 +2,10 @@
 package com.pcs8.orientasi.config;
 
 import lombok.RequiredArgsConstructor;
+<<<<<<< HEAD
+=======
+import org.springframework.context.annotation.Bean;
+>>>>>>> debf28e04272081f4818e91fab7d2beaafbd743a
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
