@@ -27,4 +27,10 @@ public interface MstUserRepository extends JpaRepository<MstUser, UUID> {
      */
     @Query("SELECT u FROM MstUser u LEFT JOIN FETCH u.userRoles ur LEFT JOIN FETCH ur.role WHERE u.uuid = :uuid")
     Optional<MstUser> findByIdWithRoles(@Param("uuid") UUID uuid);
+
+    /**
+     * Find all users with roles eagerly loaded
+     */
+    @Query("SELECT DISTINCT u FROM MstUser u LEFT JOIN FETCH u.userRoles ur LEFT JOIN FETCH ur.role")
+    java.util.List<MstUser> findAllWithRoles();
 }
