@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -30,14 +31,14 @@ public class LoginResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class UserInfo {
-        
+
         private String uuid;
-        
+
         private String username;
 
         @JsonProperty("full_name")
         private String fullName;
-        
+
         // Keep displayName for LDAP compatibility
         @JsonProperty("display_name")
         private String displayName;
@@ -50,8 +51,13 @@ public class LoginResponse {
 
         @JsonProperty("distinguished_name")
         private String distinguishedName;
-        
+
         @JsonProperty("last_login_at")
         private LocalDateTime lastLoginAt;
+
+        @JsonProperty("has_role")
+        private Boolean hasRole;
+
+        private Set<String> roles;
     }
 }

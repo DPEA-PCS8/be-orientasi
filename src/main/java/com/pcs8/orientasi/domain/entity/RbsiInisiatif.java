@@ -11,7 +11,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mst_rbsi_inisiatif", uniqueConstraints = {
+@Table(name = "trn_rbsi_inisiatif", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"program_id", "tahun", "nomor_inisiatif"})
 })
 @Data

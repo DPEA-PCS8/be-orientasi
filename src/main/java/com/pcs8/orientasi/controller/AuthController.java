@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/auth")
@@ -55,6 +56,11 @@ public class AuthController {
             MstUser savedUser = userService.saveOrUpdateFromLdap(ldapUserInfo);
             log.info("User saved/updated in database: {} with UUID: {}", savedUser.getUsername(), savedUser.getUuid());
 
+            // Step 3.5: Get user's roles
+            boolean hasRole = savedUser.hasRole();
+            Set<String> roles = savedUser.getRoleNames();
+            log.info("User {} has {} role(s)", savedUser.getUsername(), roles.size());
+
             // Step 4: Build UserInfo response from saved user (combine LDAP + DB data)
             UserInfo responseUserInfo = UserInfo.builder()
                     .uuid(savedUser.getUuid().toString())
@@ -66,15 +72,19 @@ public class AuthController {
                     .title(savedUser.getTitle())
                     .distinguishedName(ldapUserInfo.getDistinguishedName())
                     .lastLoginAt(savedUser.getLastLoginAt())
+                    .hasRole(hasRole)
+                    .roles(roles)
                     .build();
 
-            // Step 5: Generate JWT token with user claims
+            // Step 5: Generate JWT token with user claims (including roles)
             Map<String, Object> claims = new HashMap<>();
             claims.put("uuid", savedUser.getUuid().toString());
             claims.put("full_name", savedUser.getFullName());
             claims.put("email", savedUser.getEmail());
             claims.put("department", savedUser.getDepartment());
             claims.put("title", savedUser.getTitle());
+            claims.put("has_role", hasRole);
+            claims.put("roles", roles);
 
             String token = jwtConfig.generateToken(savedUser.getUsername(), claims);
 
