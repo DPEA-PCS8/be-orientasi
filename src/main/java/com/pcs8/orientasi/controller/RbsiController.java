@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.controller;
 
+import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/rbsi")
 @RequiredArgsConstructor
+@RequiresRole({"admin", "pengembang"})
 public class RbsiController {
 
     private final RbsiService rbsiService;
