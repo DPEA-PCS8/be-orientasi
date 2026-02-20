@@ -29,6 +29,7 @@ public class UserServiceImpl implements UserService {
 
         Optional<MstUser> existingUser = mstUserRepository.findByUsername(username);
 
+        MstUser savedUser;
         if (existingUser.isPresent()) {
             MstUser user = existingUser.get();
             user.setFullName(ldapUserInfo.getDisplayName());
@@ -37,9 +38,8 @@ public class UserServiceImpl implements UserService {
             user.setTitle(ldapUserInfo.getTitle());
             user.setLastLoginAt(LocalDateTime.now());
 
-            MstUser savedUser = mstUserRepository.save(user);
+            savedUser = mstUserRepository.save(user);
             log.info("Updated existing user: {} with UUID: {}", username, savedUser.getUuid());
-            return savedUser;
         } else {
             MstUser newUser = MstUser.builder()
                     .username(username)
@@ -50,10 +50,12 @@ public class UserServiceImpl implements UserService {
                     .lastLoginAt(LocalDateTime.now())
                     .build();
 
-            MstUser savedUser = mstUserRepository.save(newUser);
+            savedUser = mstUserRepository.save(newUser);
             log.info("Created new user: {} with UUID: {}", username, savedUser.getUuid());
-            return savedUser;
         }
+
+        // Re-fetch user with roles eagerly loaded to avoid lazy loading issues
+        return mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
     }
 
     @Override
