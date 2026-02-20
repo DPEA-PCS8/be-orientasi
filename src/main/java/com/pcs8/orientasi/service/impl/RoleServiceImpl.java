@@ -169,7 +169,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<UserWithRolesResponse> getAllUsersWithRoles() {
         log.info("Getting all users with their roles");
-        List<MstUser> users = userRepository.findAll();
+        List<MstUser> users = userRepository.findAllWithRoles();
         return users.stream()
                 .map(this::mapToUserWithRolesResponse)
                 .collect(Collectors.toList());
@@ -178,7 +178,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public UserWithRolesResponse getUserWithRoles(UUID userUuid) {
         log.info("Getting user with roles for UUID: {}", userUuid);
-        MstUser user = userRepository.findById(userUuid)
+        MstUser user = userRepository.findByIdWithRoles(userUuid)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with UUID: " + userUuid));
         return mapToUserWithRolesResponse(user);
     }

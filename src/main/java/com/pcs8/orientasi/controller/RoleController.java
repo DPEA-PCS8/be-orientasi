@@ -7,6 +7,7 @@ import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.RoleResponse;
 import com.pcs8.orientasi.domain.dto.response.UserWithRolesResponse;
 import com.pcs8.orientasi.service.RoleService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -124,13 +125,16 @@ public class RoleController {
     @PostMapping("/assign")
     public ResponseEntity<BaseResponse> assignRolesToUser(
             @Valid @RequestBody AssignRoleRequest request,
-            @RequestHeader(value = "X-User-UUID", required = false) String userUuidHeader) {
+            HttpServletRequest httpRequest) {
         log.info("Assigning roles to user: {}", request.getUserUuid());
 
-        // Extract UUID of admin who is assigning the role
+        // Extract UUID of admin who is assigning the role from request attributes
+        String userUuidStr = (String) httpRequest.getAttribute("user_uuid");
+
+        log.info("UserUuidStr", userUuidStr);
         UUID assignedByUuid = null;
-        if (userUuidHeader != null && !userUuidHeader.isEmpty()) {
-            assignedByUuid = UUID.fromString(userUuidHeader);
+        if (userUuidStr != null && !userUuidStr.isEmpty()) {
+            assignedByUuid = UUID.fromString(userUuidStr);
         }
 
         UserWithRolesResponse userResponse = roleService.assignRolesToUser(request, assignedByUuid);
