@@ -39,6 +39,7 @@ public class UserServiceImpl implements UserService {
             user.setLastLoginAt(LocalDateTime.now());
 
             savedUser = mstUserRepository.save(user);
+            savedUser = mstUserRepository.save(user);
             log.info("Updated existing user: {} with UUID: {}", username, savedUser.getUuid());
         } else {
             MstUser newUser = MstUser.builder()
@@ -50,6 +51,7 @@ public class UserServiceImpl implements UserService {
                     .lastLoginAt(LocalDateTime.now())
                     .build();
 
+            savedUser = mstUserRepository.save(newUser);
             savedUser = mstUserRepository.save(newUser);
             log.info("Created new user: {} with UUID: {}", username, savedUser.getUuid());
         }
