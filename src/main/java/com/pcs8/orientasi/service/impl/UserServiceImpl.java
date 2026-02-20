@@ -39,6 +39,7 @@ public class UserServiceImpl implements UserService {
             user.setLastLoginAt(LocalDateTime.now());
 
             savedUser = mstUserRepository.save(user);
+            savedUser = mstUserRepository.save(user);
             log.info("Updated existing user: {} with UUID: {}", username, savedUser.getUuid());
         } else {
             MstUser newUser = MstUser.builder()
@@ -51,11 +52,16 @@ public class UserServiceImpl implements UserService {
                     .build();
 
             savedUser = mstUserRepository.save(newUser);
+            savedUser = mstUserRepository.save(newUser);
             log.info("Created new user: {} with UUID: {}", username, savedUser.getUuid());
         }
 
-        // Re-fetch user with roles eagerly loaded to avoid lazy loading issues
-        return mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
+
+        // Re-fetch user with roles eagerly loaded
+        MstUser userWithRoles = mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
+        log.info("User {} has {} role(s) after re-fetch", username, userWithRoles.getUserRoles().size());
+
+        return userWithRoles;
     }
 
     @Override

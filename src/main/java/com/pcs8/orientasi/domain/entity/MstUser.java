@@ -1,10 +1,7 @@
 package com.pcs8.orientasi.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -16,16 +13,18 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "mst_user")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class MstUser extends BaseEntity {
 
     @Id
     @UuidGenerator
     @Column(name = "uuid", updatable = false, nullable = false)
+    @EqualsAndHashCode.Include
     private UUID uuid;
 
     @Column(name = "username", nullable = false, unique = true, length = 100)
@@ -47,7 +46,7 @@ public class MstUser extends BaseEntity {
     private LocalDateTime lastLoginAt;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @lombok.Builder.Default
+    @Builder.Default
     private Set<MstUserRole> userRoles = new HashSet<>();
 
     // Helper method to check if user has any role
