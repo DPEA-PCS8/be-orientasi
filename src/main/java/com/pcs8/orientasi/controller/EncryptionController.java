@@ -5,20 +5,20 @@ import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.EncryptionResponse;
 import com.pcs8.orientasi.service.PasswordEncryptionService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/crypto")
+@RequiredArgsConstructor
 public class EncryptionController {
 
     private static final Logger log = LoggerFactory.getLogger(EncryptionController.class);
 
-    @Autowired
-    private PasswordEncryptionService passwordEncryptionService;
+    private final PasswordEncryptionService passwordEncryptionService;
 
     /**
      * Endpoint untuk encrypt password dengan RSA (development & testing).

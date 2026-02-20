@@ -10,9 +10,9 @@ import com.pcs8.orientasi.service.LdapService;
 import com.pcs8.orientasi.service.PasswordEncryptionService;
 import com.pcs8.orientasi.service.UserService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,21 +25,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
-    @Autowired
-    private LdapService ldapService;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private PasswordEncryptionService passwordEncryptionService;
-
-    @Autowired
-    private JwtConfig jwtConfig;
+    private final LdapService ldapService;
+    private final UserService userService;
+    private final PasswordEncryptionService passwordEncryptionService;
+    private final JwtConfig jwtConfig;
 
     /**
      * Login endpoint dengan RSA password decryption.
