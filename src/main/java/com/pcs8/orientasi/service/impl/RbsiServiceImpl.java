@@ -1,19 +1,28 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifItemRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
+import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
+import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
+import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
+import com.pcs8.orientasi.domain.entity.KepProgress;
 import com.pcs8.orientasi.domain.entity.Rbsi;
 import com.pcs8.orientasi.domain.entity.RbsiInisiatif;
+import com.pcs8.orientasi.domain.entity.RbsiKep;
 import com.pcs8.orientasi.domain.entity.RbsiProgram;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
+import com.pcs8.orientasi.repository.KepProgressRepository;
 import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
+import com.pcs8.orientasi.repository.RbsiKepRepository;
 import com.pcs8.orientasi.repository.RbsiProgramRepository;
 import com.pcs8.orientasi.repository.RbsiRepository;
 import com.pcs8.orientasi.service.RbsiService;
@@ -38,6 +47,8 @@ public class RbsiServiceImpl implements RbsiService {
     private final RbsiRepository rbsiRepository;
     private final RbsiProgramRepository programRepository;
     private final RbsiInisiatifRepository inisiatifRepository;
+    private final RbsiKepRepository kepRepository;
+    private final KepProgressRepository kepProgressRepository;
 
     @Override
     @Transactional
@@ -422,6 +433,192 @@ public class RbsiServiceImpl implements RbsiService {
 
         log.info("Copied inisiatif {} to program {} with number {}", inisiatifId, toProgramId, targetNomorInisiatif);
         return mapToInisiatifResponse(savedInisiatif);
+    }
+
+    // ==================== KEP Methods ====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RbsiKepResponse> getKepList(UUID rbsiId) {
+        rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        return kepRepository.findByRbsiIdOrderByTahunPelaporanAsc(rbsiId).stream()
+                .map(this::mapToKepResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public RbsiKepResponse createKep(UUID rbsiId, RbsiKepRequest request) {
+        Rbsi rbsi = rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        // Validate uniqueness
+        if (kepRepository.existsByRbsiIdAndNomorKep(rbsiId, request.getNomorKep())) {
+            throw new BadRequestException("Nomor KEP sudah digunakan");
+        }
+        if (kepRepository.existsByRbsiIdAndTahunPelaporan(rbsiId, request.getTahunPelaporan())) {
+            throw new BadRequestException("Tahun pelaporan sudah digunakan");
+        }
+
+        // Create new KEP
+        RbsiKep kep = RbsiKep.builder()
+                .rbsi(rbsi)
+                .nomorKep(request.getNomorKep())
+                .tahunPelaporan(request.getTahunPelaporan())
+                .build();
+        RbsiKep savedKep = kepRepository.save(kep);
+
+        // If copy_from_latest is true, copy progress from the latest KEP
+        if (Boolean.TRUE.equals(request.getCopyFromLatest())) {
+            copyProgressFromLatestKep(rbsiId, savedKep);
+        }
+
+        log.info("KEP created: {} for RBSI {}", savedKep.getId(), rbsiId);
+        return mapToKepResponse(savedKep);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public KepProgressFullResponse getKepProgress(UUID rbsiId) {
+        Rbsi rbsi = rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        List<RbsiKep> kepList = kepRepository.findByRbsiIdOrderByTahunPelaporanAsc(rbsiId);
+        List<RbsiKepResponse> kepResponses = kepList.stream()
+                .map(this::mapToKepResponse)
+                .collect(Collectors.toList());
+
+        // Get all inisiatifs for the latest year
+        Integer latestTahun = programRepository.findMaxTahunByRbsiId(rbsiId);
+        List<KepProgressFullResponse.InisiatifKepProgress> progressList = new ArrayList<>();
+
+        if (latestTahun != null) {
+            List<RbsiProgram> programs = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, latestTahun);
+
+            for (RbsiProgram program : programs) {
+                List<RbsiInisiatif> inisiatifs = inisiatifRepository
+                        .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), latestTahun);
+
+                for (RbsiInisiatif inisiatif : inisiatifs) {
+                    List<KepProgressFullResponse.KepProgressItem> kepProgressItems = new ArrayList<>();
+
+                    for (RbsiKep kep : kepList) {
+                        List<KepProgress> progressEntries = kepProgressRepository
+                                .findByKepIdAndInisiatifIdOrderByTahunAsc(kep.getId(), inisiatif.getId());
+
+                        List<KepProgressResponse.YearlyProgressResponse> yearlyProgress = progressEntries.stream()
+                                .map(p -> KepProgressResponse.YearlyProgressResponse.builder()
+                                        .tahun(p.getTahun())
+                                        .status(p.getStatus().name())
+                                        .build())
+                                .collect(Collectors.toList());
+
+                        kepProgressItems.add(KepProgressFullResponse.KepProgressItem.builder()
+                                .kepId(kep.getId())
+                                .nomorKep(kep.getNomorKep())
+                                .tahunPelaporan(kep.getTahunPelaporan())
+                                .yearlyProgress(yearlyProgress)
+                                .build());
+                    }
+
+                    progressList.add(KepProgressFullResponse.InisiatifKepProgress.builder()
+                            .inisiatifId(inisiatif.getId())
+                            .kepProgress(kepProgressItems)
+                            .build());
+                }
+            }
+        }
+
+        return KepProgressFullResponse.builder()
+                .rbsiId(rbsiId)
+                .periode(rbsi.getPeriode())
+                .kepList(kepResponses)
+                .progress(progressList)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public KepProgressResponse updateKepProgress(UUID rbsiId, UUID kepId, KepProgressRequest request) {
+        rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        RbsiKep kep = kepRepository.findById(kepId)
+                .orElseThrow(() -> new ResourceNotFoundException("KEP tidak ditemukan"));
+
+        if (!kep.getRbsi().getId().equals(rbsiId)) {
+            throw new BadRequestException("KEP tidak termasuk dalam RBSI ini");
+        }
+
+        RbsiInisiatif inisiatif = inisiatifRepository.findById(request.getInisiatifId())
+                .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
+
+        List<KepProgressResponse.YearlyProgressResponse> savedProgress = new ArrayList<>();
+
+        for (KepProgressRequest.YearlyProgressItem item : request.getYearlyProgress()) {
+            KepProgress progress = kepProgressRepository
+                    .findByKepIdAndInisiatifIdAndTahun(kepId, request.getInisiatifId(), item.getTahun())
+                    .orElseGet(() -> KepProgress.builder()
+                            .kep(kep)
+                            .inisiatif(inisiatif)
+                            .tahun(item.getTahun())
+                            .build());
+
+            progress.setStatus(KepProgress.ProgressStatus.valueOf(item.getStatus()));
+            KepProgress saved = kepProgressRepository.save(progress);
+
+            savedProgress.add(KepProgressResponse.YearlyProgressResponse.builder()
+                    .tahun(saved.getTahun())
+                    .status(saved.getStatus().name())
+                    .build());
+        }
+
+        log.info("Updated KEP progress for KEP {} inisiatif {}", kepId, request.getInisiatifId());
+        return KepProgressResponse.builder()
+                .kepId(kepId)
+                .nomorKep(kep.getNomorKep())
+                .inisiatifId(request.getInisiatifId())
+                .yearlyProgress(savedProgress)
+                .updatedAt(kep.getUpdatedAt())
+                .build();
+    }
+
+    private void copyProgressFromLatestKep(UUID rbsiId, RbsiKep newKep) {
+        // Find the previous latest KEP
+        List<RbsiKep> existingKeps = kepRepository.findByRbsiIdOrderByTahunPelaporanAsc(rbsiId);
+        if (existingKeps.size() <= 1) {
+            return; // No previous KEP to copy from
+        }
+
+        // Get the second-to-last KEP (the one before the newly created one)
+        RbsiKep previousKep = existingKeps.get(existingKeps.size() - 2);
+
+        // Copy all progress entries
+        List<KepProgress> previousProgress = kepProgressRepository.findByKepIdOrderByInisiatifIdAscTahunAsc(previousKep.getId());
+        for (KepProgress p : previousProgress) {
+            KepProgress newProgress = KepProgress.builder()
+                    .kep(newKep)
+                    .inisiatif(p.getInisiatif())
+                    .tahun(p.getTahun())
+                    .status(p.getStatus())
+                    .build();
+            kepProgressRepository.save(newProgress);
+        }
+
+        log.info("Copied {} progress entries from KEP {} to KEP {}", previousProgress.size(), previousKep.getId(), newKep.getId());
+    }
+
+    private RbsiKepResponse mapToKepResponse(RbsiKep kep) {
+        return RbsiKepResponse.builder()
+                .id(kep.getId())
+                .rbsiId(kep.getRbsi().getId())
+                .nomorKep(kep.getNomorKep())
+                .tahunPelaporan(kep.getTahunPelaporan())
+                .createdAt(kep.getCreatedAt())
+                .updatedAt(kep.getUpdatedAt())
+                .build();
     }
 
     private Integer resolveTahun(UUID rbsiId, Integer tahun) {

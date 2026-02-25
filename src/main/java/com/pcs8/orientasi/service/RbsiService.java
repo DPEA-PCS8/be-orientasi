@@ -1,10 +1,15 @@
 package com.pcs8.orientasi.service;
 
+import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
+import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
+import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
+import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 
@@ -46,4 +51,13 @@ public interface RbsiService {
     RbsiProgramResponse copyProgram(UUID programId, Integer toTahun, String newNomorProgram);
 
     RbsiInisiatifResponse copyInisiatif(UUID inisiatifId, UUID toProgramId, String newNomorInisiatif);
+
+    // KEP methods
+    List<RbsiKepResponse> getKepList(UUID rbsiId);
+
+    RbsiKepResponse createKep(UUID rbsiId, RbsiKepRequest request);
+
+    KepProgressFullResponse getKepProgress(UUID rbsiId);
+
+    KepProgressResponse updateKepProgress(UUID rbsiId, UUID kepId, KepProgressRequest request);
 }
