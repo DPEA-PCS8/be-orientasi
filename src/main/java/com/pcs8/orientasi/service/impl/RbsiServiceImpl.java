@@ -84,9 +84,9 @@ public class RbsiServiceImpl implements RbsiService {
     @Override
     @Transactional(readOnly = true)
     public List<RbsiResponse> getAllRbsi() {
-        return rbsiRepository.findAll().stream()
-                .map(rbsi -> mapToRbsiResponse(rbsi, null))
-                .collect(Collectors.toList());
+        return rbsiRepository.findAllByOrderByPeriodeAsc().stream()
+            .map(rbsi -> mapToRbsiResponse(rbsi, null))
+            .collect(Collectors.toList());
     }
 
     @Override
