@@ -4,6 +4,7 @@ import com.pcs8.orientasi.domain.entity.Rbsi;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +14,7 @@ public interface RbsiRepository extends JpaRepository<Rbsi, UUID> {
     Optional<Rbsi> findByPeriode(String periode);
 
     boolean existsByPeriode(String periode);
+
+    // Get all Rbsi sorted by periode ascending
+    List<Rbsi> findAllByOrderByPeriodeAsc();
 }
