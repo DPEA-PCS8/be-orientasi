@@ -1,0 +1,107 @@
+# =====================================
+# ROLE PERMISSIONS API - POSTMAN IMPORT
+# =====================================
+# Import each cURL command into Postman:
+# File > Import > Raw text > Paste cURL
+
+# ========== MENU ENDPOINTS ==========
+
+# 1. Create Menu
+curl --location 'http://localhost:8080/api/role-permissions/menus' \
+--header 'Content-Type: application/json' \
+--header 'X-User-Nip: admin123' \
+--data '{
+    "menu_code": "REPORTS",
+    "menu_name": "Reports",
+    "description": "Report management menu",
+    "parent_id": null,
+    "display_order": 5,
+    "is_active": true
+}'
+
+# 2. Update Menu
+curl --location --request PUT 'http://localhost:8080/api/role-permissions/menus/{{menuId}}' \
+--header 'Content-Type: application/json' \
+--header 'X-User-Nip: admin123' \
+--data '{
+    "menu_code": "REPORTS",
+    "menu_name": "Reports Updated",
+    "description": "Updated description",
+    "display_order": 6,
+    "is_active": true
+}'
+
+# 3. Get All Menus
+curl --location 'http://localhost:8080/api/role-permissions/menus' \
+--header 'X-User-Nip: admin123'
+
+# 4. Get Menu Tree
+curl --location 'http://localhost:8080/api/role-permissions/menus/tree' \
+--header 'X-User-Nip: admin123'
+
+# 5. Get Menu by ID
+curl --location 'http://localhost:8080/api/role-permissions/menus/{{menuId}}' \
+--header 'X-User-Nip: admin123'
+
+# 6. Delete Menu
+curl --location --request DELETE 'http://localhost:8080/api/role-permissions/menus/{{menuId}}' \
+--header 'X-User-Nip: admin123'
+
+# ========== PERMISSION ENDPOINTS ==========
+
+# 7. Create/Update Single Permission
+curl --location 'http://localhost:8080/api/role-permissions/permissions' \
+--header 'Content-Type: application/json' \
+--header 'X-User-Nip: admin123' \
+--data '{
+    "role_id": "{{roleId}}",
+    "menu_id": "{{menuId}}",
+    "can_view": true,
+    "can_create": true,
+    "can_update": true,
+    "can_delete": false
+}'
+
+# 8. Bulk Update Permissions
+curl --location 'http://localhost:8080/api/role-permissions/permissions/bulk' \
+--header 'Content-Type: application/json' \
+--header 'X-User-Nip: admin123' \
+--data '{
+    "role_id": "{{roleId}}",
+    "permissions": [
+        {
+            "menu_id": "{{menuId1}}",
+            "can_view": true,
+            "can_create": true,
+            "can_update": false,
+            "can_delete": false
+        },
+        {
+            "menu_id": "{{menuId2}}",
+            "can_view": true,
+            "can_create": false,
+            "can_update": false,
+            "can_delete": false
+        }
+    ]
+}'
+
+# 9. Get Permissions by Role
+curl --location 'http://localhost:8080/api/role-permissions/permissions/role/{{roleId}}' \
+--header 'X-User-Nip: admin123'
+
+# 10. Get Permission Matrix for a Role
+curl --location 'http://localhost:8080/api/role-permissions/matrix/{{roleId}}' \
+--header 'X-User-Nip: admin123'
+
+# 11. Get All Permission Matrices
+curl --location 'http://localhost:8080/api/role-permissions/matrix' \
+--header 'X-User-Nip: admin123'
+
+# 12. Delete Permission
+curl --location --request DELETE 'http://localhost:8080/api/role-permissions/permissions/role/{{roleId}}/menu/{{menuId}}' \
+--header 'X-User-Nip: admin123'
+
+# 13. Check Permission
+curl --location 'http://localhost:8080/api/role-permissions/check?roleName=Admin&menuCode=PKSI&permissionType=VIEW' \
+--header 'X-User-Nip: admin123'
