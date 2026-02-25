@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,12 +40,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
+    private final @Lazy RolePermissionService self;
 
     // ========== MENU MANAGEMENT ==========
 
     @Override
     @Transactional
     public MenuResponse createMenu(CreateMenuRequest request) {
+        log.info("Creating menu: {}", request.getMenuCode());
 
         if (menuRepository.existsByMenuCode(request.getMenuCode())) {
             throw new BadRequestException("Menu with code '" + request.getMenuCode() + "' already exists");
@@ -102,7 +105,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             log.warn("Admin role not found - skipping auto-assign permissions for menu: {}", menu.getMenuCode());
         }
     }
-
     @Override
     @Transactional
     public MenuResponse updateMenu(UUID menuId, CreateMenuRequest request) {
@@ -189,6 +191,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public RolePermissionResponse createOrUpdatePermission(RolePermissionRequest request) {
+        log.info("Creating/updating permission for role: {} on menu: {}", request.getRoleId(), request.getMenuId());
 
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
@@ -226,6 +229,8 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public List<RolePermissionResponse> bulkUpdatePermissions(BulkRolePermissionRequest request) {
+        log.info("Bulk updating permissions for role: {}", request.getRoleId());
+
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
 
@@ -459,6 +464,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
                 .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
     }
+
 
     // ========== MAPPING METHODS ==========
 
