@@ -1,12 +1,17 @@
 package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
+import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
+import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 import com.pcs8.orientasi.service.RbsiService;
@@ -147,5 +152,37 @@ public class RbsiController {
         RbsiInisiatifResponse copiedInisiatif = rbsiService.copyInisiatif(inisiatifId, toProgramId, newNomorInisiatif);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Inisiatif copied successfully", copiedInisiatif));
+    }
+
+    // ==================== KEP Endpoints ====================
+
+    @GetMapping("/{rbsiId}/kep")
+    public ResponseEntity<BaseResponse> getKepList(@PathVariable UUID rbsiId) {
+        List<RbsiKepResponse> kepList = rbsiService.getKepList(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", kepList));
+    }
+
+    @PostMapping("/{rbsiId}/kep")
+    public ResponseEntity<BaseResponse> createKep(
+            @PathVariable UUID rbsiId,
+            @Valid @RequestBody RbsiKepRequest request) {
+        RbsiKepResponse response = rbsiService.createKep(rbsiId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), response.getNomorKep() + " created successfully", response));
+    }
+
+    @GetMapping("/{rbsiId}/kep-progress")
+    public ResponseEntity<BaseResponse> getKepProgress(@PathVariable UUID rbsiId) {
+        KepProgressFullResponse response = rbsiService.getKepProgress(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+    }
+
+    @PutMapping("/{rbsiId}/kep/{kepId}/progress")
+    public ResponseEntity<BaseResponse> updateKepProgress(
+            @PathVariable UUID rbsiId,
+            @PathVariable UUID kepId,
+            @Valid @RequestBody KepProgressRequest request) {
+        KepProgressResponse response = rbsiService.updateKepProgress(rbsiId, kepId, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Progress updated successfully", response));
     }
 }
