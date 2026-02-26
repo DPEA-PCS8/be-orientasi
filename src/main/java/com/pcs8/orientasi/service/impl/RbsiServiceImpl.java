@@ -448,9 +448,6 @@ public class RbsiServiceImpl implements RbsiService {
                 .namaInisiatif(sourceInisiatif.getNamaInisiatif())
                 .build();
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(newInisiatif);
-
-        log.info("Copied inisiatif {} to program {} with number {} (group: {})",
-                inisiatifId, toProgramId, targetNomorInisiatif, sourceInisiatif.getGroup().getId());
         return mapToInisiatifResponse(savedInisiatif);
     }
 
