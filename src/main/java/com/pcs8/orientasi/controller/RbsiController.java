@@ -172,8 +172,10 @@ public class RbsiController {
     }
 
     @GetMapping("/{rbsiId}/kep-progress")
-    public ResponseEntity<BaseResponse> getKepProgress(@PathVariable UUID rbsiId) {
-        KepProgressFullResponse response = rbsiService.getKepProgress(rbsiId);
+    public ResponseEntity<BaseResponse> getKepProgress(
+            @PathVariable UUID rbsiId,
+            @RequestParam(required = false) Integer tahun) {
+        KepProgressFullResponse response = rbsiService.getKepProgress(rbsiId, tahun);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
     }
 

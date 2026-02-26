@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "trn_kep_progress", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"kep_id", "inisiatif_id", "tahun"})
+        @UniqueConstraint(columnNames = {"kep_id", "inisiatif_group_id", "tahun"})
 })
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -31,8 +31,8 @@ public class KepProgress extends BaseEntity {
     private RbsiKep kep;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inisiatif_id", nullable = false)
-    private RbsiInisiatif inisiatif;
+    @JoinColumn(name = "inisiatif_group_id", nullable = false)
+    private InisiatifGroup inisiatifGroup;
 
     @Column(name = "tahun", nullable = false)
     private Integer tahun;

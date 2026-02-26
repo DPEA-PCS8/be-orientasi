@@ -30,6 +30,10 @@ public class RbsiInisiatif extends BaseEntity {
     @JoinColumn(name = "program_id", nullable = false)
     private RbsiProgram program;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private InisiatifGroup group;
+
     @Column(name = "tahun", nullable = false)
     private Integer tahun;
 
