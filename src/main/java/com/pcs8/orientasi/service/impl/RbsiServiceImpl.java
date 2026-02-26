@@ -13,6 +13,7 @@ import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
+import com.pcs8.orientasi.domain.entity.InisiatifGroup;
 import com.pcs8.orientasi.domain.entity.KepProgress;
 import com.pcs8.orientasi.domain.entity.Rbsi;
 import com.pcs8.orientasi.domain.entity.RbsiInisiatif;
@@ -20,6 +21,7 @@ import com.pcs8.orientasi.domain.entity.RbsiKep;
 import com.pcs8.orientasi.domain.entity.RbsiProgram;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
+import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.KepProgressRepository;
 import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.RbsiKepRepository;
@@ -47,6 +49,7 @@ public class RbsiServiceImpl implements RbsiService {
     private final RbsiRepository rbsiRepository;
     private final RbsiProgramRepository programRepository;
     private final RbsiInisiatifRepository inisiatifRepository;
+    private final InisiatifGroupRepository inisiatifGroupRepository;
     private final RbsiKepRepository kepRepository;
     private final KepProgressRepository kepProgressRepository;
 
@@ -203,16 +206,28 @@ public class RbsiServiceImpl implements RbsiService {
 
         RbsiInisiatif inisiatif = inisiatifRepository
                 .findByProgramIdAndTahunAndNomorInisiatif(request.getProgramId(), request.getTahun(), request.getNomorInisiatif())
-                .orElseGet(() -> RbsiInisiatif.builder()
-                        .program(program)
-                        .tahun(request.getTahun())
-                        .nomorInisiatif(request.getNomorInisiatif())
-                        .build());
+                .orElseGet(() -> {
+                    // Create new inisiatif group
+                    InisiatifGroup group = InisiatifGroup.builder()
+                            .rbsi(program.getRbsi())
+                            .namaInisiatif(request.getNamaInisiatif())
+                            .build();
+                    InisiatifGroup savedGroup = inisiatifGroupRepository.save(group);
+
+                    return RbsiInisiatif.builder()
+                            .program(program)
+                            .group(savedGroup)
+                            .tahun(request.getTahun())
+                            .nomorInisiatif(request.getNomorInisiatif())
+                            .build();
+                });
 
         inisiatif.setNamaInisiatif(request.getNamaInisiatif());
+        // Update group nama as well
+        inisiatif.getGroup().setNamaInisiatif(request.getNamaInisiatif());
 
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(inisiatif);
-        log.info("Inisiatif saved: {}", savedInisiatif.getId());
+        log.info("Inisiatif saved: {} with group: {}", savedInisiatif.getId(), savedInisiatif.getGroup().getId());
         return mapToInisiatifResponse(savedInisiatif);
     }
 
@@ -333,10 +348,11 @@ public class RbsiServiceImpl implements RbsiService {
             // Copy inisiatifs
             List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
                     .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), fromTahun);
-            
+
             for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
                 RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
                         .program(savedProgram)
+                        .group(sourceInisiatif.getGroup())  // Use same group!
                         .tahun(toTahun)
                         .nomorInisiatif(sourceInisiatif.getNomorInisiatif())
                         .namaInisiatif(sourceInisiatif.getNamaInisiatif())
@@ -382,14 +398,15 @@ public class RbsiServiceImpl implements RbsiService {
         // Copy inisiatifs with renumbering
         List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
                 .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), sourceProgram.getTahun());
-        
+
         int inisiatifIndex = 1;
         for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
             // Generate new inisiatif number with new program prefix (no zero padding)
             String newInisiatifNumber = String.format("%s.%d", targetNomorProgram, inisiatifIndex);
-            
+
             RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
                     .program(savedProgram)
+                    .group(sourceInisiatif.getGroup())  // Use same group!
                     .tahun(toTahun)
                     .nomorInisiatif(newInisiatifNumber)
                     .namaInisiatif(sourceInisiatif.getNamaInisiatif())
@@ -418,20 +435,22 @@ public class RbsiServiceImpl implements RbsiService {
         boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatif(
                 toProgramId, targetProgram.getTahun(), targetNomorInisiatif);
         if (exists) {
-            throw new BadRequestException("Inisiatif dengan nomor " + targetNomorInisiatif + 
+            throw new BadRequestException("Inisiatif dengan nomor " + targetNomorInisiatif +
                     " sudah ada di program tujuan");
         }
 
-        // Create new inisiatif
+        // Create new inisiatif with SAME GROUP as source (this is the key!)
         RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
                 .program(targetProgram)
+                .group(sourceInisiatif.getGroup())  // Use same group!
                 .tahun(targetProgram.getTahun())
                 .nomorInisiatif(targetNomorInisiatif)
                 .namaInisiatif(sourceInisiatif.getNamaInisiatif())
                 .build();
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(newInisiatif);
 
-        log.info("Copied inisiatif {} to program {} with number {}", inisiatifId, toProgramId, targetNomorInisiatif);
+        log.info("Copied inisiatif {} to program {} with number {} (group: {})",
+                inisiatifId, toProgramId, targetNomorInisiatif, sourceInisiatif.getGroup().getId());
         return mapToInisiatifResponse(savedInisiatif);
     }
 
@@ -481,7 +500,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     @Override
     @Transactional(readOnly = true)
-    public KepProgressFullResponse getKepProgress(UUID rbsiId) {
+    public KepProgressFullResponse getKepProgress(UUID rbsiId, Integer tahun) {
         Rbsi rbsi = rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
@@ -490,23 +509,23 @@ public class RbsiServiceImpl implements RbsiService {
                 .map(this::mapToKepResponse)
                 .collect(Collectors.toList());
 
-        // Get all inisiatifs for the latest year
-        Integer latestTahun = programRepository.findMaxTahunByRbsiId(rbsiId);
+        // Get inisiatifs for the specified year, or latest year if not specified
+        Integer targetTahun = tahun != null ? tahun : programRepository.findMaxTahunByRbsiId(rbsiId);
         List<KepProgressFullResponse.InisiatifKepProgress> progressList = new ArrayList<>();
 
-        if (latestTahun != null) {
-            List<RbsiProgram> programs = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, latestTahun);
+        if (targetTahun != null) {
+            List<RbsiProgram> programs = programRepository.findByRbsiIdAndTahunWithInisiatifs(rbsiId, targetTahun);
 
             for (RbsiProgram program : programs) {
                 List<RbsiInisiatif> inisiatifs = inisiatifRepository
-                        .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), latestTahun);
+                        .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), targetTahun);
 
                 for (RbsiInisiatif inisiatif : inisiatifs) {
                     List<KepProgressFullResponse.KepProgressItem> kepProgressItems = new ArrayList<>();
 
                     for (RbsiKep kep : kepList) {
                         List<KepProgress> progressEntries = kepProgressRepository
-                                .findByKepIdAndInisiatifIdOrderByTahunAsc(kep.getId(), inisiatif.getId());
+                                .findByKepIdAndInisiatifGroupIdOrderByTahunAsc(kep.getId(), inisiatif.getGroup().getId());
 
                         List<KepProgressResponse.YearlyProgressResponse> yearlyProgress = progressEntries.stream()
                                 .map(p -> KepProgressResponse.YearlyProgressResponse.builder()
@@ -555,14 +574,17 @@ public class RbsiServiceImpl implements RbsiService {
         RbsiInisiatif inisiatif = inisiatifRepository.findById(request.getInisiatifId())
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
 
+        // Get the group from the inisiatif
+        InisiatifGroup group = inisiatif.getGroup();
+
         List<KepProgressResponse.YearlyProgressResponse> savedProgress = new ArrayList<>();
 
         for (KepProgressRequest.YearlyProgressItem item : request.getYearlyProgress()) {
             KepProgress progress = kepProgressRepository
-                    .findByKepIdAndInisiatifIdAndTahun(kepId, request.getInisiatifId(), item.getTahun())
+                    .findByKepIdAndInisiatifGroupIdAndTahun(kepId, group.getId(), item.getTahun())
                     .orElseGet(() -> KepProgress.builder()
                             .kep(kep)
-                            .inisiatif(inisiatif)
+                            .inisiatifGroup(group)
                             .tahun(item.getTahun())
                             .build());
 
@@ -575,7 +597,7 @@ public class RbsiServiceImpl implements RbsiService {
                     .build());
         }
 
-        log.info("Updated KEP progress for KEP {} inisiatif {}", kepId, request.getInisiatifId());
+        log.info("Updated KEP progress for KEP {} inisiatif {} (group: {})", kepId, request.getInisiatifId(), group.getId());
         return KepProgressResponse.builder()
                 .kepId(kepId)
                 .nomorKep(kep.getNomorKep())
@@ -596,11 +618,11 @@ public class RbsiServiceImpl implements RbsiService {
         RbsiKep previousKep = existingKeps.get(existingKeps.size() - 2);
 
         // Copy all progress entries
-        List<KepProgress> previousProgress = kepProgressRepository.findByKepIdOrderByInisiatifIdAscTahunAsc(previousKep.getId());
+        List<KepProgress> previousProgress = kepProgressRepository.findByKepIdOrderByInisiatifGroupIdAscTahunAsc(previousKep.getId());
         for (KepProgress p : previousProgress) {
             KepProgress newProgress = KepProgress.builder()
                     .kep(newKep)
-                    .inisiatif(p.getInisiatif())
+                    .inisiatifGroup(p.getInisiatifGroup())  // Use group instead of inisiatif instance
                     .tahun(p.getTahun())
                     .status(p.getStatus())
                     .build();

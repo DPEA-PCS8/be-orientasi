@@ -57,7 +57,7 @@ public interface RbsiService {
 
     RbsiKepResponse createKep(UUID rbsiId, RbsiKepRequest request);
 
-    KepProgressFullResponse getKepProgress(UUID rbsiId);
+    KepProgressFullResponse getKepProgress(UUID rbsiId, Integer tahun);
 
     KepProgressResponse updateKepProgress(UUID rbsiId, UUID kepId, KepProgressRequest request);
 }
