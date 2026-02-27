@@ -105,6 +105,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             log.warn("Admin role not found - skipping auto-assign permissions for menu: {}", menu.getMenuCode());
         }
     }
+
     @Override
     @Transactional
     public MenuResponse updateMenu(UUID menuId, CreateMenuRequest request) {
@@ -384,6 +385,8 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional(readOnly = true)
     public RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames) {
+        log.info("Getting combined permissions for roles: {}", roleNames);
+
         boolean isAdmin = roleNames.stream()
                 .anyMatch(roleName -> roleName.equalsIgnoreCase("Admin"));
 
@@ -464,7 +467,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
                 .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
     }
-
 
     // ========== MAPPING METHODS ==========
 
