@@ -80,4 +80,9 @@ public interface RolePermissionService {
      * Check if a role has specific permission on a menu
      */
     boolean hasPermission(String roleName, String menuCode, String permissionType);
+
+    /**
+     * Get combined permissions for multiple roles (used for current user's accessible menus)
+     */
+    RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames);
 }

@@ -67,7 +67,39 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         MstMenu savedMenu = menuRepository.save(menu);
         log.info("Created menu: {} with ID: {}", savedMenu.getMenuCode(), savedMenu.getId());
 
+        // Auto-assign full permissions to Admin role for new menu
+        autoAssignAdminPermissions(savedMenu);
+
         return mapToMenuResponse(savedMenu, false);
+    }
+
+    /**
+     * Auto-assign full permissions (view, create, update, delete) to Admin role for a menu
+     */
+    private void autoAssignAdminPermissions(MstMenu menu) {
+        Optional<MstRole> adminRole = roleRepository.findByRoleName("Admin");
+        if (adminRole.isPresent()) {
+            MstRole admin = adminRole.get();
+            
+            // Check if permission already exists
+            Optional<MstRolePermission> existingPermission = rolePermissionRepository
+                    .findByRoleIdAndMenuId(admin.getId(), menu.getId());
+            
+            if (existingPermission.isEmpty()) {
+                MstRolePermission permission = MstRolePermission.builder()
+                        .role(admin)
+                        .menu(menu)
+                        .canView(true)
+                        .canCreate(true)
+                        .canUpdate(true)
+                        .canDelete(true)
+                        .build();
+                rolePermissionRepository.save(permission);
+                log.info("Auto-assigned full permissions to Admin role for menu: {}", menu.getMenuCode());
+            }
+        } else {
+            log.warn("Admin role not found - skipping auto-assign permissions for menu: {}", menu.getMenuCode());
+        }
     }
 
     @Override
@@ -344,6 +376,92 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             case "delete" -> rp.getCanDelete();
             default -> false;
         };
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames) {
+        log.info("Getting combined permissions for roles: {}", roleNames);
+
+        // Check if any role is Admin - Admin has full access
+        boolean isAdmin = roleNames.stream()
+                .anyMatch(roleName -> roleName.equalsIgnoreCase("Admin"));
+
+        List<MstMenu> allMenus = menuRepository.findAllActiveMenus();
+        List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions = new ArrayList<>();
+
+        if (isAdmin) {
+            // Admin has full access to all menus
+            for (MstMenu menu : allMenus) {
+                RolePermissionMatrixResponse.MenuPermissionItem item = RolePermissionMatrixResponse.MenuPermissionItem.builder()
+                        .menuId(menu.getId())
+                        .menuCode(menu.getMenuCode())
+                        .menuName(menu.getMenuName())
+                        .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
+                        .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
+                        .displayOrder(menu.getDisplayOrder())
+                        .canView(true)
+                        .canCreate(true)
+                        .canUpdate(true)
+                        .canDelete(true)
+                        .build();
+                menuPermissions.add(item);
+            }
+        } else {
+            // Get combined permissions from all user roles
+            List<MstRole> roles = roleNames.stream()
+                    .map(roleRepository::findByRoleName)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+
+            for (MstMenu menu : allMenus) {
+                boolean canView = false;
+                boolean canCreate = false;
+                boolean canUpdate = false;
+                boolean canDelete = false;
+
+                // Combine permissions from all roles (OR logic)
+                for (MstRole role : roles) {
+                    Optional<MstRolePermission> permission = rolePermissionRepository
+                            .findByRoleIdAndMenuId(role.getId(), menu.getId());
+                    
+                    if (permission.isPresent()) {
+                        MstRolePermission rp = permission.get();
+                        canView = canView || rp.getCanView();
+                        canCreate = canCreate || rp.getCanCreate();
+                        canUpdate = canUpdate || rp.getCanUpdate();
+                        canDelete = canDelete || rp.getCanDelete();
+                    }
+                }
+
+                RolePermissionMatrixResponse.MenuPermissionItem item = RolePermissionMatrixResponse.MenuPermissionItem.builder()
+                        .menuId(menu.getId())
+                        .menuCode(menu.getMenuCode())
+                        .menuName(menu.getMenuName())
+                        .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
+                        .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
+                        .displayOrder(menu.getDisplayOrder())
+                        .canView(canView)
+                        .canCreate(canCreate)
+                        .canUpdate(canUpdate)
+                        .canDelete(canDelete)
+                        .build();
+                menuPermissions.add(item);
+            }
+        }
+
+        // Sort by parent first, then by display order
+        menuPermissions.sort(Comparator
+                .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
+                .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
+
+        return RolePermissionMatrixResponse.builder()
+                .roleId(null) // Combined roles, no single role ID
+                .roleName(String.join(", ", roleNames))
+                .roleDescription("Combined permissions for user roles")
+                .menuPermissions(menuPermissions)
+                .build();
     }
 
     // ========== MAPPING METHODS ==========

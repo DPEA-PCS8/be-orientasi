@@ -16,7 +16,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
-        format_sql: true 
+        "[format_sql]": true 
     
   # LDAP Configuration
   ldap:
@@ -45,5 +45,5 @@ app:
 # Logging
 logging:
   level:
-    com.pcs8.orientasi: INFO
-    org.springframework.security: DEBUG
+    "[com.pcs8.orientasi]": INFO
+    "[org.springframework.security]": DEBUG

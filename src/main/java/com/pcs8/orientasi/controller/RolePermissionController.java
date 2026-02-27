@@ -190,4 +190,15 @@ public class RolePermissionController {
         boolean hasPermission = rolePermissionService.hasPermission(roleName, menuCode, permissionType);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permission check completed", hasPermission));
     }
+
+    /**
+     * Get current user's combined permissions based on their roles
+     * All authenticated users can access
+     */
+    @GetMapping("/my-permissions")
+    public ResponseEntity<BaseResponse> getMyPermissions(@RequestParam List<String> roles) {
+        log.info("Getting combined permissions for roles: {}", roles);
+        RolePermissionMatrixResponse matrix = rolePermissionService.getCombinedPermissionsForRoles(roles);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "User permissions retrieved successfully", matrix));
+    }
 }
