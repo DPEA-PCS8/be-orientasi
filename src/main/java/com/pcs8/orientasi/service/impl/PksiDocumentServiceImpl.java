@@ -130,6 +130,23 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("PKSI document deleted: {}", id);
     }
 
+    @Override
+    @Transactional
+    public PksiDocumentResponse updateStatus(UUID id, String status) {
+        log.info("Updating status for PKSI document: {} to {}", id, status);
+
+        PksiDocument document = pksiDocumentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+
+        PksiDocument.DocumentStatus newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        document.setStatus(newStatus);
+
+        PksiDocument updated = pksiDocumentRepository.save(document);
+        log.info("PKSI document status updated: {} -> {}", id, newStatus);
+
+        return mapToResponse(updated);
+    }
+
     private PksiDocumentResponse mapToResponse(PksiDocument document) {
         return PksiDocumentResponse.builder()
                 .id(document.getId().toString())
