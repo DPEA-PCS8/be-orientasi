@@ -26,11 +26,11 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authorizationInterceptor)
-                .addPathPatterns("/api/**")
+                .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/api/auth/login",
-                        "/api/crypto/encrypt",
-                        "/api/crypto/decrypt"
+                        "/auth/login",
+                        "/crypto/encrypt",
+                        "/crypto/decrypt"
                 );
     }
 }
