@@ -138,9 +138,11 @@ public class AuthHeaderFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
+        // No initialization required for this filter
     }
 
     @Override
     public void destroy() {
+        // No cleanup required for this filter
     }
 }

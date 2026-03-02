@@ -4,6 +4,7 @@ import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -138,7 +140,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
 
-        PksiDocument.DocumentStatus newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        PksiDocument.DocumentStatus newStatus;
+        try {
+            newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
+            throw new BadRequestException("Invalid status value: " + status + ". Valid values are: " + validStatuses);
+        }
+        
         document.setStatus(newStatus);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
