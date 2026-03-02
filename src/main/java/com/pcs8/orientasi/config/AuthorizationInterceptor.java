@@ -3,6 +3,7 @@ package com.pcs8.orientasi.config;
 import com.pcs8.orientasi.config.annotation.PublicAccess;
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         Claims claims;
         try {
             claims = jwtConfig.parseToken(token);
-        } catch (Exception e) {
+        } catch (JwtException e) {
             log.error("Invalid JWT token: {}", e.getMessage());
             sendUnauthorizedResponse(response, "Invalid or expired token");
             return false;
@@ -103,17 +104,28 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private Set<String> extractSetFromClaims(Claims claims, String key) {
         Object value = claims.get(key);
         if (value == null) {
             return new HashSet<>();
         }
-        if (value instanceof List) {
-            return new HashSet<>((List<String>) value);
+        if (value instanceof List<?> list) {
+            Set<String> result = new HashSet<>();
+            for (Object item : list) {
+                if (item instanceof String str) {
+                    result.add(str);
+                }
+            }
+            return result;
         }
-        if (value instanceof Set) {
-            return (Set<String>) value;
+        if (value instanceof Set<?> set) {
+            Set<String> result = new HashSet<>();
+            for (Object item : set) {
+                if (item instanceof String str) {
+                    result.add(str);
+                }
+            }
+            return result;
         }
         return new HashSet<>();
     }

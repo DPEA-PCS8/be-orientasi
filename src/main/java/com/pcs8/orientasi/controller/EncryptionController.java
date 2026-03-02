@@ -52,7 +52,7 @@ public class EncryptionController {
 
             return ResponseEntity.ok(new BaseResponse(200, "Password encrypted successfully", response));
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error encrypting password: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new BaseResponse(400, "Error encrypting password: " + e.getMessage(), null));
@@ -94,7 +94,7 @@ public class EncryptionController {
 
             return ResponseEntity.ok(new BaseResponse(200, "Password decrypted successfully", response));
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error decrypting password: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new BaseResponse(400, "Error decrypting password: " + e.getMessage(), null));

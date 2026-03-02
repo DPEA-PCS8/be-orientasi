@@ -1,8 +1,12 @@
 package com.pcs8.orientasi.config;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class JwtConfig {
     
@@ -49,7 +54,14 @@ public class JwtConfig {
         try {
             parseToken(token);
             return true;
-        } catch (Exception e) {
+        } catch (ExpiredJwtException e) {
+            log.debug("JWT token expired: {}", e.getMessage());
+            return false;
+        } catch (SignatureException e) {
+            log.debug("Invalid JWT signature: {}", e.getMessage());
+            return false;
+        } catch (JwtException e) {
+            log.debug("Invalid JWT token: {}", e.getMessage());
             return false;
         }
     }
