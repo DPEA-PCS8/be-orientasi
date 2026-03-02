@@ -68,7 +68,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse getDocumentById(UUID id) {
         log.info("Fetching PKSI document: {}", id);
         
-        PksiDocument document = pksiDocumentRepository.findById(id)
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         return mapToResponse(document);
@@ -79,7 +79,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public List<PksiDocumentResponse> getAllDocuments() {
         log.info("Fetching all PKSI documents");
         
-        return pksiDocumentRepository.findAll().stream()
+        return pksiDocumentRepository.findAllWithUser().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -99,7 +99,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
         log.info("Updating PKSI document: {}", id);
 
-        PksiDocument document = pksiDocumentRepository.findById(id)
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         document.setNamaPksi(request.getNamaPksi());
@@ -138,7 +138,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse updateStatus(UUID id, String status) {
         log.info("Updating status for PKSI document: {}", id);
 
-        PksiDocument document = pksiDocumentRepository.findById(id)
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         PksiDocument.DocumentStatus newStatus;
@@ -159,10 +159,17 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     }
 
     private PksiDocumentResponse mapToResponse(PksiDocument document) {
+        String userId = null;
+        String userName = null;
+        if (document.getUser() != null) {
+            userId = document.getUser().getUuid() != null ? document.getUser().getUuid().toString() : null;
+            userName = document.getUser().getFullName();
+        }
+        
         return PksiDocumentResponse.builder()
                 .id(document.getId().toString())
-                .userId(document.getUser().getUuid().toString())
-                .userName(document.getUser().getFullName())
+                .userId(userId)
+                .userName(userName)
                 .namaPksi(document.getNamaPksi())
                 .deskripsiPksi(document.getDeskripsiPksi())
                 .tujuanPengajuan(document.getTujuanPengajuan())
