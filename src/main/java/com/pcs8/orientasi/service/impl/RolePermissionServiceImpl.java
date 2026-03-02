@@ -18,6 +18,7 @@ import com.pcs8.orientasi.service.RolePermissionService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,24 +27,26 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RolePermissionServiceImpl implements RolePermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(RolePermissionServiceImpl.class);
+    private static final String MENU_NOT_FOUND_MSG = "Menu not found with ID: ";
+    private static final String PARENT_MENU_NOT_FOUND_MSG = "Parent menu not found with ID: ";
+    private static final String ROLE_NOT_FOUND_MSG = "Role not found with ID: ";
 
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
+    private final @Lazy RolePermissionService self;
 
     // ========== MENU MANAGEMENT ==========
 
     @Override
     @Transactional
     public MenuResponse createMenu(CreateMenuRequest request) {
-        log.info("Creating menu: {}", request.getMenuCode());
 
         if (menuRepository.existsByMenuCode(request.getMenuCode())) {
             throw new BadRequestException("Menu with code '" + request.getMenuCode() + "' already exists");
@@ -52,7 +55,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         MstMenu parent = null;
         if (request.getParentId() != null) {
             parent = menuRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent menu not found with ID: " + request.getParentId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(PARENT_MENU_NOT_FOUND_MSG + request.getParentId()));
         }
 
         MstMenu menu = MstMenu.builder()
@@ -108,7 +111,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         log.info("Updating menu: {}", menuId);
 
         MstMenu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Menu not found with ID: " + menuId));
+                .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId));
 
         // Check if new menu code already exists (if changed)
         if (!menu.getMenuCode().equals(request.getMenuCode()) &&
@@ -122,7 +125,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 throw new BadRequestException("Menu cannot be its own parent");
             }
             parent = menuRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent menu not found with ID: " + request.getParentId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(PARENT_MENU_NOT_FOUND_MSG + request.getParentId()));
         }
 
         menu.setMenuCode(request.getMenuCode());
@@ -145,7 +148,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         List<MstMenu> menus = menuRepository.findAllActiveMenus();
         return menus.stream()
                 .map(m -> mapToMenuResponse(m, false))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -155,7 +158,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         List<MstMenu> rootMenus = menuRepository.findAllRootMenus();
         return rootMenus.stream()
                 .map(m -> mapToMenuResponse(m, true))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -163,7 +166,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     public MenuResponse getMenuById(UUID menuId) {
         log.info("Getting menu: {}", menuId);
         MstMenu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Menu not found with ID: " + menuId));
+                .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId));
         return mapToMenuResponse(menu, true);
     }
 
@@ -172,7 +175,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     public void deleteMenu(UUID menuId) {
         log.info("Deleting menu: {}", menuId);
         MstMenu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Menu not found with ID: " + menuId));
+                .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId));
 
         // Check if menu has children
         if (menu.getChildren() != null && !menu.getChildren().isEmpty()) {
@@ -188,13 +191,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public RolePermissionResponse createOrUpdatePermission(RolePermissionRequest request) {
-        log.info("Creating/updating permission for role: {} on menu: {}", request.getRoleId(), request.getMenuId());
 
         MstRole role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with ID: " + request.getRoleId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
 
         MstMenu menu = menuRepository.findById(request.getMenuId())
-                .orElseThrow(() -> new ResourceNotFoundException("Menu not found with ID: " + request.getMenuId()));
+                .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + request.getMenuId()));
 
         Optional<MstRolePermission> existingPermission = rolePermissionRepository
                 .findByRoleIdAndMenuId(request.getRoleId(), request.getMenuId());
@@ -226,16 +228,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public List<RolePermissionResponse> bulkUpdatePermissions(BulkRolePermissionRequest request) {
-        log.info("Bulk updating permissions for role: {}", request.getRoleId());
-
         MstRole role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with ID: " + request.getRoleId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
 
         List<RolePermissionResponse> results = new ArrayList<>();
 
         for (BulkRolePermissionRequest.MenuPermission menuPerm : request.getPermissions()) {
             MstMenu menu = menuRepository.findById(menuPerm.getMenuId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Menu not found with ID: " + menuPerm.getMenuId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuPerm.getMenuId()));
 
             Optional<MstRolePermission> existingPermission = rolePermissionRepository
                     .findByRoleIdAndMenuId(request.getRoleId(), menuPerm.getMenuId());
@@ -272,13 +272,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         log.info("Getting permissions for role: {}", roleId);
 
         if (!roleRepository.existsById(roleId)) {
-            throw new ResourceNotFoundException("Role not found with ID: " + roleId);
+            throw new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + roleId);
         }
 
         List<MstRolePermission> permissions = rolePermissionRepository.findByRoleId(roleId);
         return permissions.stream()
                 .map(this::mapToRolePermissionResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -287,7 +287,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         log.info("Getting permission matrix for role: {}", roleId);
 
         MstRole role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with ID: " + roleId));
+                .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + roleId));
 
         List<MstMenu> allMenus = menuRepository.findAllActiveMenus();
         List<MstRolePermission> rolePermissions = rolePermissionRepository.findByRoleId(roleId);
@@ -335,8 +335,8 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         List<MstRole> allRoles = roleRepository.findAll();
         return allRoles.stream()
-                .map(role -> getPermissionMatrix(role.getId()))
-                .collect(Collectors.toList());
+                .map(role -> self.getPermissionMatrix(role.getId()))
+                .toList();
     }
 
     @Override
@@ -345,11 +345,11 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         log.info("Deleting permission for role: {} on menu: {}", roleId, menuId);
 
         if (!roleRepository.existsById(roleId)) {
-            throw new ResourceNotFoundException("Role not found with ID: " + roleId);
+            throw new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + roleId);
         }
 
         if (!menuRepository.existsById(menuId)) {
-            throw new ResourceNotFoundException("Menu not found with ID: " + menuId);
+            throw new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId);
         }
 
         rolePermissionRepository.deleteByRoleIdAndMenuId(roleId, menuId);
@@ -381,87 +381,85 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional(readOnly = true)
     public RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames) {
-        log.info("Getting combined permissions for roles: {}", roleNames);
-
-        // Check if any role is Admin - Admin has full access
         boolean isAdmin = roleNames.stream()
                 .anyMatch(roleName -> roleName.equalsIgnoreCase("Admin"));
 
         List<MstMenu> allMenus = menuRepository.findAllActiveMenus();
-        List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions = new ArrayList<>();
+        List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions = isAdmin
+                ? buildAdminPermissions(allMenus)
+                : buildCombinedRolePermissions(allMenus, roleNames);
 
-        if (isAdmin) {
-            // Admin has full access to all menus
-            for (MstMenu menu : allMenus) {
-                RolePermissionMatrixResponse.MenuPermissionItem item = RolePermissionMatrixResponse.MenuPermissionItem.builder()
-                        .menuId(menu.getId())
-                        .menuCode(menu.getMenuCode())
-                        .menuName(menu.getMenuName())
-                        .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
-                        .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
-                        .displayOrder(menu.getDisplayOrder())
-                        .canView(true)
-                        .canCreate(true)
-                        .canUpdate(true)
-                        .canDelete(true)
-                        .build();
-                menuPermissions.add(item);
-            }
-        } else {
-            // Get combined permissions from all user roles
-            List<MstRole> roles = roleNames.stream()
-                    .map(roleRepository::findByRoleName)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
-
-            for (MstMenu menu : allMenus) {
-                boolean canView = false;
-                boolean canCreate = false;
-                boolean canUpdate = false;
-                boolean canDelete = false;
-
-                // Combine permissions from all roles (OR logic)
-                for (MstRole role : roles) {
-                    Optional<MstRolePermission> permission = rolePermissionRepository
-                            .findByRoleIdAndMenuId(role.getId(), menu.getId());
-                    
-                    if (permission.isPresent()) {
-                        MstRolePermission rp = permission.get();
-                        canView = canView || rp.getCanView();
-                        canCreate = canCreate || rp.getCanCreate();
-                        canUpdate = canUpdate || rp.getCanUpdate();
-                        canDelete = canDelete || rp.getCanDelete();
-                    }
-                }
-
-                RolePermissionMatrixResponse.MenuPermissionItem item = RolePermissionMatrixResponse.MenuPermissionItem.builder()
-                        .menuId(menu.getId())
-                        .menuCode(menu.getMenuCode())
-                        .menuName(menu.getMenuName())
-                        .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
-                        .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
-                        .displayOrder(menu.getDisplayOrder())
-                        .canView(canView)
-                        .canCreate(canCreate)
-                        .canUpdate(canUpdate)
-                        .canDelete(canDelete)
-                        .build();
-                menuPermissions.add(item);
-            }
-        }
-
-        // Sort by parent first, then by display order
-        menuPermissions.sort(Comparator
-                .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
-                .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
+        sortMenuPermissions(menuPermissions);
 
         return RolePermissionMatrixResponse.builder()
-                .roleId(null) // Combined roles, no single role ID
+                .roleId(null)
                 .roleName(String.join(", ", roleNames))
                 .roleDescription("Combined permissions for user roles")
                 .menuPermissions(menuPermissions)
                 .build();
+    }
+
+    private List<RolePermissionMatrixResponse.MenuPermissionItem> buildAdminPermissions(List<MstMenu> menus) {
+        return menus.stream()
+                .map(menu -> buildMenuPermissionItem(menu, true, true, true, true))
+                .toList();
+    }
+
+    private List<RolePermissionMatrixResponse.MenuPermissionItem> buildCombinedRolePermissions(
+            List<MstMenu> menus, List<String> roleNames) {
+        List<MstRole> roles = roleNames.stream()
+                .map(roleRepository::findByRoleName)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+
+        return menus.stream()
+                .map(menu -> buildPermissionForMenu(menu, roles))
+                .toList();
+    }
+
+    private RolePermissionMatrixResponse.MenuPermissionItem buildPermissionForMenu(MstMenu menu, List<MstRole> roles) {
+        boolean canView = false;
+        boolean canCreate = false;
+        boolean canUpdate = false;
+        boolean canDelete = false;
+
+        for (MstRole role : roles) {
+            Optional<MstRolePermission> permission = rolePermissionRepository
+                    .findByRoleIdAndMenuId(role.getId(), menu.getId());
+
+            if (permission.isPresent()) {
+                MstRolePermission rp = permission.get();
+                canView = canView || rp.getCanView();
+                canCreate = canCreate || rp.getCanCreate();
+                canUpdate = canUpdate || rp.getCanUpdate();
+                canDelete = canDelete || rp.getCanDelete();
+            }
+        }
+
+        return buildMenuPermissionItem(menu, canView, canCreate, canUpdate, canDelete);
+    }
+
+    private RolePermissionMatrixResponse.MenuPermissionItem buildMenuPermissionItem(
+            MstMenu menu, boolean canView, boolean canCreate, boolean canUpdate, boolean canDelete) {
+        return RolePermissionMatrixResponse.MenuPermissionItem.builder()
+                .menuId(menu.getId())
+                .menuCode(menu.getMenuCode())
+                .menuName(menu.getMenuName())
+                .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
+                .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
+                .displayOrder(menu.getDisplayOrder())
+                .canView(canView)
+                .canCreate(canCreate)
+                .canUpdate(canUpdate)
+                .canDelete(canDelete)
+                .build();
+    }
+
+    private void sortMenuPermissions(List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions) {
+        menuPermissions.sort(Comparator
+                .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
+                .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
     }
 
     // ========== MAPPING METHODS ==========
@@ -473,7 +471,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                     .filter(MstMenu::getIsActive)
                     .sorted(Comparator.comparing(MstMenu::getDisplayOrder))
                     .map(child -> mapToMenuResponse(child, true))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         return MenuResponse.builder()

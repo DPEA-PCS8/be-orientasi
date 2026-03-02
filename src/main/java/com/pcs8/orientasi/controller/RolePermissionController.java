@@ -38,7 +38,6 @@ public class RolePermissionController {
     @RequiresRole("Admin")
     @PostMapping("/menus")
     public ResponseEntity<BaseResponse> createMenu(@Valid @RequestBody CreateMenuRequest request) {
-        log.info("Creating menu: {}", request.getMenuCode());
         MenuResponse menuResponse = rolePermissionService.createMenu(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Menu created successfully", menuResponse));
@@ -112,7 +111,6 @@ public class RolePermissionController {
     @RequiresRole("Admin")
     @PostMapping("/permissions")
     public ResponseEntity<BaseResponse> createOrUpdatePermission(@Valid @RequestBody RolePermissionRequest request) {
-        log.info("Creating/updating permission for role: {} on menu: {}", request.getRoleId(), request.getMenuId());
         RolePermissionResponse response = rolePermissionService.createOrUpdatePermission(request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permission saved successfully", response));
     }
@@ -124,7 +122,6 @@ public class RolePermissionController {
     @RequiresRole("Admin")
     @PostMapping("/permissions/bulk")
     public ResponseEntity<BaseResponse> bulkUpdatePermissions(@Valid @RequestBody BulkRolePermissionRequest request) {
-        log.info("Bulk updating permissions for role: {}", request.getRoleId());
         List<RolePermissionResponse> responses = rolePermissionService.bulkUpdatePermissions(request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permissions updated successfully", responses));
     }
@@ -186,7 +183,6 @@ public class RolePermissionController {
             @RequestParam String roleName,
             @RequestParam String menuCode,
             @RequestParam String permissionType) {
-        log.info("Checking permission: role={}, menu={}, type={}", roleName, menuCode, permissionType);
         boolean hasPermission = rolePermissionService.hasPermission(roleName, menuCode, permissionType);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permission check completed", hasPermission));
     }
@@ -197,7 +193,6 @@ public class RolePermissionController {
      */
     @GetMapping("/my-permissions")
     public ResponseEntity<BaseResponse> getMyPermissions(@RequestParam List<String> roles) {
-        log.info("Getting combined permissions for roles: {}", roles);
         RolePermissionMatrixResponse matrix = rolePermissionService.getCombinedPermissionsForRoles(roles);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "User permissions retrieved successfully", matrix));
     }
