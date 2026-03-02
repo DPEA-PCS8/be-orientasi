@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class UpdateStatusRequest {
 
     @NotBlank(message = "Status is required")
-    @Pattern(regexp = "DRAFT|SUBMITTED|APPROVED|REJECTED|REVISION", message = "Invalid status value")
+    @Pattern(regexp = "PENDING|DISETUJUI|DITOLAK", message = "Invalid status value")
     @JsonProperty("status")
     private String status;
 }
