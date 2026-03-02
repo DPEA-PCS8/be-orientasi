@@ -26,6 +26,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
 
     private static final Logger log = LoggerFactory.getLogger(PasswordEncryptionServiceImpl.class);
     private static final String ALGORITHM = "RSA";
+    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
     private static final int KEY_SIZE = 2048;
     
     private PrivateKey privateKey;
@@ -58,19 +59,14 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     private void generateAndSetNewKeyPair() {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(ALGORITHM);
-            keyGen.initialize(KEY_SIZE);
+            keyGen.initialize(KEY_SIZE, new SecureRandom());
             KeyPair keyPair = keyGen.generateKeyPair();
             
             this.privateKey = keyPair.getPrivate();
             this.publicKey = keyPair.getPublic();
             
-            String privateKeyEncoded = Base64.getEncoder().encodeToString(privateKey.getEncoded());
-            String publicKeyEncoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-            
             log.warn("=== NEW RSA KEY PAIR GENERATED ===");
-            log.warn("Update application.yaml with these keys:");
-            log.warn("rsa.encryption.private-key: {}", privateKeyEncoded);
-            log.warn("rsa.encryption.public-key: {}", publicKeyEncoded);
+            log.warn("Keys generated successfully. Please configure them securely in application.yaml");
             log.warn("=== END OF GENERATED KEYS ===");
             
         } catch (NoSuchAlgorithmException e) {
@@ -82,7 +78,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     @Override
     public String encrypt(String rawPassword) {
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
             
             byte[] encryptedBytes = cipher.doFinal(rawPassword.getBytes(StandardCharsets.UTF_8));
@@ -99,7 +95,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     @Override
     public String decrypt(String encryptedPassword) {
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, privateKey);
             
             byte[] decodedBytes = Base64.getDecoder().decode(encryptedPassword);
