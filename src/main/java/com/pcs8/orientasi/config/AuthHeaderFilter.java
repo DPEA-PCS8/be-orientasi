@@ -44,7 +44,7 @@ public class AuthHeaderFilter implements Filter {
             "/api/crypto/decrypt"
     ));
 
-    @Value("${app.api-key:da39b92f-a1b8-46d5-a10c-d08b1cc92218}")
+    @Value("${app.api-key}")
     private String configuredApiKey;
 
     @Override
