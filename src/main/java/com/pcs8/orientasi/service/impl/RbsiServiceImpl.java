@@ -75,10 +75,20 @@ public class RbsiServiceImpl implements RbsiService {
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        Integer resolvedTahun = resolveTahun(rbsi.getId(), tahun);
         List<RbsiProgramResponse> programs = null;
-        if (resolvedTahun != null) {
-            programs = getProgramsByRbsiAndTahun(rbsi.getId(), resolvedTahun);
+
+        if (tahun != null) {
+            // If specific year requested, return only that year
+            programs = getProgramsByRbsiAndTahun(rbsi.getId(), tahun);
+        } else {
+            // If no year specified, return programs from all years
+            List<Integer> years = programRepository.findDistinctTahunByRbsiId(rbsi.getId());
+            if (!years.isEmpty()) {
+                programs = new ArrayList<>();
+                for (Integer year : years) {
+                    programs.addAll(getProgramsByRbsiAndTahun(rbsi.getId(), year));
+                }
+            }
         }
 
         return mapToRbsiResponse(rbsi, programs);
