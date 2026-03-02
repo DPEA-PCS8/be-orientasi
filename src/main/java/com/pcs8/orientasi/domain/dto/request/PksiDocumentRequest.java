@@ -63,4 +63,9 @@ public class PksiDocumentRequest {
     @JsonProperty("fungsi_aplikasi")
     @NotBlank(message = "Fungsi aplikasi is required")
     private String fungsiAplikasi;
+
+    // ==================== USER ID ====================
+    @JsonProperty("user_id")
+    @NotBlank(message = "User ID is required")
+    private String userId;
 }
