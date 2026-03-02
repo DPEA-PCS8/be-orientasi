@@ -152,8 +152,12 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         document.setStatus(newStatus);
 
-        PksiDocument updated = pksiDocumentRepository.save(document);
+        pksiDocumentRepository.save(document);
         log.info("PKSI document status updated: {} -> {}", id, newStatus);
+
+        // Re-fetch with user to avoid lazy loading issues
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         return mapToResponse(updated);
     }
