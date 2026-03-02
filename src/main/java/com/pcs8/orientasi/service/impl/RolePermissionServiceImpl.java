@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class RolePermissionServiceImpl implements RolePermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(RolePermissionServiceImpl.class);
@@ -39,7 +38,18 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
-    private final @Lazy RolePermissionService self;
+    private final RolePermissionService self;
+
+    public RolePermissionServiceImpl(
+            MstMenuRepository menuRepository,
+            MstRoleRepository roleRepository,
+            MstRolePermissionRepository rolePermissionRepository,
+            @Lazy RolePermissionService self) {
+        this.menuRepository = menuRepository;
+        this.roleRepository = roleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.self = self;
+    }
 
     // ========== MENU MANAGEMENT ==========
 
