@@ -35,8 +35,6 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public RoleResponse createRole(CreateRoleRequest request) {
-        log.info("Creating new role: {}", request.getRoleName());
-
         if (roleRepository.existsByRoleName(request.getRoleName())) {
             throw new BadRequestException("Role with name '" + request.getRoleName() + "' already exists");
         }
@@ -118,8 +116,6 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public UserWithRolesResponse assignRolesToUser(AssignRoleRequest request, UUID assignedByUuid) {
-        log.info("Assigning roles to user: {}", request.getUserUuid());
-
         MstUser user = userRepository.findById(request.getUserUuid())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with UUID: " + request.getUserUuid()));
 

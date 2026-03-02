@@ -40,7 +40,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
-    private final @Lazy RolePermissionService self;
 
     // ========== MENU MANAGEMENT ==========
 
@@ -335,7 +334,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         List<MstRole> allRoles = roleRepository.findAll();
         return allRoles.stream()
-                .map(role -> self.getPermissionMatrix(role.getId()))
+                .map(role -> getPermissionMatrix(role.getId()))
                 .toList();
     }
 
