@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +46,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public MenuResponse createMenu(CreateMenuRequest request) {
-        log.info("Creating menu: {}", request.getMenuCode());
 
         if (menuRepository.existsByMenuCode(request.getMenuCode())) {
             throw new BadRequestException("Menu with code '" + request.getMenuCode() + "' already exists");
@@ -192,7 +190,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public RolePermissionResponse createOrUpdatePermission(RolePermissionRequest request) {
-        log.info("Creating/updating permission for role: {} on menu: {}", request.getRoleId(), request.getMenuId());
 
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
@@ -230,8 +227,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public List<RolePermissionResponse> bulkUpdatePermissions(BulkRolePermissionRequest request) {
-        log.info("Bulk updating permissions for role: {}", request.getRoleId());
-
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
 
@@ -339,7 +334,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         List<MstRole> allRoles = roleRepository.findAll();
         return allRoles.stream()
-                .map(role -> getPermissionMatrix(role.getId()))
+                .map(role -> self.getPermissionMatrix(role.getId()))
                 .toList();
     }
 
