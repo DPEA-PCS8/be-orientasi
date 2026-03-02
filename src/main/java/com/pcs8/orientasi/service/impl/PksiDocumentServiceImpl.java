@@ -54,7 +54,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .penggunaAplikasi(request.getPenggunaAplikasi())
                 .programInisiatifRbsi(request.getProgramInisiatifRbsi())
                 .fungsiAplikasi(request.getFungsiAplikasi())
-                .status(PksiDocument.DocumentStatus.DRAFT)
+                .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
         PksiDocument saved = pksiDocumentRepository.save(document);
