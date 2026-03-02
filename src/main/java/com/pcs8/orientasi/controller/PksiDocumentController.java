@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.controller;
 
+import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/pksi")
 @RequiredArgsConstructor
+@RequiresRole({"Admin", "Pengembang", "Satker"})
 public class PksiDocumentController {
 
     private final PksiDocumentService pksiDocumentService;
