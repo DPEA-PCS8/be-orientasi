@@ -37,7 +37,6 @@ public class RoleController {
     @RequiresRole("Admin")
     @PostMapping
     public ResponseEntity<BaseResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
-        log.info("Creating role: {}", request.getRoleName());
         RoleResponse roleResponse = roleService.createRole(request);
         BaseResponse response = new BaseResponse(
                 HttpStatus.CREATED.value(),
@@ -126,7 +125,6 @@ public class RoleController {
     public ResponseEntity<BaseResponse> assignRolesToUser(
             @Valid @RequestBody AssignRoleRequest request,
             HttpServletRequest httpRequest) {
-        log.info("Assigning roles to user: {}", request.getUserUuid());
 
         // Extract UUID of admin who is assigning the role from request attributes
         String userUuidStr = (String) httpRequest.getAttribute("user_uuid");

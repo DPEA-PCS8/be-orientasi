@@ -604,7 +604,6 @@ public class RbsiServiceImpl implements RbsiService {
                     .build());
         }
 
-        log.info("Updated KEP progress for KEP {} inisiatif {} (group: {})", kepId, request.getInisiatifId(), group.getId());
         return KepProgressResponse.builder()
                 .kepId(kepId)
                 .nomorKep(kep.getNomorKep())
