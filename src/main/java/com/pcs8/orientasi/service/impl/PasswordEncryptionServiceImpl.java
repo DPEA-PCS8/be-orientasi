@@ -70,7 +70,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             log.warn("=== END OF GENERATED KEYS ===");
             
         } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to generate RSA key pair: {}", e.getMessage());
+            log.error("Failed to generate RSA key pair", e);
             throw new RuntimeException("Cannot initialize RSA encryption service", e);
         }
     }
@@ -87,7 +87,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             log.debug("Password encrypted successfully with RSA public key");
             return encryptedPassword;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            log.error("Error encrypting password: {}", e.getMessage());
+            log.error("Error encrypting password", e);
             throw new RuntimeException("Failed to encrypt password with RSA", e);
         }
     }
@@ -108,7 +108,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             log.warn("Password is not valid Base64 or RSA encrypted, using as plain text");
             return encryptedPassword;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            log.error("Error decrypting password: {}", e.getMessage());
+            log.error("Error decrypting password", e);
             throw new RuntimeException("Failed to decrypt password with RSA", e);
         }
     }

@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentServiceImpl.class);
+    private static final String PKSI_NOT_FOUND = "PKSI document not found";
 
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
@@ -68,7 +69,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching PKSI document: {}", id);
         
         PksiDocument document = pksiDocumentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         return mapToResponse(document);
     }
@@ -99,7 +100,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Updating PKSI document: {}", id);
 
         PksiDocument document = pksiDocumentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         document.setNamaPksi(request.getNamaPksi());
         document.setDeskripsiPksi(request.getDeskripsiPksi());
@@ -125,7 +126,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Deleting PKSI document: {}", id);
 
         if (!pksiDocumentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("PKSI document not found");
+            throw new ResourceNotFoundException(PKSI_NOT_FOUND);
         }
 
         pksiDocumentRepository.deleteById(id);
@@ -135,17 +136,18 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional
     public PksiDocumentResponse updateStatus(UUID id, String status) {
-        log.info("Updating status for PKSI document: {} to {}", id, status);
+        log.info("Updating status for PKSI document: {}", id);
 
         PksiDocument document = pksiDocumentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         PksiDocument.DocumentStatus newStatus;
         try {
             newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid status value provided for document: {}", id);
             String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
-            throw new BadRequestException("Invalid status value: " + status + ". Valid values are: " + validStatuses);
+            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
         
         document.setStatus(newStatus);
