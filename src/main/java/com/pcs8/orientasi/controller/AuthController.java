@@ -100,7 +100,7 @@ public class AuthController {
 
             return ResponseEntity.ok(new BaseResponse(200, "Login successful", loginResponse));
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Login failed for user: {}. Error: {}", request.getUsername(), e.getMessage());
 
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

@@ -79,7 +79,7 @@ public class AuthHeaderFilter implements Filter {
             // All validation passed, continue to next filter
             chain.doFilter(request, response);
 
-        } catch (Exception e) {
+        } catch (IOException | ServletException e) {
             log.error("Error in AuthHeaderFilter: {}", e.getMessage());
             sendErrorResponse(httpResponse, 500, "Internal server error");
         }
@@ -138,9 +138,11 @@ public class AuthHeaderFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
+        // No initialization required for this filter
     }
 
     @Override
     public void destroy() {
+        // No cleanup required for this filter
     }
 }
