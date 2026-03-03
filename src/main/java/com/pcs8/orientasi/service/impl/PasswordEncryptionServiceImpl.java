@@ -29,7 +29,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
 
     private static final Logger log = LoggerFactory.getLogger(PasswordEncryptionServiceImpl.class);
     private static final String ALGORITHM = "RSA";
-    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/PKCS1Padding";
+    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
     private static final int KEY_SIZE = 2048;
     
     private PrivateKey privateKey;
