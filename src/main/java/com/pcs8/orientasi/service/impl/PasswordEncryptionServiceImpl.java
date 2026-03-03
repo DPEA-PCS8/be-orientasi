@@ -11,8 +11,11 @@ import javax.crypto.Cipher;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -26,7 +29,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
 
     private static final Logger log = LoggerFactory.getLogger(PasswordEncryptionServiceImpl.class);
     private static final String ALGORITHM = "RSA";
-    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/PKCS1Padding";
+    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
     private static final int KEY_SIZE = 2048;
     
     private PrivateKey privateKey;
@@ -79,14 +82,20 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     public String encrypt(String rawPassword) {
         try {
             Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            
+            OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA256,
+                PSource.PSpecified.DEFAULT
+            );
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepParams);
+
             byte[] encryptedBytes = cipher.doFinal(rawPassword.getBytes(StandardCharsets.UTF_8));
             String encryptedPassword = Base64.getEncoder().encodeToString(encryptedBytes);
-            
+
             log.debug("Password encrypted successfully with RSA public key");
             return encryptedPassword;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             log.error("Error encrypting password", e);
             throw new RuntimeException("Failed to encrypt password with RSA", e);
         }
@@ -96,18 +105,24 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     public String decrypt(String encryptedPassword) {
         try {
             Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            
+            OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA256,
+                PSource.PSpecified.DEFAULT
+            );
+            cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
+
             byte[] decodedBytes = Base64.getDecoder().decode(encryptedPassword);
             byte[] decryptedBytes = cipher.doFinal(decodedBytes);
             String decryptedPassword = new String(decryptedBytes, StandardCharsets.UTF_8);
-            
+
             log.debug("Password decrypted successfully with RSA private key");
             return decryptedPassword;
         } catch (IllegalArgumentException e) {
             log.warn("Password is not valid Base64 or RSA encrypted, using as plain text");
             return encryptedPassword;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             log.error("Error decrypting password", e);
             throw new RuntimeException("Failed to decrypt password with RSA", e);
         }
