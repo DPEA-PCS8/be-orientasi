@@ -4,6 +4,7 @@ import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentServiceImpl.class);
+    private static final String PKSI_NOT_FOUND = "PKSI document not found";
 
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
@@ -51,7 +54,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .penggunaAplikasi(request.getPenggunaAplikasi())
                 .programInisiatifRbsi(request.getProgramInisiatifRbsi())
                 .fungsiAplikasi(request.getFungsiAplikasi())
-                .status(PksiDocument.DocumentStatus.DRAFT)
+                .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
         PksiDocument saved = pksiDocumentRepository.save(document);
@@ -65,8 +68,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse getDocumentById(UUID id) {
         log.info("Fetching PKSI document: {}", id);
         
-        PksiDocument document = pksiDocumentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         return mapToResponse(document);
     }
@@ -76,7 +79,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public List<PksiDocumentResponse> getAllDocuments() {
         log.info("Fetching all PKSI documents");
         
-        return pksiDocumentRepository.findAll().stream()
+        return pksiDocumentRepository.findAllWithUser().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -96,8 +99,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
         log.info("Updating PKSI document: {}", id);
 
-        PksiDocument document = pksiDocumentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PKSI document not found"));
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
         document.setNamaPksi(request.getNamaPksi());
         document.setDeskripsiPksi(request.getDeskripsiPksi());
@@ -123,18 +126,54 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Deleting PKSI document: {}", id);
 
         if (!pksiDocumentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("PKSI document not found");
+            throw new ResourceNotFoundException(PKSI_NOT_FOUND);
         }
 
         pksiDocumentRepository.deleteById(id);
         log.info("PKSI document deleted: {}", id);
     }
 
+    @Override
+    @Transactional
+    public PksiDocumentResponse updateStatus(UUID id, String status) {
+        log.info("Updating status for PKSI document: {}", id);
+
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        PksiDocument.DocumentStatus newStatus;
+        try {
+            newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid status value provided for document: {}", id);
+            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
+            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
+        }
+        
+        document.setStatus(newStatus);
+
+        pksiDocumentRepository.save(document);
+        log.info("PKSI document status updated: {} -> {}", id, newStatus);
+
+        // Re-fetch with user to avoid lazy loading issues
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        return mapToResponse(updated);
+    }
+
     private PksiDocumentResponse mapToResponse(PksiDocument document) {
+        String userId = null;
+        String userName = null;
+        if (document.getUser() != null) {
+            userId = document.getUser().getUuid() != null ? document.getUser().getUuid().toString() : null;
+            userName = document.getUser().getFullName();
+        }
+        
         return PksiDocumentResponse.builder()
                 .id(document.getId().toString())
-                .userId(document.getUser().getUuid().toString())
-                .userName(document.getUser().getFullName())
+                .userId(userId)
+                .userName(userName)
                 .namaPksi(document.getNamaPksi())
                 .deskripsiPksi(document.getDeskripsiPksi())
                 .tujuanPengajuan(document.getTujuanPengajuan())

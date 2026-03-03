@@ -21,22 +21,10 @@ public class EncryptionController {
     private final PasswordEncryptionService passwordEncryptionService;
 
     /**
-     * Endpoint untuk encrypt password dengan RSA (development & testing).
+     * Endpoint untuk encrypt password dengan RSA (development and testing only).
      * 
-     * Request:
-     * {
-     *   "password": "mypassword123"
-     * }
-     * 
-     * Response:
-     * {
-     *   "status": 200,
-     *   "message": "Password encrypted successfully",
-     *   "data": {
-     *     "password": "mypassword123",
-     *     "encrypted_password": "encrypted_base64_string..."
-     *   }
-     * }
+     * Request body: EncryptionRequest with password field
+     * Response: EncryptionResponse with original and encrypted password
      */
     @PostMapping("/encrypt")
     public ResponseEntity<BaseResponse> encryptPassword(@Valid @RequestBody EncryptionRequest request) {
@@ -52,7 +40,7 @@ public class EncryptionController {
 
             return ResponseEntity.ok(new BaseResponse(200, "Password encrypted successfully", response));
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error encrypting password: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new BaseResponse(400, "Error encrypting password: " + e.getMessage(), null));
@@ -60,21 +48,10 @@ public class EncryptionController {
     }
 
     /**
-     * Endpoint untuk decrypt password dengan RSA (development & testing).
+     * Endpoint untuk decrypt password dengan RSA (development and testing only).
      * 
-     * Request:
-     * {
-     *   "encrypted_password": "encrypted_base64_string..."
-     * }
-     * 
-     * Response:
-     * {
-     *   "status": 200,
-     *   "message": "Password decrypted successfully",
-     *   "data": {
-     *     "decrypted_password": "mypassword123"
-     *   }
-     * }
+     * Request body: EncryptionRequest with encrypted_password field
+     * Response: DecryptResponse with decrypted password
      */
     @PostMapping("/decrypt")
     public ResponseEntity<BaseResponse> decryptPassword(@Valid @RequestBody EncryptionRequest request) {
@@ -94,7 +71,7 @@ public class EncryptionController {
 
             return ResponseEntity.ok(new BaseResponse(200, "Password decrypted successfully", response));
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error decrypting password: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new BaseResponse(400, "Error decrypting password: " + e.getMessage(), null));

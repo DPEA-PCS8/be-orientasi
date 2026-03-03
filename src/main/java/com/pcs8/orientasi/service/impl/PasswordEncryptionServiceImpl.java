@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import javax.crypto.Cipher;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -23,6 +26,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
 
     private static final Logger log = LoggerFactory.getLogger(PasswordEncryptionServiceImpl.class);
     private static final String ALGORITHM = "RSA";
+    private static final String CIPHER_TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
     private static final int KEY_SIZE = 2048;
     
     private PrivateKey privateKey;
@@ -42,7 +46,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             this.privateKey = decodePrivateKeyFromString(privateKeyFromConfig);
             this.publicKey = decodePublicKeyFromString(publicKeyFromConfig);
             log.info("RSA keys loaded from config successfully");
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             log.warn("Failed to load RSA keys from config: {}. Generating new keys...", e.getMessage());
             // Fallback: generate new key pair
             generateAndSetNewKeyPair();
@@ -55,23 +59,18 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     private void generateAndSetNewKeyPair() {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(ALGORITHM);
-            keyGen.initialize(KEY_SIZE);
+            keyGen.initialize(KEY_SIZE, new SecureRandom());
             KeyPair keyPair = keyGen.generateKeyPair();
             
             this.privateKey = keyPair.getPrivate();
             this.publicKey = keyPair.getPublic();
             
-            String privateKeyEncoded = Base64.getEncoder().encodeToString(privateKey.getEncoded());
-            String publicKeyEncoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-            
             log.warn("=== NEW RSA KEY PAIR GENERATED ===");
-            log.warn("Update application.yaml with these keys:");
-            log.warn("rsa.encryption.private-key: {}", privateKeyEncoded);
-            log.warn("rsa.encryption.public-key: {}", publicKeyEncoded);
+            log.warn("Keys generated successfully. Please configure them securely in application.yaml");
             log.warn("=== END OF GENERATED KEYS ===");
             
-        } catch (Exception e) {
-            log.error("Failed to generate RSA key pair: {}", e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Failed to generate RSA key pair", e);
             throw new RuntimeException("Cannot initialize RSA encryption service", e);
         }
     }
@@ -79,7 +78,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     @Override
     public String encrypt(String rawPassword) {
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
             
             byte[] encryptedBytes = cipher.doFinal(rawPassword.getBytes(StandardCharsets.UTF_8));
@@ -87,8 +86,8 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             
             log.debug("Password encrypted successfully with RSA public key");
             return encryptedPassword;
-        } catch (Exception e) {
-            log.error("Error encrypting password: {}", e.getMessage());
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            log.error("Error encrypting password", e);
             throw new RuntimeException("Failed to encrypt password with RSA", e);
         }
     }
@@ -96,7 +95,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     @Override
     public String decrypt(String encryptedPassword) {
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, privateKey);
             
             byte[] decodedBytes = Base64.getDecoder().decode(encryptedPassword);
@@ -108,8 +107,8 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
         } catch (IllegalArgumentException e) {
             log.warn("Password is not valid Base64 or RSA encrypted, using as plain text");
             return encryptedPassword;
-        } catch (Exception e) {
-            log.error("Error decrypting password: {}", e.getMessage());
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            log.error("Error decrypting password", e);
             throw new RuntimeException("Failed to decrypt password with RSA", e);
         }
     }
@@ -119,9 +118,9 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
     /**
      * Decode RSA private key dari String format (Base64).
      */
-    private PrivateKey decodePrivateKeyFromString(String encodedKey) {
+    private PrivateKey decodePrivateKeyFromString(String encodedKey) throws GeneralSecurityException {
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new RuntimeException("Private key config is empty");
+            throw new InvalidKeyException("Private key config is empty");
         }
         
         try {
@@ -131,19 +130,16 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             return keyFactory.generatePrivate(spec);
         } catch (IllegalArgumentException e) {
             log.error("Invalid RSA private key Base64 format: {}", e.getMessage());
-            throw new RuntimeException("Invalid private key format - not valid Base64", e);
-        } catch (Exception e) {
-            log.error("Error decoding private key: {}", e.getMessage());
-            throw new RuntimeException("Failed to decode RSA private key: " + e.getMessage(), e);
+            throw new InvalidKeyException("Invalid private key format - not valid Base64", e);
         }
     }
 
     /**
      * Decode RSA public key dari String format (Base64).
      */
-    private PublicKey decodePublicKeyFromString(String encodedKey) {
+    private PublicKey decodePublicKeyFromString(String encodedKey) throws GeneralSecurityException {
         if (encodedKey == null || encodedKey.trim().isEmpty()) {
-            throw new RuntimeException("Public key config is empty");
+            throw new InvalidKeyException("Public key config is empty");
         }
         
         try {
@@ -153,10 +149,7 @@ public class PasswordEncryptionServiceImpl implements PasswordEncryptionService 
             return keyFactory.generatePublic(spec);
         } catch (IllegalArgumentException e) {
             log.error("Invalid RSA public key Base64 format: {}", e.getMessage());
-            throw new RuntimeException("Invalid public key format - not valid Base64", e);
-        } catch (Exception e) {
-            log.error("Error decoding public key: {}", e.getMessage());
-            throw new RuntimeException("Failed to decode RSA public key: " + e.getMessage(), e);
+            throw new InvalidKeyException("Invalid public key format - not valid Base64", e);
         }
     }
 

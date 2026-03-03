@@ -33,6 +33,9 @@ public class SecurityHeadersFilter implements Filter {
         httpResponse.setHeader("X-Content-Type-Options", "nosniff");
         httpResponse.setHeader("X-Frame-Options", "SAMEORIGIN");
         httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
+        httpResponse.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'self'");
+        httpResponse.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+        httpResponse.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
 
         log.debug("Security headers added to response");
 
@@ -41,9 +44,11 @@ public class SecurityHeadersFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
+        // No initialization required for this filter
     }
 
     @Override
     public void destroy() {
+        // No cleanup required for this filter
     }
 }

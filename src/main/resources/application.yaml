@@ -9,10 +9,17 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     
+  # Run SQL scripts on startup
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+    
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    defer-datasource-initialization: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect

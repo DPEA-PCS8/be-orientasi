@@ -2,11 +2,10 @@ package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
-import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.service.PksiDocumentService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,15 +25,10 @@ public class PksiDocumentController {
 
     @PostMapping
     public ResponseEntity<BaseResponse> createDocument(
-            @Valid @RequestBody PksiDocumentRequest request,
-            HttpServletRequest httpServletRequest) {
+            @Valid @RequestBody PksiDocumentRequest request) {
         
-        // Get user UUID from authentication context
-        Object userUuid = httpServletRequest.getAttribute("user_uuid");
-        if (userUuid == null) {
-            throw new BadRequestException("User UUID not found in request context");
-        }
-        UUID userId = UUID.fromString(userUuid.toString());
+        // Get user ID from request body (sent from frontend)
+        UUID userId = UUID.fromString(request.getUserId());
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -66,6 +60,15 @@ public class PksiDocumentController {
         
         PksiDocumentResponse response = pksiDocumentService.updateDocument(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document updated successfully", response));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<BaseResponse> updateStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateStatusRequest request) {
+        
+        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request.getStatus());
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document status updated successfully", response));
     }
 
     @DeleteMapping("/{id}")

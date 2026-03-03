@@ -18,5 +18,7 @@ public interface PksiDocumentService {
     
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
+    PksiDocumentResponse updateStatus(UUID id, String status);
+    
     void deleteDocument(UUID id);
 }

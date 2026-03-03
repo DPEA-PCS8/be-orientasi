@@ -75,10 +75,19 @@ public class PksiDocument extends BaseEntity {
     private DocumentStatus status;
 
     public enum DocumentStatus {
+        PENDING,
+        DISETUJUI,
+        DITOLAK,
+        // Legacy statuses for backward compatibility
+        @Deprecated
         DRAFT,
+        @Deprecated
         SUBMITTED,
+        @Deprecated
         APPROVED,
+        @Deprecated
         REJECTED,
+        @Deprecated
         REVISION
     }
 }
