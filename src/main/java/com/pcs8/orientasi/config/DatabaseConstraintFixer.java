@@ -7,15 +7,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.regex.Pattern;
-
 @Component
 public class DatabaseConstraintFixer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConstraintFixer.class);
-    
-    // Valid SQL Server identifier pattern (letters, digits, underscores only)
-    private static final Pattern VALID_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
     
     private final JdbcTemplate jdbcTemplate;
 
@@ -29,36 +24,41 @@ public class DatabaseConstraintFixer implements ApplicationRunner {
     }
 
     private void dropStatusCheckConstraints() {
-        try {
-            // Find and drop all check constraints on status column
-            String findConstraintsSql = """
-                SELECT name FROM sys.check_constraints 
-                WHERE parent_object_id = OBJECT_ID('trn_pksi_document')
-                """;
-            
-            jdbcTemplate.queryForList(findConstraintsSql, String.class)
-                .forEach(this::dropConstraintSafely);
-            
-            log.info("Database constraint check completed");
-        } catch (Exception e) {
-            log.warn("Could not check/drop constraints: {}", e.getMessage());
-        }
-    }
-    
-    private void dropConstraintSafely(String constraintName) {
-        // Validate constraint name to prevent SQL injection
-        if (constraintName == null || !VALID_IDENTIFIER.matcher(constraintName).matches()) {
-            log.warn("Invalid constraint name, skipping: {}", constraintName);
-            return;
-        }
+        // Known constraint name from error message
+        String knownConstraint = "CK__trn_pksi___statu__7F2BE32F";
         
         try {
-            // Use parameterized approach with sp_executesql for safety
-            String dropSql = "EXEC sp_executesql N'ALTER TABLE trn_pksi_document DROP CONSTRAINT [' + ? + N']'";
-            jdbcTemplate.update(dropSql, constraintName);
-            log.info("Dropped constraint: {}", constraintName);
+            // Check if constraint exists and drop it
+            String checkAndDropSql = """
+                IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = '%s')
+                BEGIN
+                    ALTER TABLE trn_pksi_document DROP CONSTRAINT [%s]
+                END
+                """.formatted(knownConstraint, knownConstraint);
+            
+            jdbcTemplate.execute(checkAndDropSql);
+            log.info("Attempted to drop constraint: {}", knownConstraint);
         } catch (Exception e) {
-            log.warn("Could not drop constraint {}: {}", constraintName, e.getMessage());
+            log.warn("Could not drop constraint {}: {}", knownConstraint, e.getMessage());
         }
+        
+        // Also try to drop any other status constraints dynamically
+        try {
+            String dropAllStatusConstraintsSql = """
+                DECLARE @sql NVARCHAR(MAX) = '';
+                SELECT @sql = @sql + 'ALTER TABLE trn_pksi_document DROP CONSTRAINT [' + name + ']; '
+                FROM sys.check_constraints 
+                WHERE parent_object_id = OBJECT_ID('trn_pksi_document')
+                AND name LIKE '%statu%';
+                IF LEN(@sql) > 0 EXEC sp_executesql @sql;
+                """;
+            
+            jdbcTemplate.execute(dropAllStatusConstraintsSql);
+            log.info("Dropped all status-related constraints");
+        } catch (Exception e) {
+            log.warn("Could not drop status constraints: {}", e.getMessage());
+        }
+        
+        log.info("Database constraint check completed");
     }
 }
