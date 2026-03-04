@@ -28,4 +28,11 @@ public class MstSkpa extends BaseEntity {
 
     @Column(name = "nama_skpa", nullable = false, length = 255)
     private String namaSkpa;
+
+    @Column(name = "keterangan", length = 255, nullable = true)
+    private String keterangan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bidang_id", nullable = true)
+    private MstBidang bidang;
 }

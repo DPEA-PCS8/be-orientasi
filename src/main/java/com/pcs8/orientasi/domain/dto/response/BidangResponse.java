@@ -15,21 +15,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SkpaResponse {
+public class BidangResponse {
 
     private UUID id;
 
-    @JsonProperty("kode_skpa")
-    private String kodeSkpa;
+    @JsonProperty("kode_bidang")
+    private String kodeBidang;
 
-    @JsonProperty("nama_skpa")
-    private String namaSkpa;
-
-    @JsonProperty("keterangan")
-    private String keterangan;
-
-    @JsonProperty("bidang")
-    private BidangResponse bidang;
+    @JsonProperty("nama_bidang")
+    private String namaBidang;
 
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
