@@ -19,7 +19,7 @@ public interface MstMenuRepository extends JpaRepository<MstMenu, UUID> {
     @Query("SELECT m FROM MstMenu m WHERE m.parent IS NULL AND m.isActive = true ORDER BY m.displayOrder")
     List<MstMenu> findAllRootMenus();
 
-    @Query("SELECT m FROM MstMenu m WHERE m.isActive = true ORDER BY m.displayOrder")
+    @Query("SELECT m FROM MstMenu m LEFT JOIN FETCH m.parent WHERE m.isActive = true ORDER BY m.displayOrder")
     List<MstMenu> findAllActiveMenus();
 
     @Query("SELECT m FROM MstMenu m LEFT JOIN FETCH m.children WHERE m.parent IS NULL AND m.isActive = true ORDER BY m.displayOrder")

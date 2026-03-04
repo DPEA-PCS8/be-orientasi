@@ -45,8 +45,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse> handleUnexpected(Exception ex) {
-        log.error("Unexpected error", ex);
+        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        String errorMessage = "Internal server error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new BaseResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", null));
+                .body(new BaseResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage, null));
     }
 }

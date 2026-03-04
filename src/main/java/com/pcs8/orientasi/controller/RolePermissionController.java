@@ -192,8 +192,18 @@ public class RolePermissionController {
      * All authenticated users can access
      */
     @GetMapping("/my-permissions")
-    public ResponseEntity<BaseResponse> getMyPermissions(@RequestParam List<String> roles) {
-        RolePermissionMatrixResponse matrix = rolePermissionService.getCombinedPermissionsForRoles(roles);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "User permissions retrieved successfully", matrix));
+    public ResponseEntity<BaseResponse> getMyPermissions(@RequestParam(required = false) List<String> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new BaseResponse(HttpStatus.BAD_REQUEST.value(), "Roles parameter is required", null));
+        }
+        try {
+            RolePermissionMatrixResponse matrix = rolePermissionService.getCombinedPermissionsForRoles(roles);
+            return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "User permissions retrieved successfully", matrix));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+                            "Failed to get permissions: " + e.getMessage(), null));
+        }
     }
 }

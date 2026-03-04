@@ -43,12 +43,12 @@ public interface MstRolePermissionRepository extends JpaRepository<MstRolePermis
     @Query("SELECT rp FROM MstRolePermission rp " +
            "JOIN FETCH rp.role " +
            "JOIN FETCH rp.menu m " +
-           "WHERE rp.role.id = :roleId AND m.menuCode = :menuCode")
+           "WHERE rp.role.id = :roleId AND LOWER(m.menuCode) = LOWER(:menuCode)")
     Optional<MstRolePermission> findByRoleIdAndMenuCode(@Param("roleId") UUID roleId, @Param("menuCode") String menuCode);
 
     @Query("SELECT rp FROM MstRolePermission rp " +
            "JOIN FETCH rp.role r " +
            "JOIN FETCH rp.menu m " +
-           "WHERE r.roleName = :roleName AND m.menuCode = :menuCode")
+           "WHERE LOWER(r.roleName) = LOWER(:roleName) AND LOWER(m.menuCode) = LOWER(:menuCode)")
     Optional<MstRolePermission> findByRoleNameAndMenuCode(@Param("roleName") String roleName, @Param("menuCode") String menuCode);
 }
