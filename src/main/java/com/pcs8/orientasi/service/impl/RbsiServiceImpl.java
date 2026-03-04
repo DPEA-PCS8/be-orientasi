@@ -649,13 +649,6 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
     }
 
-    private Integer resolveTahun(UUID rbsiId, Integer tahun) {
-        if (tahun != null) {
-            return tahun;
-        }
-        return programRepository.findMaxTahunByRbsiId(rbsiId);
-    }
-
     private void upsertInisiatifs(RbsiProgram program, List<RbsiInisiatifItemRequest> inisiatifs) {
         Map<String, RbsiInisiatif> existing = inisiatifRepository
             .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), program.getTahun()).stream()

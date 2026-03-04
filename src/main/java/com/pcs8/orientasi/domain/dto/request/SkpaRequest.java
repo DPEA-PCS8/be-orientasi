@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,4 +23,12 @@ public class SkpaRequest {
     @NotBlank(message = "Nama SKPA is required")
     @Size(max = 255, message = "Nama SKPA max 255 characters")
     private String namaSkpa;
+
+    @JsonProperty("keterangan")
+    @Size(max = 255, message = "Keterangan max 255 characters")
+    private String keterangan;
+
+    @JsonProperty("bidang_id")
+    private UUID bidangId;
 }
+
