@@ -52,7 +52,7 @@ public class RolePermissionController {
     public ResponseEntity<BaseResponse> updateMenu(
             @PathVariable UUID menuId,
             @Valid @RequestBody CreateMenuRequest request) {
-        log.info("Updating menu: {}", menuId);
+        log.info("Updating menu");
         MenuResponse menuResponse = rolePermissionService.updateMenu(menuId, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Menu updated successfully", menuResponse));
     }
@@ -85,7 +85,7 @@ public class RolePermissionController {
      */
     @GetMapping("/menus/{menuId}")
     public ResponseEntity<BaseResponse> getMenuById(@PathVariable UUID menuId) {
-        log.info("Getting menu: {}", menuId);
+        log.info("Getting menu by ID");
         MenuResponse menu = rolePermissionService.getMenuById(menuId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Menu retrieved successfully", menu));
     }
@@ -97,7 +97,7 @@ public class RolePermissionController {
     @RequiresRole("Admin")
     @DeleteMapping("/menus/{menuId}")
     public ResponseEntity<BaseResponse> deleteMenu(@PathVariable UUID menuId) {
-        log.info("Deleting menu: {}", menuId);
+        log.info("Deleting menu");
         rolePermissionService.deleteMenu(menuId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Menu deleted successfully", null));
     }
@@ -132,7 +132,7 @@ public class RolePermissionController {
      */
     @GetMapping("/permissions/role/{roleId}")
     public ResponseEntity<BaseResponse> getPermissionsByRole(@PathVariable UUID roleId) {
-        log.info("Getting permissions for role: {}", roleId);
+        log.info("Getting permissions for role");
         List<RolePermissionResponse> permissions = rolePermissionService.getPermissionsByRole(roleId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permissions retrieved successfully", permissions));
     }
@@ -143,7 +143,7 @@ public class RolePermissionController {
      */
     @GetMapping("/matrix/{roleId}")
     public ResponseEntity<BaseResponse> getPermissionMatrix(@PathVariable UUID roleId) {
-        log.info("Getting permission matrix for role: {}", roleId);
+        log.info("Getting permission matrix for role");
         RolePermissionMatrixResponse matrix = rolePermissionService.getPermissionMatrix(roleId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permission matrix retrieved successfully", matrix));
     }
@@ -169,7 +169,7 @@ public class RolePermissionController {
     public ResponseEntity<BaseResponse> deletePermission(
             @PathVariable UUID roleId,
             @PathVariable UUID menuId) {
-        log.info("Deleting permission for role: {} on menu: {}", roleId, menuId);
+        log.info("Deleting permission for role on menu");
         rolePermissionService.deletePermission(roleId, menuId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Permission deleted successfully", null));
     }

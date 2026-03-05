@@ -16,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Data initializer to create default roles and menus on application startup.
@@ -28,6 +30,9 @@ import java.util.Set;
 public class DataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
+    // Role constants
+    private static final String ROLE_ADMIN = "Admin";
 
     private final MstRoleRepository roleRepository;
     private final MstMenuRepository menuRepository;
@@ -73,14 +78,14 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // 3. Admin Role - Same as Pengembang but can also assign roles and have special admin privileges
-        if (!roleRepository.existsByRoleName("Admin")) {
+        if (!roleRepository.existsByRoleName(ROLE_ADMIN)) {
             MstRole adminRole = MstRole.builder()
-                    .roleName("Admin")
+                    .roleName(ROLE_ADMIN)
                     .description("Full access - Same as Pengembang but can also assign roles and manage system configuration")
                     .build();
 
             roleRepository.save(adminRole);
-            log.info("Created role: Admin");
+            log.info("Created role: {}", ROLE_ADMIN);
         }
     }
 
@@ -146,64 +151,99 @@ public class DataInitializer implements CommandLineRunner {
     private MstMenu createOrUpdateMenu(String menuCode, String menuName, String description, MstMenu parent, int displayOrder) {
         Optional<MstMenu> existingMenuOpt = menuRepository.findByMenuCode(menuCode);
         
-        if (existingMenuOpt.isPresent()) {
-            // Update existing menu
-            MstMenu existingMenu = existingMenuOpt.get();
-            boolean updated = false;
-            
-            if (!existingMenu.getMenuName().equals(menuName)) {
-                existingMenu.setMenuName(menuName);
-                updated = true;
-            }
-            if (description != null && !description.equals(existingMenu.getDescription())) {
-                existingMenu.setDescription(description);
-                updated = true;
-            }
-            if (existingMenu.getDisplayOrder() != displayOrder) {
-                existingMenu.setDisplayOrder(displayOrder);
-                updated = true;
-            }
-            if (!existingMenu.getIsActive()) {
-                existingMenu.setIsActive(true);
-                updated = true;
-            }
-            // Update parent if different
-            if (parent == null && existingMenu.getParent() != null) {
-                existingMenu.setParent(null);
-                updated = true;
-            } else if (parent != null && (existingMenu.getParent() == null || !existingMenu.getParent().getId().equals(parent.getId()))) {
-                existingMenu.setParent(parent);
-                updated = true;
-            }
-            
-            if (updated) {
-                MstMenu savedMenu = menuRepository.save(existingMenu);
-                log.info("Updated menu: {}", menuCode);
-                return savedMenu;
-            }
-            return existingMenu;
-        } else {
-            // Create new menu
-            MstMenu menu = MstMenu.builder()
-                    .menuCode(menuCode)
-                    .menuName(menuName)
-                    .description(description)
-                    .parent(parent)
-                    .displayOrder(displayOrder)
-                    .isActive(true)
-                    .build();
+        if (existingMenuOpt.isEmpty()) {
+            return createNewMenu(menuCode, menuName, description, parent, displayOrder);
+        }
+        
+        return updateExistingMenu(existingMenuOpt.get(), menuCode, menuName, description, parent, displayOrder);
+    }
 
-            MstMenu savedMenu = menuRepository.save(menu);
-            log.info("Created menu: {}", menuCode);
+    /**
+     * Create a new menu
+     */
+    private MstMenu createNewMenu(String menuCode, String menuName, String description, MstMenu parent, int displayOrder) {
+        MstMenu menu = MstMenu.builder()
+                .menuCode(menuCode)
+                .menuName(menuName)
+                .description(description)
+                .parent(parent)
+                .displayOrder(displayOrder)
+                .isActive(true)
+                .build();
+
+        MstMenu savedMenu = menuRepository.save(menu);
+        log.info("Created menu: {}", menuCode);
+        return savedMenu;
+    }
+
+    /**
+     * Update an existing menu if changes are detected
+     */
+    private MstMenu updateExistingMenu(MstMenu existingMenu, String menuCode, String menuName, String description, MstMenu parent, int displayOrder) {
+        boolean updated = false;
+        
+        updated |= updateMenuName(existingMenu, menuName);
+        updated |= updateMenuDescription(existingMenu, description);
+        updated |= updateMenuDisplayOrder(existingMenu, displayOrder);
+        updated |= updateMenuActiveStatus(existingMenu);
+        updated |= updateMenuParent(existingMenu, parent);
+        
+        if (updated) {
+            MstMenu savedMenu = menuRepository.save(existingMenu);
+            log.info("Updated menu: {}", menuCode);
             return savedMenu;
         }
+        return existingMenu;
+    }
+
+    private boolean updateMenuName(MstMenu menu, String menuName) {
+        if (!menu.getMenuName().equals(menuName)) {
+            menu.setMenuName(menuName);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updateMenuDescription(MstMenu menu, String description) {
+        if (description != null && !description.equals(menu.getDescription())) {
+            menu.setDescription(description);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updateMenuDisplayOrder(MstMenu menu, int displayOrder) {
+        if (menu.getDisplayOrder() != displayOrder) {
+            menu.setDisplayOrder(displayOrder);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updateMenuActiveStatus(MstMenu menu) {
+        if (!menu.getIsActive()) {
+            menu.setIsActive(true);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updateMenuParent(MstMenu menu, MstMenu parent) {
+        UUID currentParentId = menu.getParent() != null ? menu.getParent().getId() : null;
+        UUID newParentId = parent != null ? parent.getId() : null;
+        
+        if (!Objects.equals(currentParentId, newParentId)) {
+            menu.setParent(parent);
+            return true;
+        }
+        return false;
     }
 
     /**
      * Ensure Admin role has full permissions on all active menus
      */
     private void assignAdminPermissionsToAllMenus() {
-        Optional<MstRole> adminRoleOpt = roleRepository.findByRoleName("Admin");
+        Optional<MstRole> adminRoleOpt = roleRepository.findByRoleName(ROLE_ADMIN);
         if (adminRoleOpt.isEmpty()) {
             log.warn("Admin role not found - skipping permission assignment");
             return;
@@ -212,42 +252,68 @@ public class DataInitializer implements CommandLineRunner {
         MstRole adminRole = adminRoleOpt.get();
         List<MstMenu> allActiveMenus = menuRepository.findAllActiveMenus();
 
-        int created = 0;
-        int updated = 0;
+        int[] counts = {0, 0}; // [created, updated]
 
         for (MstMenu menu : allActiveMenus) {
-            Optional<MstRolePermission> existingPermOpt = rolePermissionRepository
-                    .findByRoleIdAndMenuId(adminRole.getId(), menu.getId());
-
-            if (existingPermOpt.isPresent()) {
-                // Update existing permission to ensure full access
-                MstRolePermission perm = existingPermOpt.get();
-                boolean needsUpdate = false;
-                
-                if (!perm.getCanView()) { perm.setCanView(true); needsUpdate = true; }
-                if (!perm.getCanCreate()) { perm.setCanCreate(true); needsUpdate = true; }
-                if (!perm.getCanUpdate()) { perm.setCanUpdate(true); needsUpdate = true; }
-                if (!perm.getCanDelete()) { perm.setCanDelete(true); needsUpdate = true; }
-                
-                if (needsUpdate) {
-                    rolePermissionRepository.save(perm);
-                    updated++;
-                }
-            } else {
-                // Create new permission with full access
-                MstRolePermission newPerm = MstRolePermission.builder()
-                        .role(adminRole)
-                        .menu(menu)
-                        .canView(true)
-                        .canCreate(true)
-                        .canUpdate(true)
-                        .canDelete(true)
-                        .build();
-                rolePermissionRepository.save(newPerm);
-                created++;
-            }
+            processAdminPermissionForMenu(adminRole, menu, counts);
         }
 
+        logPermissionStats(counts[0], counts[1]);
+    }
+
+    /**
+     * Process admin permission for a single menu
+     */
+    private void processAdminPermissionForMenu(MstRole adminRole, MstMenu menu, int[] counts) {
+        Optional<MstRolePermission> existingPermOpt = rolePermissionRepository
+                .findByRoleIdAndMenuId(adminRole.getId(), menu.getId());
+
+        if (existingPermOpt.isPresent()) {
+            if (updatePermissionToFullAccess(existingPermOpt.get())) {
+                counts[1]++;
+            }
+        } else {
+            createFullAccessPermission(adminRole, menu);
+            counts[0]++;
+        }
+    }
+
+    /**
+     * Update permission to full access if needed
+     */
+    private boolean updatePermissionToFullAccess(MstRolePermission perm) {
+        boolean needsUpdate = !perm.getCanView() || !perm.getCanCreate() 
+                || !perm.getCanUpdate() || !perm.getCanDelete();
+        
+        if (needsUpdate) {
+            perm.setCanView(true);
+            perm.setCanCreate(true);
+            perm.setCanUpdate(true);
+            perm.setCanDelete(true);
+            rolePermissionRepository.save(perm);
+        }
+        return needsUpdate;
+    }
+
+    /**
+     * Create new permission with full access
+     */
+    private void createFullAccessPermission(MstRole role, MstMenu menu) {
+        MstRolePermission newPerm = MstRolePermission.builder()
+                .role(role)
+                .menu(menu)
+                .canView(true)
+                .canCreate(true)
+                .canUpdate(true)
+                .canDelete(true)
+                .build();
+        rolePermissionRepository.save(newPerm);
+    }
+
+    /**
+     * Log permission statistics if any changes were made
+     */
+    private void logPermissionStats(int created, int updated) {
         if (created > 0 || updated > 0) {
             log.info("Admin permissions - Created: {}, Updated: {}", created, updated);
         }
