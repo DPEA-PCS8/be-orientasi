@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +40,9 @@ public class AplikasiRequest {
 
     @JsonProperty("skpa_id")
     private UUID skpaId;
+
+    @JsonProperty("tanggal_implementasi")
+    private LocalDate tanggalImplementasi;
 
     @JsonProperty("akses")
     private String akses; // INTERNET, INTRANET, BOTH
@@ -79,6 +83,10 @@ public class AplikasiRequest {
     @JsonProperty("komunikasi_sistems")
     @Valid
     private List<KomunikasiSistemRequest> komunikasiSistems;
+
+    @JsonProperty("penghargaans")
+    @Valid
+    private List<PenghargaanRequest> penghargaans;
 
     @Data
     @AllArgsConstructor
@@ -138,5 +146,21 @@ public class AplikasiRequest {
 
         @JsonProperty("is_planned")
         private Boolean isPlanned;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PenghargaanRequest {
+        @JsonProperty("kategori_id")
+        @NotNull(message = "Kategori is required")
+        private UUID kategoriId;
+
+        @JsonProperty("tanggal")
+        @NotNull(message = "Tanggal is required")
+        private LocalDate tanggal;
+
+        @JsonProperty("deskripsi")
+        private String deskripsi;
     }
 }

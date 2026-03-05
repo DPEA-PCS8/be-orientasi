@@ -9,6 +9,7 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
+import com.pcs8.orientasi.repository.MstVariableRepository;
 import com.pcs8.orientasi.service.AplikasiService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ public class AplikasiServiceImpl implements AplikasiService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
+    private final MstVariableRepository variableRepository;
 
     @Override
     @Transactional
@@ -47,6 +49,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .namaAplikasi(request.getNamaAplikasi().trim())
                 .deskripsi(request.getDeskripsi())
                 .statusAplikasi(request.getStatusAplikasi())
+                .tanggalImplementasi(request.getTanggalImplementasi())
                 .akses(request.getAkses())
                 .prosesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false)
                 .dataPribadiDiproses(request.getDataPribadiDiproses())
@@ -58,6 +61,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .satkerInternals(new ArrayList<>())
                 .penggunaEksternals(new ArrayList<>())
                 .komunikasiSistems(new ArrayList<>())
+                .penghargaans(new ArrayList<>())
                 .build();
 
         // Set bidang if provided
@@ -126,6 +130,21 @@ public class AplikasiServiceImpl implements AplikasiService {
             }
         }
 
+        // Add Penghargaans
+        if (request.getPenghargaans() != null) {
+            for (AplikasiRequest.PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
+                MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
+                AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
+                        .aplikasi(aplikasi)
+                        .kategori(kategori)
+                        .tanggal(penghargaanReq.getTanggal())
+                        .deskripsi(penghargaanReq.getDeskripsi())
+                        .build();
+                aplikasi.getPenghargaans().add(penghargaan);
+            }
+        }
+
         MstAplikasi saved = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi created: {} - {}", saved.getKodeAplikasi(), saved.getNamaAplikasi());
 
@@ -189,6 +208,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         aplikasi.setNamaAplikasi(request.getNamaAplikasi().trim());
         aplikasi.setDeskripsi(request.getDeskripsi());
         aplikasi.setStatusAplikasi(request.getStatusAplikasi());
+        aplikasi.setTanggalImplementasi(request.getTanggalImplementasi());
         aplikasi.setAkses(request.getAkses());
         aplikasi.setProsesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false);
         aplikasi.setDataPribadiDiproses(request.getDataPribadiDiproses());
@@ -271,6 +291,22 @@ public class AplikasiServiceImpl implements AplikasiService {
             }
         }
 
+        // Clear and re-add Penghargaans
+        aplikasi.getPenghargaans().clear();
+        if (request.getPenghargaans() != null) {
+            for (AplikasiRequest.PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
+                MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
+                AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
+                        .aplikasi(aplikasi)
+                        .kategori(kategori)
+                        .tanggal(penghargaanReq.getTanggal())
+                        .deskripsi(penghargaanReq.getDeskripsi())
+                        .build();
+                aplikasi.getPenghargaans().add(penghargaan);
+            }
+        }
+
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi updated: {} - {}", updated.getKodeAplikasi(), updated.getNamaAplikasi());
 
@@ -346,6 +382,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .namaAplikasi(entity.getNamaAplikasi())
                 .deskripsi(entity.getDeskripsi())
                 .statusAplikasi(entity.getStatusAplikasi())
+                .tanggalImplementasi(entity.getTanggalImplementasi())
                 .akses(entity.getAkses())
                 .prosesDataPribadi(entity.getProsesDataPribadi())
                 .dataPribadiDiproses(entity.getDataPribadiDiproses())
@@ -418,6 +455,22 @@ public class AplikasiServiceImpl implements AplikasiService {
                             .deskripsiKomunikasi(kom.getDeskripsiKomunikasi())
                             .keterangan(kom.getKeterangan())
                             .isPlanned(kom.getIsPlanned())
+                            .build())
+                    .collect(Collectors.toList()));
+        }
+
+        // Map penghargaans
+        if (entity.getPenghargaans() != null && !entity.getPenghargaans().isEmpty()) {
+            builder.penghargaans(entity.getPenghargaans().stream()
+                    .map(penghargaan -> AplikasiResponse.PenghargaanInfo.builder()
+                            .id(penghargaan.getId())
+                            .kategori(AplikasiResponse.VariableInfo.builder()
+                                    .id(penghargaan.getKategori().getId())
+                                    .kode(penghargaan.getKategori().getKode())
+                                    .nama(penghargaan.getKategori().getNama())
+                                    .build())
+                            .tanggal(penghargaan.getTanggal())
+                            .deskripsi(penghargaan.getDeskripsi())
                             .build())
                     .collect(Collectors.toList()));
         }

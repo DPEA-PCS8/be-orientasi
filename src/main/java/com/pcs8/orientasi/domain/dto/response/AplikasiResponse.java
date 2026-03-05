@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +38,9 @@ public class AplikasiResponse {
 
     @JsonProperty("skpa")
     private SkpaInfo skpa;
+
+    @JsonProperty("tanggal_implementasi")
+    private LocalDate tanggalImplementasi;
 
     @JsonProperty("akses")
     private String akses;
@@ -72,6 +76,9 @@ public class AplikasiResponse {
 
     @JsonProperty("komunikasi_sistems")
     private List<KomunikasiSistemInfo> komunikasiSistems;
+
+    @JsonProperty("penghargaans")
+    private List<PenghargaanInfo> penghargaans;
 
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
@@ -152,5 +159,29 @@ public class AplikasiResponse {
         private String keterangan;
         @JsonProperty("is_planned")
         private Boolean isPlanned;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PenghargaanInfo {
+        private UUID id;
+        @JsonProperty("kategori")
+        private VariableInfo kategori;
+        @JsonProperty("tanggal")
+        private LocalDate tanggal;
+        @JsonProperty("deskripsi")
+        private String deskripsi;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VariableInfo {
+        private UUID id;
+        private String kode;
+        private String nama;
     }
 }

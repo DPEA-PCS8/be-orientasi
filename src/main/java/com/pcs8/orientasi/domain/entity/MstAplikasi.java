@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,6 +47,9 @@ public class MstAplikasi extends BaseEntity {
     @JoinColumn(name = "skpa_id", nullable = true)
     private MstSkpa skpa;
 
+    @Column(name = "tanggal_implementasi")
+    private LocalDate tanggalImplementasi;
+
     @Column(name = "akses", length = 20)
     private String akses; // INTERNET, INTRANET, BOTH
 
@@ -85,4 +89,8 @@ public class MstAplikasi extends BaseEntity {
     @OneToMany(mappedBy = "aplikasi", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<AplikasiKomunikasiSistem> komunikasiSistems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "aplikasi", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<AplikasiPenghargaan> penghargaans = new ArrayList<>();
 }
