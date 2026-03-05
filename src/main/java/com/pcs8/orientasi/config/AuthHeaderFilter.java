@@ -79,9 +79,9 @@ public class AuthHeaderFilter implements Filter {
             // All validation passed, continue to next filter
             chain.doFilter(request, response);
 
-        } catch (IOException | ServletException e) {
-            log.error("Error in AuthHeaderFilter: {}", e.getMessage());
-            sendErrorResponse(httpResponse, 500, "Internal server error");
+        } catch (Exception e) {
+            log.error("Error in AuthHeaderFilter: {}", e.getMessage(), e);
+            sendErrorResponse(httpResponse, 500, "Internal server error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
         }
     }
 

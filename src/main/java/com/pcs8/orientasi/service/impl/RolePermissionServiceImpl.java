@@ -15,7 +15,6 @@ import com.pcs8.orientasi.repository.MstMenuRepository;
 import com.pcs8.orientasi.repository.MstRolePermissionRepository;
 import com.pcs8.orientasi.repository.MstRoleRepository;
 import com.pcs8.orientasi.service.RolePermissionService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class RolePermissionServiceImpl implements RolePermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(RolePermissionServiceImpl.class);
@@ -39,6 +37,18 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
+    private final RolePermissionService self;
+
+    public RolePermissionServiceImpl(
+            MstMenuRepository menuRepository,
+            MstRoleRepository roleRepository,
+            MstRolePermissionRepository rolePermissionRepository,
+            @Lazy RolePermissionService self) {
+        this.menuRepository = menuRepository;
+        this.roleRepository = roleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.self = self;
+    }
 
     // ========== MENU MANAGEMENT ==========
 
@@ -226,10 +236,16 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public List<RolePermissionResponse> bulkUpdatePermissions(BulkRolePermissionRequest request) {
+        log.info("[bulkUpdatePermissions] Starting bulk update for role ID: {}", request.getRoleId());
+        log.info("[bulkUpdatePermissions] Number of permissions to save: {}", request.getPermissions().size());
+        
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
 
+        log.info("[bulkUpdatePermissions] Found role: {}", role.getRoleName());
+
         List<RolePermissionResponse> results = new ArrayList<>();
+        int viewTrueCount = 0;
 
         for (BulkRolePermissionRequest.MenuPermission menuPerm : request.getPermissions()) {
             MstMenu menu = menuRepository.findById(menuPerm.getMenuId())
@@ -256,11 +272,19 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                         .build();
             }
 
+            if (menuPerm.getCanView()) viewTrueCount++;
+            
             MstRolePermission savedPermission = rolePermissionRepository.save(permission);
             results.add(mapToRolePermissionResponse(savedPermission));
+            
+            log.info("[bulkUpdatePermissions] Saved: role={}, menu={}, view={}, create={}, update={}, delete={}",
+                    role.getRoleName(), menu.getMenuCode(), 
+                    savedPermission.getCanView(), savedPermission.getCanCreate(), 
+                    savedPermission.getCanUpdate(), savedPermission.getCanDelete());
         }
 
-        log.info("Bulk updated {} permissions for role: {}", results.size(), role.getRoleName());
+        log.info("[bulkUpdatePermissions] Completed: {} permissions saved for role '{}', {} with can_view=true", 
+                results.size(), role.getRoleName(), viewTrueCount);
         return results;
     }
 
@@ -333,7 +357,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         List<MstRole> allRoles = roleRepository.findAll();
         return allRoles.stream()
-                .map(role -> getPermissionMatrix(role.getId()))
+                .map(role -> self.getPermissionMatrix(role.getId()))
                 .toList();
     }
 
@@ -379,13 +403,33 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional(readOnly = true)
     public RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames) {
+        log.info("Getting combined permissions for roles: {}", roleNames);
+
+        // Handle null or empty roles
+        if (roleNames == null || roleNames.isEmpty()) {
+            log.warn("No roles provided, returning empty permissions");
+            return RolePermissionMatrixResponse.builder()
+                    .roleId(null)
+                    .roleName("")
+                    .roleDescription("No roles provided")
+                    .menuPermissions(List.of())
+                    .build();
+        }
+
         boolean isAdmin = roleNames.stream()
                 .anyMatch(roleName -> roleName.equalsIgnoreCase("Admin"));
 
         List<MstMenu> allMenus = menuRepository.findAllActiveMenus();
+        log.info("[getCombinedPermissions] Found {} active menus for roles: {}", allMenus.size(), roleNames);
+        
         List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions = isAdmin
                 ? buildAdminPermissions(allMenus)
                 : buildCombinedRolePermissions(allMenus, roleNames);
+
+        // Log summary of permissions
+        long viewableCount = menuPermissions.stream().filter(p -> p.getCanView()).count();
+        log.info("[getCombinedPermissions] Result: {} menus with can_view=true out of {} total menus", 
+                viewableCount, menuPermissions.size());
 
         sortMenuPermissions(menuPermissions);
 
@@ -398,22 +442,40 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     }
 
     private List<RolePermissionMatrixResponse.MenuPermissionItem> buildAdminPermissions(List<MstMenu> menus) {
-        return menus.stream()
+        return new ArrayList<>(menus.stream()
                 .map(menu -> buildMenuPermissionItem(menu, true, true, true, true))
-                .toList();
+                .toList());
     }
 
     private List<RolePermissionMatrixResponse.MenuPermissionItem> buildCombinedRolePermissions(
             List<MstMenu> menus, List<String> roleNames) {
         List<MstRole> roles = roleNames.stream()
-                .map(roleRepository::findByRoleName)
+                .map(name -> {
+                    Optional<MstRole> roleOpt = roleRepository.findByRoleNameIgnoreCase(name);
+                    if (roleOpt.isEmpty()) {
+                        log.warn("[buildCombinedRolePermissions] Role not found for name: '{}'", name);
+                    }
+                    return roleOpt;
+                })
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
 
-        return menus.stream()
+        log.info("[buildCombinedRolePermissions] Found {} roles out of {} role names provided. Roles: {}", 
+                roles.size(), roleNames.size(), 
+                roles.stream().map(MstRole::getRoleName).toList());
+
+        // Log permission count for each role to help debug
+        for (MstRole role : roles) {
+            List<MstRolePermission> perms = rolePermissionRepository.findByRoleId(role.getId());
+            long viewCount = perms.stream().filter(MstRolePermission::getCanView).count();
+            log.info("[buildCombinedRolePermissions] Role '{}' (ID: {}) has {} permission entries, {} with can_view=true", 
+                    role.getRoleName(), role.getId(), perms.size(), viewCount);
+        }
+
+        return new ArrayList<>(menus.stream()
                 .map(menu -> buildPermissionForMenu(menu, roles))
-                .toList();
+                .toList());
     }
 
     private RolePermissionMatrixResponse.MenuPermissionItem buildPermissionForMenu(MstMenu menu, List<MstRole> roles) {
@@ -432,6 +494,10 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 canCreate = canCreate || rp.getCanCreate();
                 canUpdate = canUpdate || rp.getCanUpdate();
                 canDelete = canDelete || rp.getCanDelete();
+                log.debug("Role {} has permission on menu {}: view={}, create={}, update={}, delete={}",
+                        role.getRoleName(), menu.getMenuCode(), rp.getCanView(), rp.getCanCreate(), rp.getCanUpdate(), rp.getCanDelete());
+            } else {
+                log.debug("Role {} has no permission entry for menu {}", role.getRoleName(), menu.getMenuCode());
             }
         }
 
@@ -440,12 +506,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     private RolePermissionMatrixResponse.MenuPermissionItem buildMenuPermissionItem(
             MstMenu menu, boolean canView, boolean canCreate, boolean canUpdate, boolean canDelete) {
+        MstMenu parent = menu.getParent();
         return RolePermissionMatrixResponse.MenuPermissionItem.builder()
                 .menuId(menu.getId())
                 .menuCode(menu.getMenuCode())
                 .menuName(menu.getMenuName())
-                .parentId(menu.getParent() != null ? menu.getParent().getId() : null)
-                .parentName(menu.getParent() != null ? menu.getParent().getMenuName() : null)
+                .parentId(parent != null ? parent.getId() : null)
+                .parentName(parent != null ? parent.getMenuName() : null)
                 .displayOrder(menu.getDisplayOrder())
                 .canView(canView)
                 .canCreate(canCreate)
@@ -457,7 +524,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private void sortMenuPermissions(List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions) {
         menuPermissions.sort(Comparator
                 .comparing((RolePermissionMatrixResponse.MenuPermissionItem item) -> item.getParentId() != null ? 1 : 0)
-                .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder));
+                .thenComparing(RolePermissionMatrixResponse.MenuPermissionItem::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     // ========== MAPPING METHODS ==========
