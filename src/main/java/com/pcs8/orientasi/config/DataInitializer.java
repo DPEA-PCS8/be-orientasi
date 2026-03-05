@@ -3,9 +3,7 @@ package com.pcs8.orientasi.config;
 import com.pcs8.orientasi.domain.entity.MstMenu;
 import com.pcs8.orientasi.domain.entity.MstRole;
 import com.pcs8.orientasi.domain.entity.MstRolePermission;
-import com.pcs8.orientasi.domain.entity.MstRolePermission;
 import com.pcs8.orientasi.repository.MstMenuRepository;
-import com.pcs8.orientasi.repository.MstRolePermissionRepository;
 import com.pcs8.orientasi.repository.MstRolePermissionRepository;
 import com.pcs8.orientasi.repository.MstRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +36,6 @@ public class DataInitializer implements CommandLineRunner {
 
     private final MstRoleRepository roleRepository;
     private final MstMenuRepository menuRepository;
-    private final MstRolePermissionRepository rolePermissionRepository;
-
-    // List of obsolete menu codes to deactivate
-    private static final Set<String> OBSOLETE_MENU_CODES = new HashSet<>(Arrays.asList(
-        "RBSI_LIST", "RBSI_PROGRAM", "RBSI_INISIATIF",
-        "MONITORING", "MONITORING_DASHBOARD", "MONITORING_REPORT",
-        "PKSI_ADD"
-    ));
     private final MstRolePermissionRepository rolePermissionRepository;
 
     // List of obsolete menu codes to deactivate
@@ -102,19 +92,7 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private void createMenusIfNotExist() {
-        // ========== FEATURES SECTION ==========
-        
-        // RBSI Parent Menu (Manajemen RBSI)
-        MstMenu rbsiMenu = createOrUpdateMenu("RBSI", "Manajemen RBSI", "Menu untuk manajemen RBSI", null, 1);
-        
-        // RBSI sub-menus - Updated to match current sidebar structure
-        createOrUpdateMenu("RBSI_MONITORING", "RBSI Monitoring", "Monitoring RBSI", rbsiMenu, 1);
-        createOrUpdateMenu("RBSI_ARCHITECTURE", "RBSI Arsitektur", "Arsitektur RBSI", rbsiMenu, 2);
-        
-        // PKSI Parent Menu
-        MstMenu pksiMenu = createOrUpdateMenu("PKSI", "PKSI", "Menu untuk manajemen PKSI", null, 2);
-        
+    private void createMenusIfNotExist() {       
         // ========== FEATURES SECTION ==========
         
         // RBSI Parent Menu (Manajemen RBSI)
@@ -133,11 +111,6 @@ public class DataInitializer implements CommandLineRunner {
         createOrUpdateMenu("PKSI_ALL", "Semua PKSI", "Daftar semua PKSI", pksiMenu, 1);
         createOrUpdateMenu("PKSI_APPROVED", "PKSI Disetujui", "Daftar PKSI yang sudah disetujui", pksiMenu, 2);
 
-        // ========== ADMIN SECTION ==========
-        
-        // User & Roles Parent Menu
-        MstMenu userRolesMenu = createOrUpdateMenu("USER_ROLES", "User & Roles", "Menu untuk manajemen user dan role", null, 3);
-        
         // ========== ADMIN SECTION ==========
         
         // User & Roles Parent Menu
