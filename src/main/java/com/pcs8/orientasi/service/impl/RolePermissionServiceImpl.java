@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,15 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
+    
+    // Self-injection via setter to avoid transactional proxy bypass
+    // Cannot use constructor injection due to circular dependency
+    private RolePermissionService self;
+    
+    @Autowired
+    public void setSelf(@Lazy RolePermissionService self) {
+        this.self = self;
+    }
 
     // ========== MENU MANAGEMENT ==========
 
@@ -349,7 +360,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         List<MstRole> allRoles = roleRepository.findAll();
         return allRoles.stream()
-                .map(role -> getPermissionMatrix(role.getId()))
+                .map(role -> self.getPermissionMatrix(role.getId()))
                 .toList();
     }
 
