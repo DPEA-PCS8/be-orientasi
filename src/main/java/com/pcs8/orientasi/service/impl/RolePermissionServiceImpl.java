@@ -15,8 +15,13 @@ import com.pcs8.orientasi.repository.MstMenuRepository;
 import com.pcs8.orientasi.repository.MstRolePermissionRepository;
 import com.pcs8.orientasi.repository.MstRoleRepository;
 import com.pcs8.orientasi.service.RolePermissionService;
+
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class RolePermissionServiceImpl implements RolePermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(RolePermissionServiceImpl.class);
@@ -37,16 +43,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
-    private final RolePermissionService self;
-
-    public RolePermissionServiceImpl(
-            MstMenuRepository menuRepository,
-            MstRoleRepository roleRepository,
-            MstRolePermissionRepository rolePermissionRepository,
-            @Lazy RolePermissionService self) {
-        this.menuRepository = menuRepository;
-        this.roleRepository = roleRepository;
-        this.rolePermissionRepository = rolePermissionRepository;
+    
+    // Self-injection via setter to avoid transactional proxy bypass
+    // Cannot use constructor injection due to circular dependency
+    private RolePermissionService self;
+    
+    @Autowired
+    public void setSelf(@Lazy RolePermissionService self) {
         this.self = self;
     }
 
