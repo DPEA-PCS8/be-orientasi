@@ -60,7 +60,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .statusAplikasi(request.getStatusAplikasi())
                 .tanggalImplementasi(request.getTanggalImplementasi())
                 .akses(request.getAkses())
-                .prosesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false)
+                .prosesDataPribadi(request.getProsesDataPribadi())
                 .dataPribadiDiproses(request.getDataPribadiDiproses())
                 .urls(new ArrayList<>())
                 .satkerInternals(new ArrayList<>())
@@ -143,7 +143,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                             .tipeSistem(komReq.getTipeSistem())
                             .deskripsiKomunikasi(komReq.getDeskripsiKomunikasi())
                             .keterangan(komReq.getKeterangan())
-                            .isPlanned(komReq.getIsPlanned() != null ? komReq.getIsPlanned() : false)
+                            .isPlanned(komReq.getIsPlanned())
                             .build()
             ));
         }
@@ -223,7 +223,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         aplikasi.setStatusAplikasi(request.getStatusAplikasi());
         aplikasi.setTanggalImplementasi(request.getTanggalImplementasi());
         aplikasi.setAkses(request.getAkses());
-        aplikasi.setProsesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false);
+        aplikasi.setProsesDataPribadi(request.getProsesDataPribadi());
         aplikasi.setDataPribadiDiproses(request.getDataPribadiDiproses());
 
         if (request.getIdleInfo() != null) {
