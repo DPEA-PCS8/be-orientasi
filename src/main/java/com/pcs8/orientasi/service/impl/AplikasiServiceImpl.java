@@ -1,8 +1,7 @@
 package com.pcs8.orientasi.service.impl;
 
-import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
-import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
-import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
+import com.pcs8.orientasi.domain.dto.request.*;
+import com.pcs8.orientasi.domain.dto.response.*;
 import com.pcs8.orientasi.domain.entity.*;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
@@ -81,7 +80,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Add URLs
         if (request.getUrls() != null) {
-            for (AplikasiRequest.UrlRequest urlReq : request.getUrls()) {
+            for (UrlRequest urlReq : request.getUrls()) {
                 AplikasiUrl url = AplikasiUrl.builder()
                         .aplikasi(aplikasi)
                         .url(urlReq.getUrl())
@@ -94,7 +93,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Add Satker Internals
         if (request.getSatkerInternals() != null) {
-            for (AplikasiRequest.SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
+            for (SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
                 AplikasiSatkerInternal satker = AplikasiSatkerInternal.builder()
                         .aplikasi(aplikasi)
                         .namaSatker(satkerReq.getNamaSatker())
@@ -106,7 +105,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Add Pengguna Eksternals
         if (request.getPenggunaEksternals() != null) {
-            for (AplikasiRequest.PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
+            for (PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
                 AplikasiPenggunaEksternal pengguna = AplikasiPenggunaEksternal.builder()
                         .aplikasi(aplikasi)
                         .namaPengguna(penggunaReq.getNamaPengguna())
@@ -118,7 +117,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Add Komunikasi Sistems
         if (request.getKomunikasiSistems() != null) {
-            for (AplikasiRequest.KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
+            for (KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
                 AplikasiKomunikasiSistem kom = AplikasiKomunikasiSistem.builder()
                         .aplikasi(aplikasi)
                         .namaSistem(komReq.getNamaSistem())
@@ -133,7 +132,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Add Penghargaans
         if (request.getPenghargaans() != null) {
-            for (AplikasiRequest.PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
+            for (PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
                 MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
                         .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
                 AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
@@ -239,7 +238,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Clear and re-add URLs
         aplikasi.getUrls().clear();
         if (request.getUrls() != null) {
-            for (AplikasiRequest.UrlRequest urlReq : request.getUrls()) {
+            for (UrlRequest urlReq : request.getUrls()) {
                 AplikasiUrl url = AplikasiUrl.builder()
                         .aplikasi(aplikasi)
                         .url(urlReq.getUrl())
@@ -253,7 +252,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Clear and re-add Satker Internals
         aplikasi.getSatkerInternals().clear();
         if (request.getSatkerInternals() != null) {
-            for (AplikasiRequest.SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
+            for (SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
                 AplikasiSatkerInternal satker = AplikasiSatkerInternal.builder()
                         .aplikasi(aplikasi)
                         .namaSatker(satkerReq.getNamaSatker())
@@ -266,7 +265,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Clear and re-add Pengguna Eksternals
         aplikasi.getPenggunaEksternals().clear();
         if (request.getPenggunaEksternals() != null) {
-            for (AplikasiRequest.PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
+            for (PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
                 AplikasiPenggunaEksternal pengguna = AplikasiPenggunaEksternal.builder()
                         .aplikasi(aplikasi)
                         .namaPengguna(penggunaReq.getNamaPengguna())
@@ -279,7 +278,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Clear and re-add Komunikasi Sistems
         aplikasi.getKomunikasiSistems().clear();
         if (request.getKomunikasiSistems() != null) {
-            for (AplikasiRequest.KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
+            for (KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
                 AplikasiKomunikasiSistem kom = AplikasiKomunikasiSistem.builder()
                         .aplikasi(aplikasi)
                         .namaSistem(komReq.getNamaSistem())
@@ -295,7 +294,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Clear and re-add Penghargaans
         aplikasi.getPenghargaans().clear();
         if (request.getPenghargaans() != null) {
-            for (AplikasiRequest.PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
+            for (PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
                 MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
                         .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
                 AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
@@ -405,7 +404,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Map bidang
         if (entity.getBidang() != null) {
-            builder.bidang(AplikasiResponse.BidangInfo.builder()
+            builder.bidang(BidangInfo.builder()
                     .id(entity.getBidang().getId())
                     .kodeBidang(entity.getBidang().getKodeBidang())
                     .namaBidang(entity.getBidang().getNamaBidang())
@@ -414,7 +413,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Map skpa
         if (entity.getSkpa() != null) {
-            builder.skpa(AplikasiResponse.SkpaInfo.builder()
+            builder.skpa(SkpaInfo.builder()
                     .id(entity.getSkpa().getId())
                     .kodeSkpa(entity.getSkpa().getKodeSkpa())
                     .namaSkpa(entity.getSkpa().getNamaSkpa())
@@ -424,7 +423,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Map urls
         if (entity.getUrls() != null && !entity.getUrls().isEmpty()) {
             builder.urls(entity.getUrls().stream()
-                    .map(url -> AplikasiResponse.UrlInfo.builder()
+                    .map(url -> UrlInfo.builder()
                             .id(url.getId())
                             .url(url.getUrl())
                             .tipeAkses(url.getTipeAkses())
@@ -436,7 +435,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Map satker internals
         if (entity.getSatkerInternals() != null && !entity.getSatkerInternals().isEmpty()) {
             builder.satkerInternals(entity.getSatkerInternals().stream()
-                    .map(satker -> AplikasiResponse.SatkerInternalInfo.builder()
+                    .map(satker -> SatkerInternalInfo.builder()
                             .id(satker.getId())
                             .namaSatker(satker.getNamaSatker())
                             .keterangan(satker.getKeterangan())
@@ -447,7 +446,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Map pengguna eksternals
         if (entity.getPenggunaEksternals() != null && !entity.getPenggunaEksternals().isEmpty()) {
             builder.penggunaEksternals(entity.getPenggunaEksternals().stream()
-                    .map(pengguna -> AplikasiResponse.PenggunaEksternalInfo.builder()
+                    .map(pengguna -> PenggunaEksternalInfo.builder()
                             .id(pengguna.getId())
                             .namaPengguna(pengguna.getNamaPengguna())
                             .keterangan(pengguna.getKeterangan())
@@ -458,7 +457,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Map komunikasi sistems
         if (entity.getKomunikasiSistems() != null && !entity.getKomunikasiSistems().isEmpty()) {
             builder.komunikasiSistems(entity.getKomunikasiSistems().stream()
-                    .map(kom -> AplikasiResponse.KomunikasiSistemInfo.builder()
+                    .map(kom -> KomunikasiSistemInfo.builder()
                             .id(kom.getId())
                             .namaSistem(kom.getNamaSistem())
                             .tipeSistem(kom.getTipeSistem())
@@ -472,9 +471,9 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Map penghargaans
         if (entity.getPenghargaans() != null && !entity.getPenghargaans().isEmpty()) {
             builder.penghargaans(entity.getPenghargaans().stream()
-                    .map(penghargaan -> AplikasiResponse.PenghargaanInfo.builder()
+                    .map(penghargaan -> PenghargaanInfo.builder()
                             .id(penghargaan.getId())
-                            .kategori(AplikasiResponse.VariableInfo.builder()
+                            .kategori(VariableInfo.builder()
                                     .id(penghargaan.getKategori().getId())
                                     .kode(penghargaan.getKategori().getKode())
                                     .nama(penghargaan.getKategori().getNama())
