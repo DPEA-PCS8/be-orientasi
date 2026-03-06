@@ -53,7 +53,7 @@ public class AplikasiServiceImpl implements AplikasiService {
     }
 
     private MstAplikasi buildAplikasiFromRequest(AplikasiRequest request, String kode) {
-        return MstAplikasi.builder()
+        MstAplikasi.MstAplikasiBuilder builder = MstAplikasi.builder()
                 .kodeAplikasi(kode)
                 .namaAplikasi(request.getNamaAplikasi().trim())
                 .deskripsi(request.getDeskripsi())
@@ -62,16 +62,20 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .akses(request.getAkses())
                 .prosesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false)
                 .dataPribadiDiproses(request.getDataPribadiDiproses())
-                .kategoriIdle(request.getKategoriIdle())
-                .alasanIdle(request.getAlasanIdle())
-                .rencanaPengakhiran(request.getRencanaPengakhiran())
-                .alasanBelumDiakhiri(request.getAlasanBelumDiakhiri())
                 .urls(new ArrayList<>())
                 .satkerInternals(new ArrayList<>())
                 .penggunaEksternals(new ArrayList<>())
                 .komunikasiSistems(new ArrayList<>())
-                .penghargaans(new ArrayList<>())
-                .build();
+                .penghargaans(new ArrayList<>());
+
+        if (request.getIdleInfo() != null) {
+            builder.kategoriIdle(request.getIdleInfo().getKategoriIdle())
+                    .alasanIdle(request.getIdleInfo().getAlasanIdle())
+                    .rencanaPengakhiran(request.getIdleInfo().getRencanaPengakhiran())
+                    .alasanBelumDiakhiri(request.getIdleInfo().getAlasanBelumDiakhiri());
+        }
+
+        return builder.build();
     }
 
     private void setBidangAndSkpa(AplikasiRequest request, MstAplikasi aplikasi) {
@@ -221,10 +225,18 @@ public class AplikasiServiceImpl implements AplikasiService {
         aplikasi.setAkses(request.getAkses());
         aplikasi.setProsesDataPribadi(request.getProsesDataPribadi() != null ? request.getProsesDataPribadi() : false);
         aplikasi.setDataPribadiDiproses(request.getDataPribadiDiproses());
-        aplikasi.setKategoriIdle(request.getKategoriIdle());
-        aplikasi.setAlasanIdle(request.getAlasanIdle());
-        aplikasi.setRencanaPengakhiran(request.getRencanaPengakhiran());
-        aplikasi.setAlasanBelumDiakhiri(request.getAlasanBelumDiakhiri());
+
+        if (request.getIdleInfo() != null) {
+            aplikasi.setKategoriIdle(request.getIdleInfo().getKategoriIdle());
+            aplikasi.setAlasanIdle(request.getIdleInfo().getAlasanIdle());
+            aplikasi.setRencanaPengakhiran(request.getIdleInfo().getRencanaPengakhiran());
+            aplikasi.setAlasanBelumDiakhiri(request.getIdleInfo().getAlasanBelumDiakhiri());
+        } else {
+            aplikasi.setKategoriIdle(null);
+            aplikasi.setAlasanIdle(null);
+            aplikasi.setRencanaPengakhiran(null);
+            aplikasi.setAlasanBelumDiakhiri(null);
+        }
 
         setBidangAndSkpa(request, aplikasi);
         setEntityDetails(request, aplikasi);
@@ -279,10 +291,12 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         // Update idle details if status is IDLE
         if (status.equals("IDLE")) {
-            aplikasi.setKategoriIdle(request.getKategoriIdle());
-            aplikasi.setAlasanIdle(request.getAlasanIdle());
-            aplikasi.setRencanaPengakhiran(request.getRencanaPengakhiran());
-            aplikasi.setAlasanBelumDiakhiri(request.getAlasanBelumDiakhiri());
+            if (request.getIdleInfo() != null) {
+                aplikasi.setKategoriIdle(request.getIdleInfo().getKategoriIdle());
+                aplikasi.setAlasanIdle(request.getIdleInfo().getAlasanIdle());
+                aplikasi.setRencanaPengakhiran(request.getIdleInfo().getRencanaPengakhiran());
+                aplikasi.setAlasanBelumDiakhiri(request.getIdleInfo().getAlasanBelumDiakhiri());
+            }
         } else {
             // Clear idle details if status is not IDLE
             aplikasi.setKategoriIdle(null);
@@ -319,12 +333,19 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .akses(entity.getAkses())
                 .prosesDataPribadi(entity.getProsesDataPribadi())
                 .dataPribadiDiproses(entity.getDataPribadiDiproses())
-                .kategoriIdle(entity.getKategoriIdle())
-                .alasanIdle(entity.getAlasanIdle())
-                .rencanaPengakhiran(entity.getRencanaPengakhiran())
-                .alasanBelumDiakhiri(entity.getAlasanBelumDiakhiri())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt());
+
+        // Map idle info
+        if (entity.getKategoriIdle() != null || entity.getAlasanIdle() != null ||
+            entity.getRencanaPengakhiran() != null || entity.getAlasanBelumDiakhiri() != null) {
+            builder.idleInfo(IdleInfo.builder()
+                    .kategoriIdle(entity.getKategoriIdle())
+                    .alasanIdle(entity.getAlasanIdle())
+                    .rencanaPengakhiran(entity.getRencanaPengakhiran())
+                    .alasanBelumDiakhiri(entity.getAlasanBelumDiakhiri())
+                    .build());
+        }
 
         // Map bidang
         if (entity.getBidang() != null) {

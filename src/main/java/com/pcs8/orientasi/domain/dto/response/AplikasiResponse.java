@@ -54,18 +54,8 @@ public class AplikasiResponse {
     @JsonProperty("data_pribadi_diproses")
     private String dataPribadiDiproses;
 
-    // Idle-specific fields
-    @JsonProperty("kategori_idle")
-    private String kategoriIdle;
-
-    @JsonProperty("alasan_idle")
-    private String alasanIdle;
-
-    @JsonProperty("rencana_pengakhiran")
-    private String rencanaPengakhiran;
-
-    @JsonProperty("alasan_belum_diakhiri")
-    private String alasanBelumDiakhiri;
+    @JsonProperty("idle_info")
+    private IdleInfo idleInfo;
 
     // Nested lists
     @JsonProperty("urls")

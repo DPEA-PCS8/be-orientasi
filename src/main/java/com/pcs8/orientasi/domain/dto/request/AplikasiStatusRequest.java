@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.domain.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,15 +21,7 @@ public class AplikasiStatusRequest {
     @JsonProperty("tanggal_status")
     private LocalDate tanggalStatus;
 
-    @JsonProperty("kategori_idle")
-    private String kategoriIdle;
-
-    @JsonProperty("alasan_idle")
-    private String alasanIdle;
-
-    @JsonProperty("rencana_pengakhiran")
-    private String rencanaPengakhiran;
-
-    @JsonProperty("alasan_belum_diakhiri")
-    private String alasanBelumDiakhiri;
+    @JsonProperty("idle_info")
+    @Valid
+    private IdleRequest idleInfo;
 }
