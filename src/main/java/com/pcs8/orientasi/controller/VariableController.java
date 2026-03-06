@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/arsitektur/variable")
@@ -23,20 +22,20 @@ public class VariableController {
     @GetMapping
     public ResponseEntity<BaseResponse> getByKategori(@RequestParam String kategori) {
         List<VariableResponse> responses = variableRepository
-                .findByKategoriAndIsActiveTrueOrderByUrutanAscNamaAsc(kategori)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+            .findByKategoriAndIsActiveTrueOrderByUrutanAscNamaAsc(kategori)
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
     }
 
     @GetMapping("/all")
     public ResponseEntity<BaseResponse> getAll() {
         List<VariableResponse> responses = variableRepository
-                .findByIsActiveTrueOrderByKategoriAscUrutanAscNamaAsc()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+            .findByIsActiveTrueOrderByKategoriAscUrutanAscNamaAsc()
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
     }
 

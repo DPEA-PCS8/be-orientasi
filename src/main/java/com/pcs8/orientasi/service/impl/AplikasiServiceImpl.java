@@ -39,12 +39,21 @@ public class AplikasiServiceImpl implements AplikasiService {
     @Transactional
     public AplikasiResponse create(AplikasiRequest request) {
         String kode = request.getKodeAplikasi().toUpperCase().trim();
-
         if (aplikasiRepository.existsByKodeAplikasi(kode)) {
             throw new BadRequestException("Aplikasi dengan kode '" + kode + "' sudah ada");
         }
 
-        MstAplikasi aplikasi = MstAplikasi.builder()
+        MstAplikasi aplikasi = buildAplikasiFromRequest(request, kode);
+        setBidangAndSkpa(request, aplikasi);
+        setEntityDetails(request, aplikasi);
+
+        MstAplikasi saved = aplikasiRepository.save(aplikasi);
+        log.info("Aplikasi created: {} - {}", saved.getKodeAplikasi(), saved.getNamaAplikasi());
+        return mapToResponse(saved);
+    }
+
+    private MstAplikasi buildAplikasiFromRequest(AplikasiRequest request, String kode) {
+        return MstAplikasi.builder()
                 .kodeAplikasi(kode)
                 .namaAplikasi(request.getNamaAplikasi().trim())
                 .deskripsi(request.getDeskripsi())
@@ -63,92 +72,93 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .komunikasiSistems(new ArrayList<>())
                 .penghargaans(new ArrayList<>())
                 .build();
+    }
 
-        // Set bidang if provided
+    private void setBidangAndSkpa(AplikasiRequest request, MstAplikasi aplikasi) {
+        // Bidang
         if (request.getBidangId() != null) {
             MstBidang bidang = bidangRepository.findById(request.getBidangId())
                     .orElseThrow(() -> new ResourceNotFoundException("Bidang tidak ditemukan"));
             aplikasi.setBidang(bidang);
+        } else {
+            aplikasi.setBidang(null);
         }
-
-        // Set skpa if provided
+        // SKPA
         if (request.getSkpaId() != null) {
             MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
                     .orElseThrow(() -> new ResourceNotFoundException("SKPA tidak ditemukan"));
             aplikasi.setSkpa(skpa);
+        } else {
+            aplikasi.setSkpa(null);
         }
+    }
 
-        // Add URLs
+
+    private void setEntityDetails(AplikasiRequest request, MstAplikasi aplikasi) {
+        // URLs
+        aplikasi.getUrls().clear();
         if (request.getUrls() != null) {
-            for (UrlRequest urlReq : request.getUrls()) {
-                AplikasiUrl url = AplikasiUrl.builder()
-                        .aplikasi(aplikasi)
-                        .url(urlReq.getUrl())
-                        .tipeAkses(urlReq.getTipeAkses())
-                        .keterangan(urlReq.getKeterangan())
-                        .build();
-                aplikasi.getUrls().add(url);
-            }
+            request.getUrls().forEach(urlReq -> aplikasi.getUrls().add(
+                    AplikasiUrl.builder()
+                            .aplikasi(aplikasi)
+                            .url(urlReq.getUrl())
+                            .tipeAkses(urlReq.getTipeAkses())
+                            .keterangan(urlReq.getKeterangan())
+                            .build()
+            ));
         }
-
-        // Add Satker Internals
+        // Satker Internals
+        aplikasi.getSatkerInternals().clear();
         if (request.getSatkerInternals() != null) {
-            for (SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
-                AplikasiSatkerInternal satker = AplikasiSatkerInternal.builder()
-                        .aplikasi(aplikasi)
-                        .namaSatker(satkerReq.getNamaSatker())
-                        .keterangan(satkerReq.getKeterangan())
-                        .build();
-                aplikasi.getSatkerInternals().add(satker);
-            }
+            request.getSatkerInternals().forEach(satkerReq -> aplikasi.getSatkerInternals().add(
+                    AplikasiSatkerInternal.builder()
+                            .aplikasi(aplikasi)
+                            .namaSatker(satkerReq.getNamaSatker())
+                            .keterangan(satkerReq.getKeterangan())
+                            .build()
+            ));
         }
-
-        // Add Pengguna Eksternals
+        // Pengguna Eksternals
+        aplikasi.getPenggunaEksternals().clear();
         if (request.getPenggunaEksternals() != null) {
-            for (PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
-                AplikasiPenggunaEksternal pengguna = AplikasiPenggunaEksternal.builder()
-                        .aplikasi(aplikasi)
-                        .namaPengguna(penggunaReq.getNamaPengguna())
-                        .keterangan(penggunaReq.getKeterangan())
-                        .build();
-                aplikasi.getPenggunaEksternals().add(pengguna);
-            }
+            request.getPenggunaEksternals().forEach(penggunaReq -> aplikasi.getPenggunaEksternals().add(
+                    AplikasiPenggunaEksternal.builder()
+                            .aplikasi(aplikasi)
+                            .namaPengguna(penggunaReq.getNamaPengguna())
+                            .keterangan(penggunaReq.getKeterangan())
+                            .build()
+            ));
         }
-
-        // Add Komunikasi Sistems
+        // Komunikasi Sistems
+        aplikasi.getKomunikasiSistems().clear();
         if (request.getKomunikasiSistems() != null) {
-            for (KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
-                AplikasiKomunikasiSistem kom = AplikasiKomunikasiSistem.builder()
-                        .aplikasi(aplikasi)
-                        .namaSistem(komReq.getNamaSistem())
-                        .tipeSistem(komReq.getTipeSistem())
-                        .deskripsiKomunikasi(komReq.getDeskripsiKomunikasi())
-                        .keterangan(komReq.getKeterangan())
-                        .isPlanned(komReq.getIsPlanned() != null ? komReq.getIsPlanned() : false)
-                        .build();
-                aplikasi.getKomunikasiSistems().add(kom);
-            }
+            request.getKomunikasiSistems().forEach(komReq -> aplikasi.getKomunikasiSistems().add(
+                    AplikasiKomunikasiSistem.builder()
+                            .aplikasi(aplikasi)
+                            .namaSistem(komReq.getNamaSistem())
+                            .tipeSistem(komReq.getTipeSistem())
+                            .deskripsiKomunikasi(komReq.getDeskripsiKomunikasi())
+                            .keterangan(komReq.getKeterangan())
+                            .isPlanned(komReq.getIsPlanned() != null ? komReq.getIsPlanned() : false)
+                            .build()
+            ));
         }
-
-        // Add Penghargaans
+        // Penghargaans
+        aplikasi.getPenghargaans().clear();
         if (request.getPenghargaans() != null) {
-            for (PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
+            request.getPenghargaans().forEach(penghargaanReq -> {
                 MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
                         .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
-                AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
-                        .aplikasi(aplikasi)
-                        .kategori(kategori)
-                        .tanggal(penghargaanReq.getTanggal())
-                        .deskripsi(penghargaanReq.getDeskripsi())
-                        .build();
-                aplikasi.getPenghargaans().add(penghargaan);
-            }
+                aplikasi.getPenghargaans().add(
+                        AplikasiPenghargaan.builder()
+                                .aplikasi(aplikasi)
+                                .kategori(kategori)
+                                .tanggal(penghargaanReq.getTanggal())
+                                .deskripsi(penghargaanReq.getDeskripsi())
+                                .build()
+                );
+            });
         }
-
-        MstAplikasi saved = aplikasiRepository.save(aplikasi);
-        log.info("Aplikasi created: {} - {}", saved.getKodeAplikasi(), saved.getNamaAplikasi());
-
-        return mapToResponse(saved);
     }
 
     @Override
@@ -189,7 +199,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         return aplikasiRepository.searchAplikasiList(search, bidangId, skpaId, status)
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -199,7 +209,6 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .orElseThrow(() -> new ResourceNotFoundException("Aplikasi tidak ditemukan"));
 
         String newKode = request.getKodeAplikasi().toUpperCase().trim();
-
         if (!aplikasi.getKodeAplikasi().equals(newKode) && aplikasiRepository.existsByKodeAplikasi(newKode)) {
             throw new BadRequestException("Aplikasi dengan kode '" + newKode + "' sudah ada");
         }
@@ -217,101 +226,16 @@ public class AplikasiServiceImpl implements AplikasiService {
         aplikasi.setRencanaPengakhiran(request.getRencanaPengakhiran());
         aplikasi.setAlasanBelumDiakhiri(request.getAlasanBelumDiakhiri());
 
-        // Update bidang
-        if (request.getBidangId() != null) {
-            MstBidang bidang = bidangRepository.findById(request.getBidangId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Bidang tidak ditemukan"));
-            aplikasi.setBidang(bidang);
-        } else {
-            aplikasi.setBidang(null);
-        }
-
-        // Update skpa
-        if (request.getSkpaId() != null) {
-            MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("SKPA tidak ditemukan"));
-            aplikasi.setSkpa(skpa);
-        } else {
-            aplikasi.setSkpa(null);
-        }
-
-        // Clear and re-add URLs
-        aplikasi.getUrls().clear();
-        if (request.getUrls() != null) {
-            for (UrlRequest urlReq : request.getUrls()) {
-                AplikasiUrl url = AplikasiUrl.builder()
-                        .aplikasi(aplikasi)
-                        .url(urlReq.getUrl())
-                        .tipeAkses(urlReq.getTipeAkses())
-                        .keterangan(urlReq.getKeterangan())
-                        .build();
-                aplikasi.getUrls().add(url);
-            }
-        }
-
-        // Clear and re-add Satker Internals
-        aplikasi.getSatkerInternals().clear();
-        if (request.getSatkerInternals() != null) {
-            for (SatkerInternalRequest satkerReq : request.getSatkerInternals()) {
-                AplikasiSatkerInternal satker = AplikasiSatkerInternal.builder()
-                        .aplikasi(aplikasi)
-                        .namaSatker(satkerReq.getNamaSatker())
-                        .keterangan(satkerReq.getKeterangan())
-                        .build();
-                aplikasi.getSatkerInternals().add(satker);
-            }
-        }
-
-        // Clear and re-add Pengguna Eksternals
-        aplikasi.getPenggunaEksternals().clear();
-        if (request.getPenggunaEksternals() != null) {
-            for (PenggunaEksternalRequest penggunaReq : request.getPenggunaEksternals()) {
-                AplikasiPenggunaEksternal pengguna = AplikasiPenggunaEksternal.builder()
-                        .aplikasi(aplikasi)
-                        .namaPengguna(penggunaReq.getNamaPengguna())
-                        .keterangan(penggunaReq.getKeterangan())
-                        .build();
-                aplikasi.getPenggunaEksternals().add(pengguna);
-            }
-        }
-
-        // Clear and re-add Komunikasi Sistems
-        aplikasi.getKomunikasiSistems().clear();
-        if (request.getKomunikasiSistems() != null) {
-            for (KomunikasiSistemRequest komReq : request.getKomunikasiSistems()) {
-                AplikasiKomunikasiSistem kom = AplikasiKomunikasiSistem.builder()
-                        .aplikasi(aplikasi)
-                        .namaSistem(komReq.getNamaSistem())
-                        .tipeSistem(komReq.getTipeSistem())
-                        .deskripsiKomunikasi(komReq.getDeskripsiKomunikasi())
-                        .keterangan(komReq.getKeterangan())
-                        .isPlanned(komReq.getIsPlanned() != null ? komReq.getIsPlanned() : false)
-                        .build();
-                aplikasi.getKomunikasiSistems().add(kom);
-            }
-        }
-
-        // Clear and re-add Penghargaans
-        aplikasi.getPenghargaans().clear();
-        if (request.getPenghargaans() != null) {
-            for (PenghargaanRequest penghargaanReq : request.getPenghargaans()) {
-                MstVariable kategori = variableRepository.findById(penghargaanReq.getKategoriId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Kategori penghargaan tidak ditemukan"));
-                AplikasiPenghargaan penghargaan = AplikasiPenghargaan.builder()
-                        .aplikasi(aplikasi)
-                        .kategori(kategori)
-                        .tanggal(penghargaanReq.getTanggal())
-                        .deskripsi(penghargaanReq.getDeskripsi())
-                        .build();
-                aplikasi.getPenghargaans().add(penghargaan);
-            }
-        }
+        setBidangAndSkpa(request, aplikasi);
+        setEntityDetails(request, aplikasi);
 
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi updated: {} - {}", updated.getKodeAplikasi(), updated.getNamaAplikasi());
-
         return mapToResponse(updated);
     }
+
+
+    // All update* and add* methods are now replaced by setEntityDetails()
 
     @Override
     @Transactional
