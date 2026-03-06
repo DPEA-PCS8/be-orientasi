@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,6 +16,9 @@ public class AplikasiStatusRequest {
     @NotBlank(message = "Status is required")
     @JsonProperty("status")
     private String status;
+
+    @JsonProperty("tanggal_status")
+    private LocalDate tanggalStatus;
 
     @JsonProperty("kategori_idle")
     private String kategoriIdle;

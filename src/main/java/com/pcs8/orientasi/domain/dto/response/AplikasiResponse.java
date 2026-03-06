@@ -33,6 +33,9 @@ public class AplikasiResponse {
     @JsonProperty("status_aplikasi")
     private String statusAplikasi;
 
+    @JsonProperty("tanggal_status")
+    private LocalDate tanggalStatus;
+
     @JsonProperty("bidang")
     private BidangInfo bidang;
 

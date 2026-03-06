@@ -39,6 +39,9 @@ public class MstAplikasi extends BaseEntity {
     @Builder.Default
     private String statusAplikasi = "AKTIF"; // AKTIF, IDLE, DIAKHIRI
 
+    @Column(name = "tanggal_status")
+    private LocalDate tanggalStatus; // Tanggal status aplikasi mulai berlaku
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bidang_id", nullable = true)
     private MstBidang bidang;

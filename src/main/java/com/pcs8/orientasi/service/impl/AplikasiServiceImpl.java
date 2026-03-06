@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -325,6 +326,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         }
 
         aplikasi.setStatusAplikasi(status);
+        aplikasi.setTanggalStatus(LocalDate.now()); // Set tanggal status saat update
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi status updated: {} - {} -> {}", updated.getKodeAplikasi(), updated.getNamaAplikasi(), status);
 
@@ -344,6 +346,13 @@ public class AplikasiServiceImpl implements AplikasiService {
         }
 
         aplikasi.setStatusAplikasi(status);
+
+        // Set tanggal status from request or use current date
+        if (request.getTanggalStatus() != null) {
+            aplikasi.setTanggalStatus(request.getTanggalStatus());
+        } else {
+            aplikasi.setTanggalStatus(LocalDate.now());
+        }
 
         // Update idle details if status is IDLE
         if (status.equals("IDLE")) {
@@ -382,6 +391,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .namaAplikasi(entity.getNamaAplikasi())
                 .deskripsi(entity.getDeskripsi())
                 .statusAplikasi(entity.getStatusAplikasi())
+                .tanggalStatus(entity.getTanggalStatus())
                 .tanggalImplementasi(entity.getTanggalImplementasi())
                 .akses(entity.getAkses())
                 .prosesDataPribadi(entity.getProsesDataPribadi())
