@@ -12,16 +12,20 @@ import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service implementation untuk dokumen T.01 (PKSI) - MVP Version
+ * Service implementation untuk dokumen T.01 (PKSI) - Full Version
  */
 @Service
 @RequiredArgsConstructor
@@ -43,17 +47,47 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
+                // Header
                 .namaPksi(request.getNamaPksi())
+                .tanggalPengajuan(parseDate(request.getTanggalPengajuan()))
+                // Section 1
                 .deskripsiPksi(request.getDeskripsiPksi())
-                .tujuanPengajuan(request.getTujuanPengajuan())
-                .kapanDiselesaikan(request.getKapanDiselesaikan())
-                .picSatker(request.getPicSatker())
+                .mengapaPksiDiperlukan(request.getMengapaPksiDiperlukan())
+                .kapanDiselesaikan(getKapanDiselesaikan(request))
+                .picSatker(getPicSatker(request))
+                // Section 2
+                .kegunaanPksi(request.getKegunaanPksi())
                 .tujuanPksi(request.getTujuanPksi())
+                .targetPksi(request.getTargetPksi())
+                // Section 3
                 .ruangLingkup(request.getRuangLingkup())
+                .batasanPksi(request.getBatasanPksi())
+                .hubunganSistemLain(request.getHubunganSistemLain())
+                .asumsi(request.getAsumsi())
+                // Section 4
+                .batasanDesain(request.getBatasanDesain())
+                .risikoBisnis(request.getRisikoBisnis())
+                .risikoSuksesPksi(request.getRisikoSuksesPksi())
+                .pengendalianRisiko(request.getPengendalianRisiko())
+                // Section 5
                 .pengelolaAplikasi(request.getPengelolaAplikasi())
                 .penggunaAplikasi(request.getPenggunaAplikasi())
                 .programInisiatifRbsi(request.getProgramInisiatifRbsi())
                 .fungsiAplikasi(request.getFungsiAplikasi())
+                .informasiYangDikelola(request.getInformasiYangDikelola())
+                .dasarPeraturan(request.getDasarPeraturan())
+                // Section 6
+                .tahap1Awal(parseDate(request.getTahap1Awal()))
+                .tahap1Akhir(parseDate(request.getTahap1Akhir()))
+                .tahap5Awal(parseDate(request.getTahap5Awal()))
+                .tahap5Akhir(parseDate(request.getTahap5Akhir()))
+                .tahap7Awal(parseDate(request.getTahap7Awal()))
+                .tahap7Akhir(parseDate(request.getTahap7Akhir()))
+                // Section 7
+                .rencanaPengelolaan(request.getRencanaPengelolaan())
+                // Legacy
+                .tujuanPengajuan(request.getTujuanPengajuan())
+                // Status
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
@@ -95,6 +129,15 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
+        log.info("Searching PKSI documents with search: {}, status: {}", search, status);
+        
+        return pksiDocumentRepository.searchDocuments(search, status, pageable)
+                .map(this::mapToResponse);
+    }
+
+    @Override
     @Transactional
     public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
         log.info("Updating PKSI document: {}", id);
@@ -102,17 +145,46 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
+        // Header
         document.setNamaPksi(request.getNamaPksi());
+        document.setTanggalPengajuan(parseDate(request.getTanggalPengajuan()));
+        // Section 1
         document.setDeskripsiPksi(request.getDeskripsiPksi());
-        document.setTujuanPengajuan(request.getTujuanPengajuan());
-        document.setKapanDiselesaikan(request.getKapanDiselesaikan());
-        document.setPicSatker(request.getPicSatker());
+        document.setMengapaPksiDiperlukan(request.getMengapaPksiDiperlukan());
+        document.setKapanDiselesaikan(getKapanDiselesaikan(request));
+        document.setPicSatker(getPicSatker(request));
+        // Section 2
+        document.setKegunaanPksi(request.getKegunaanPksi());
         document.setTujuanPksi(request.getTujuanPksi());
+        document.setTargetPksi(request.getTargetPksi());
+        // Section 3
         document.setRuangLingkup(request.getRuangLingkup());
+        document.setBatasanPksi(request.getBatasanPksi());
+        document.setHubunganSistemLain(request.getHubunganSistemLain());
+        document.setAsumsi(request.getAsumsi());
+        // Section 4
+        document.setBatasanDesain(request.getBatasanDesain());
+        document.setRisikoBisnis(request.getRisikoBisnis());
+        document.setRisikoSuksesPksi(request.getRisikoSuksesPksi());
+        document.setPengendalianRisiko(request.getPengendalianRisiko());
+        // Section 5
         document.setPengelolaAplikasi(request.getPengelolaAplikasi());
         document.setPenggunaAplikasi(request.getPenggunaAplikasi());
         document.setProgramInisiatifRbsi(request.getProgramInisiatifRbsi());
         document.setFungsiAplikasi(request.getFungsiAplikasi());
+        document.setInformasiYangDikelola(request.getInformasiYangDikelola());
+        document.setDasarPeraturan(request.getDasarPeraturan());
+        // Section 6
+        document.setTahap1Awal(parseDate(request.getTahap1Awal()));
+        document.setTahap1Akhir(parseDate(request.getTahap1Akhir()));
+        document.setTahap5Awal(parseDate(request.getTahap5Awal()));
+        document.setTahap5Akhir(parseDate(request.getTahap5Akhir()));
+        document.setTahap7Awal(parseDate(request.getTahap7Awal()));
+        document.setTahap7Akhir(parseDate(request.getTahap7Akhir()));
+        // Section 7
+        document.setRencanaPengelolaan(request.getRencanaPengelolaan());
+        // Legacy
+        document.setTujuanPengajuan(request.getTujuanPengajuan());
 
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated: {}", updated.getId());
@@ -162,6 +234,40 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         return mapToResponse(updated);
     }
 
+    // ==================== HELPER METHODS ====================
+
+    private LocalDate parseDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dateStr);
+        } catch (DateTimeParseException e) {
+            log.warn("Failed to parse date: {}", dateStr);
+            return null;
+        }
+    }
+
+    private String formatDate(LocalDate date) {
+        return date != null ? date.toString() : null;
+    }
+
+    private String getKapanDiselesaikan(PksiDocumentRequest request) {
+        // Support both new and legacy field names
+        if (request.getKapanHarusDiselesaikan() != null && !request.getKapanHarusDiselesaikan().isEmpty()) {
+            return request.getKapanHarusDiselesaikan();
+        }
+        return request.getKapanDiselesaikan();
+    }
+
+    private String getPicSatker(PksiDocumentRequest request) {
+        // Support both new and legacy field names
+        if (request.getPicSatkerBA() != null && !request.getPicSatkerBA().isEmpty()) {
+            return request.getPicSatkerBA();
+        }
+        return request.getPicSatker();
+    }
+
     private PksiDocumentResponse mapToResponse(PksiDocument document) {
         String userId = null;
         String userName = null;
@@ -174,17 +280,49 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .id(document.getId().toString())
                 .userId(userId)
                 .userName(userName)
+                // Header
                 .namaPksi(document.getNamaPksi())
+                .tanggalPengajuan(formatDate(document.getTanggalPengajuan()))
+                // Section 1
                 .deskripsiPksi(document.getDeskripsiPksi())
-                .tujuanPengajuan(document.getTujuanPengajuan())
-                .kapanDiselesaikan(document.getKapanDiselesaikan())
-                .picSatker(document.getPicSatker())
+                .mengapaPksiDiperlukan(document.getMengapaPksiDiperlukan())
+                .kapanHarusDiselesaikan(document.getKapanDiselesaikan())
+                .picSatkerBA(document.getPicSatker())
+                // Section 2
+                .kegunaanPksi(document.getKegunaanPksi())
                 .tujuanPksi(document.getTujuanPksi())
+                .targetPksi(document.getTargetPksi())
+                // Section 3
                 .ruangLingkup(document.getRuangLingkup())
+                .batasanPksi(document.getBatasanPksi())
+                .hubunganSistemLain(document.getHubunganSistemLain())
+                .asumsi(document.getAsumsi())
+                // Section 4
+                .batasanDesain(document.getBatasanDesain())
+                .risikoBisnis(document.getRisikoBisnis())
+                .risikoSuksesPksi(document.getRisikoSuksesPksi())
+                .pengendalianRisiko(document.getPengendalianRisiko())
+                // Section 5
                 .pengelolaAplikasi(document.getPengelolaAplikasi())
                 .penggunaAplikasi(document.getPenggunaAplikasi())
                 .programInisiatifRbsi(document.getProgramInisiatifRbsi())
                 .fungsiAplikasi(document.getFungsiAplikasi())
+                .informasiYangDikelola(document.getInformasiYangDikelola())
+                .dasarPeraturan(document.getDasarPeraturan())
+                // Section 6
+                .tahap1Awal(formatDate(document.getTahap1Awal()))
+                .tahap1Akhir(formatDate(document.getTahap1Akhir()))
+                .tahap5Awal(formatDate(document.getTahap5Awal()))
+                .tahap5Akhir(formatDate(document.getTahap5Akhir()))
+                .tahap7Awal(formatDate(document.getTahap7Awal()))
+                .tahap7Akhir(formatDate(document.getTahap7Akhir()))
+                // Section 7
+                .rencanaPengelolaan(document.getRencanaPengelolaan())
+                // Legacy
+                .tujuanPengajuan(document.getTujuanPengajuan())
+                .kapanDiselesaikan(document.getKapanDiselesaikan())
+                .picSatker(document.getPicSatker())
+                // Status & Metadata
                 .status(document.getStatus() != null ? document.getStatus().name() : null)
                 .createdAt(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)
                 .updatedAt(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)

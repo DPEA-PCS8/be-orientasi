@@ -8,11 +8,17 @@ import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -45,6 +51,34 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> getAllDocuments() {
         List<PksiDocumentResponse> responses = pksiDocumentService.getAllDocuments();
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<BaseResponse> searchDocuments(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") 
+                ? Sort.by(sortBy).descending() 
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(search, status, pageable);
+        
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("content", pageResult.getContent());
+        responseData.put("total_elements", pageResult.getTotalElements());
+        responseData.put("total_pages", pageResult.getTotalPages());
+        responseData.put("page", pageResult.getNumber());
+        responseData.put("size", pageResult.getSize());
+        responseData.put("has_next", pageResult.hasNext());
+        responseData.put("has_previous", pageResult.hasPrevious());
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responseData));
     }
 
     @GetMapping("/user/{userId}")
