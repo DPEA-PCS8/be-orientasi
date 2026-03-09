@@ -44,11 +44,8 @@ public class PksiDocumentController {
             @Valid @RequestBody PksiDocumentRequest request,
             HttpServletRequest httpRequest) {
         
+        // Try to extract userId, but don't fail if not available
         UUID userId = extractUserIdFromRequest(httpRequest);
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new BaseResponse(HttpStatus.UNAUTHORIZED.value(), "User authentication required", null));
-        }
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
