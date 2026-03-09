@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.BulkRolePermissionRequest;
 import com.pcs8.orientasi.domain.dto.request.CreateMenuRequest;
 import com.pcs8.orientasi.domain.dto.request.RolePermissionRequest;
@@ -14,6 +15,7 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstMenuRepository;
 import com.pcs8.orientasi.repository.MstRolePermissionRepository;
 import com.pcs8.orientasi.repository.MstRoleRepository;
+import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.RolePermissionService;
 
 import lombok.RequiredArgsConstructor;
@@ -39,10 +41,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private static final String MENU_NOT_FOUND_MSG = "Menu not found with ID: ";
     private static final String PARENT_MENU_NOT_FOUND_MSG = "Parent menu not found with ID: ";
     private static final String ROLE_NOT_FOUND_MSG = "Role not found with ID: ";
+    private static final String ENTITY_NAME_MENU = "Menu";
+    private static final String ENTITY_NAME_PERMISSION = "Role Permission";
 
     private final MstMenuRepository menuRepository;
     private final MstRoleRepository roleRepository;
     private final MstRolePermissionRepository rolePermissionRepository;
+    private final AuditService auditService;
+    private final UserContext userContext;
     
     // Self-injection via setter to avoid transactional proxy bypass
     // Cannot use constructor injection due to circular dependency
@@ -58,6 +64,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public MenuResponse createMenu(CreateMenuRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
 
         if (menuRepository.existsByMenuCode(request.getMenuCode())) {
             throw new BadRequestException("Menu with code '" + request.getMenuCode() + "' already exists");
@@ -84,7 +93,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // Auto-assign full permissions to Admin role for new menu
         autoAssignAdminPermissions(savedMenu);
 
-        return mapToMenuResponse(savedMenu, false);
+        MenuResponse response = mapToMenuResponse(savedMenu, false);
+        
+        // Audit log
+        auditService.logCreate(ENTITY_NAME_MENU, savedMenu.getId(), response, userId, username);
+        
+        return response;
     }
 
     /**
@@ -119,10 +133,17 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public MenuResponse updateMenu(UUID menuId, CreateMenuRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         log.info("Updating menu: {}", menuId);
 
         MstMenu menu = menuRepository.findById(menuId)
                 .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId));
+
+        // Capture old value untuk audit
+        MenuResponse oldValue = mapToMenuResponse(menu, false);
 
         // Check if new menu code already exists (if changed)
         if (!menu.getMenuCode().equals(request.getMenuCode()) &&
@@ -149,7 +170,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         MstMenu updatedMenu = menuRepository.save(menu);
         log.info("Updated menu: {}", updatedMenu.getMenuCode());
 
-        return mapToMenuResponse(updatedMenu, false);
+        MenuResponse newValue = mapToMenuResponse(updatedMenu, false);
+        
+        // Audit log
+        auditService.logUpdate(ENTITY_NAME_MENU, menuId, oldValue, newValue, userId, username);
+        
+        return newValue;
     }
 
     @Override
@@ -184,9 +210,16 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public void deleteMenu(UUID menuId) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         log.info("Deleting menu: {}", menuId);
         MstMenu menu = menuRepository.findById(menuId)
                 .orElseThrow(() -> new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId));
+
+        // Capture old value untuk audit sebelum delete
+        MenuResponse oldValue = mapToMenuResponse(menu, false);
 
         // Check if menu has children
         if (menu.getChildren() != null && !menu.getChildren().isEmpty()) {
@@ -195,6 +228,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         menuRepository.delete(menu);
         log.info("Deleted menu: {}", menu.getMenuCode());
+        
+        // Audit log
+        auditService.logDelete(ENTITY_NAME_MENU, menuId, oldValue, userId, username);
     }
 
     // ========== ROLE PERMISSION MANAGEMENT ==========
@@ -202,6 +238,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public RolePermissionResponse createOrUpdatePermission(RolePermissionRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
 
         MstRole role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException(ROLE_NOT_FOUND_MSG + request.getRoleId()));
@@ -211,6 +250,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
         Optional<MstRolePermission> existingPermission = rolePermissionRepository
                 .findByRoleIdAndMenuId(request.getRoleId(), request.getMenuId());
+
+        boolean isNew = existingPermission.isEmpty();
+        RolePermissionResponse oldValue = isNew ? null : mapToRolePermissionResponse(existingPermission.get());
 
         MstRolePermission permission;
         if (existingPermission.isPresent()) {
@@ -233,12 +275,25 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         MstRolePermission savedPermission = rolePermissionRepository.save(permission);
         log.info("Saved permission for role: {} on menu: {}", role.getRoleName(), menu.getMenuCode());
 
-        return mapToRolePermissionResponse(savedPermission);
+        RolePermissionResponse response = mapToRolePermissionResponse(savedPermission);
+        
+        // Audit log
+        if (isNew) {
+            auditService.logCreate(ENTITY_NAME_PERMISSION, savedPermission.getId(), response, userId, username);
+        } else {
+            auditService.logUpdate(ENTITY_NAME_PERMISSION, savedPermission.getId(), oldValue, response, userId, username);
+        }
+        
+        return response;
     }
 
     @Override
     @Transactional
     public List<RolePermissionResponse> bulkUpdatePermissions(BulkRolePermissionRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         log.info("[bulkUpdatePermissions] Starting bulk update for role ID: {}", request.getRoleId());
         log.info("[bulkUpdatePermissions] Number of permissions to save: {}", request.getPermissions().size());
         
@@ -256,6 +311,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
             Optional<MstRolePermission> existingPermission = rolePermissionRepository
                     .findByRoleIdAndMenuId(request.getRoleId(), menuPerm.getMenuId());
+
+            boolean isNew = existingPermission.isEmpty();
+            RolePermissionResponse oldValue = isNew ? null : mapToRolePermissionResponse(existingPermission.get());
 
             MstRolePermission permission;
             if (existingPermission.isPresent()) {
@@ -278,7 +336,15 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             if (menuPerm.getCanView()) viewTrueCount++;
             
             MstRolePermission savedPermission = rolePermissionRepository.save(permission);
-            results.add(mapToRolePermissionResponse(savedPermission));
+            RolePermissionResponse response = mapToRolePermissionResponse(savedPermission);
+            results.add(response);
+            
+            // Audit log per permission (smart skip akan handle yang tidak berubah)
+            if (isNew) {
+                auditService.logCreate(ENTITY_NAME_PERMISSION, savedPermission.getId(), response, userId, username);
+            } else {
+                auditService.logUpdate(ENTITY_NAME_PERMISSION, savedPermission.getId(), oldValue, response, userId, username);
+            }
             
             log.info("[bulkUpdatePermissions] Saved: role={}, menu={}, view={}, create={}, update={}, delete={}",
                     role.getRoleName(), menu.getMenuCode(), 
@@ -367,6 +433,10 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public void deletePermission(UUID roleId, UUID menuId) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         log.info("Deleting permission for role: {} on menu: {}", roleId, menuId);
 
         if (!roleRepository.existsById(roleId)) {
@@ -377,8 +447,22 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             throw new ResourceNotFoundException(MENU_NOT_FOUND_MSG + menuId);
         }
 
-        rolePermissionRepository.deleteByRoleIdAndMenuId(roleId, menuId);
-        log.info("Deleted permission for role: {} on menu: {}", roleId, menuId);
+        // Capture old value untuk audit sebelum delete
+        Optional<MstRolePermission> existingPermission = rolePermissionRepository
+                .findByRoleIdAndMenuId(roleId, menuId);
+        
+        if (existingPermission.isPresent()) {
+            RolePermissionResponse oldValue = mapToRolePermissionResponse(existingPermission.get());
+            UUID permissionId = existingPermission.get().getId();
+            
+            rolePermissionRepository.deleteByRoleIdAndMenuId(roleId, menuId);
+            log.info("Deleted permission for role: {} on menu: {}", roleId, menuId);
+            
+            // Audit log
+            auditService.logDelete(ENTITY_NAME_PERMISSION, permissionId, oldValue, userId, username);
+        } else {
+            log.warn("Permission not found for role: {} on menu: {}", roleId, menuId);
+        }
     }
 
     @Override
