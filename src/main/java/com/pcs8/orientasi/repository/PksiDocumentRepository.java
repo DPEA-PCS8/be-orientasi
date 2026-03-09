@@ -15,18 +15,21 @@ import java.util.UUID;
 @Repository
 public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID> {
     
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.user.uuid = :userUuid")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.aplikasi WHERE p.user.uuid = :userUuid")
     List<PksiDocument> findByUserUuid(@Param("userUuid") UUID userUuid);
+    
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.aplikasi WHERE p.user.uuid = :userUuid")
+    List<PksiDocument> findByUserUuidWithAplikasi(@Param("userUuid") UUID userUuid);
     
     List<PksiDocument> findByStatus(PksiDocument.DocumentStatus status);
     
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.aplikasi")
     List<PksiDocument> findAllWithUser();
     
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.id = :id")
+    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.aplikasi WHERE p.id = :id")
     Optional<PksiDocument> findByIdWithUser(@Param("id") UUID id);
 
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN p.user u WHERE " +
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN FETCH p.aplikasi WHERE " +
            "(:search IS NULL OR :search = '' OR " +
            "LOWER(p.namaPksi) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
