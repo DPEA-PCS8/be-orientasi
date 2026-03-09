@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.service.PksiDocumentService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,10 +32,16 @@ public class PksiDocumentController {
 
     @PostMapping
     public ResponseEntity<BaseResponse> createDocument(
-            @Valid @RequestBody PksiDocumentRequest request) {
+            @Valid @RequestBody PksiDocumentRequest request,
+            HttpServletRequest httpRequest) {
         
-        // Get user ID from request body (sent from frontend)
-        UUID userId = UUID.fromString(request.getUserId());
+        // Get user ID from authenticated context (set by AuthorizationInterceptor)
+        String userUuidStr = (String) httpRequest.getAttribute("user_uuid");
+        if (userUuidStr == null || userUuidStr.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new BaseResponse(HttpStatus.UNAUTHORIZED.value(), "User authentication required", null));
+        }
+        UUID userId = UUID.fromString(userUuidStr);
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -122,8 +122,8 @@ public class PksiDocumentRequest {
     private String rencanaPengelolaan;
 
     // ==================== USER ID ====================
+    // Note: user_id is optional in request - actual user is determined from JWT token
     @JsonProperty("user_id")
-    @NotBlank(message = "User ID is required")
     private String userId;
 
     // ==================== LEGACY FIELDS (backward compatibility) ====================
