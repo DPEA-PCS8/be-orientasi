@@ -30,7 +30,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
     Optional<PksiDocument> findByIdWithUser(@Param("id") UUID id);
 
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
-           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " + +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
            "LOWER(p.picSatker) LIKE :searchPattern) " +
