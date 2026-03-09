@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -31,6 +32,11 @@ import java.util.UUID;
 public class PksiDocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "createdAt", "updatedAt", "namaPksi", "status", "tanggalPengajuan"
+    );
+    private static final String DEFAULT_SORT_FIELD = "createdAt";
+    
     private final PksiDocumentService pksiDocumentService;
 
     @PostMapping
@@ -70,9 +76,12 @@ public class PksiDocumentController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        // Validate sortBy to prevent injection - use whitelist approach
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
+        
+        Sort sort = "desc".equalsIgnoreCase(sortDir) 
+                ? Sort.by(safeSortBy).descending() 
+                : Sort.by(safeSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(search, status, pageable);
@@ -127,7 +136,8 @@ public class PksiDocumentController {
         try {
             return UUID.fromString(userUuidStr);
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid UUID format: {}", userUuidStr);
+            // Sanitize log output to prevent log injection
+            log.warn("Invalid UUID format received");
             return null;
         }
     }

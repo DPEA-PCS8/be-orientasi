@@ -92,7 +92,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
-        log.info("Searching PKSI documents with search: {}, status: {}", search, status);
+        log.info("Searching PKSI documents");
         
         return pksiDocumentRepository.searchDocuments(search, status, pageable)
                 .map(mapper::mapToResponse);
