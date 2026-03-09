@@ -2,6 +2,8 @@ package com.pcs8.orientasi.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pcs8.orientasi.constant.ConstantVariable;
+import com.pcs8.orientasi.domain.dto.request.AuditLogSearchCriteria;
 import com.pcs8.orientasi.domain.entity.AuditLog;
 import com.pcs8.orientasi.domain.enums.AuditAction;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
@@ -55,7 +57,7 @@ public class AuditServiceImpl implements AuditService {
             log.debug("Audit log created: {} {} - CREATE by {}", 
                     entityName, entityId, username);
         } catch (Exception e) {
-            log.error("Failed to create audit log for {} {}: {}", 
+            log.error(ConstantVariable.AUDIT_LOG_CREATION_FAILED, 
                     entityName, entityId, e.getMessage(), e);
         }
     }
@@ -84,7 +86,7 @@ public class AuditServiceImpl implements AuditService {
             log.debug("Audit log created: {} {} - UPDATE by {}", 
                     entityName, entityId, username);
         } catch (Exception e) {
-            log.error("Failed to create audit log for {} {}: {}", 
+            log.error(ConstantVariable.AUDIT_LOG_CREATION_FAILED, 
                     entityName, entityId, e.getMessage(), e);
         }
     }
@@ -101,7 +103,7 @@ public class AuditServiceImpl implements AuditService {
             log.debug("Audit log created: {} {} - DELETE by {}", 
                     entityName, entityId, username);
         } catch (Exception e) {
-            log.error("Failed to create audit log for {} {}: {}", 
+            log.error(ConstantVariable.AUDIT_LOG_CREATION_FAILED, 
                     entityName, entityId, e.getMessage(), e);
         }
     }
@@ -136,16 +138,9 @@ public class AuditServiceImpl implements AuditService {
     @Override
     @Transactional(readOnly = true)
     public Page<AuditLog> searchAuditLogs(
-            String entityName,
-            UUID entityId,
-            AuditAction action,
-            UUID userId,
-            String username,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
+            AuditLogSearchCriteria criteria,
             Pageable pageable) {
-        return auditLogRepository.searchAuditLogs(
-                entityName, entityId, action, userId, username, startDate, endDate, pageable);
+        return auditLogRepository.searchAuditLogs(criteria, pageable);
     }
 
     @Override
@@ -246,9 +241,10 @@ public class AuditServiceImpl implements AuditService {
             Set<String> changedFields = new LinkedHashSet<>();
             
             // Check all keys in new map
-            for (String key : newMap.keySet()) {
+            for (Map.Entry<String, Object> entry : newMap.entrySet()) {
+                String key = entry.getKey();
+                Object newVal = entry.getValue();
                 Object oldVal = oldMap.get(key);
-                Object newVal = newMap.get(key);
                 
                 if (!Objects.equals(oldVal, newVal)) {
                     changedFields.add(key);
@@ -256,7 +252,8 @@ public class AuditServiceImpl implements AuditService {
             }
             
             // Check for removed keys
-            for (String key : oldMap.keySet()) {
+            for (Map.Entry<String, Object> entry : oldMap.entrySet()) {
+                String key = entry.getKey();
                 if (!newMap.containsKey(key)) {
                     changedFields.add(key);
                 }

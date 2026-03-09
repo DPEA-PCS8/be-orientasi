@@ -3,6 +3,8 @@ package com.pcs8.orientasi.config;
 import com.pcs8.orientasi.config.annotation.Auditable;
 import com.pcs8.orientasi.domain.enums.AuditAction;
 import com.pcs8.orientasi.service.AuditService;
+import com.pcs8.orientasi.service.AuditableService;
+
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
@@ -116,11 +118,11 @@ public class AuditAspect {
         
         if (args.length > idParamIndex) {
             Object idParam = args[idParamIndex];
-            if (idParam instanceof UUID) {
-                return (UUID) idParam;
-            } else if (idParam instanceof String) {
+            if (idParam instanceof UUID uuid) {
+                return uuid;
+            } else if (idParam instanceof String string) {
                 try {
-                    return UUID.fromString((String) idParam);
+                    return UUID.fromString(string);
                 } catch (IllegalArgumentException e) {
                     return null;
                 }
@@ -138,8 +140,8 @@ public class AuditAspect {
             // Try getId() method
             Method getIdMethod = obj.getClass().getMethod("getId");
             Object id = getIdMethod.invoke(obj);
-            if (id instanceof UUID) {
-                return (UUID) id;
+            if (id instanceof UUID uuid) {
+                return uuid;
             }
         } catch (Exception e) {
             // No getId method or error - that's okay

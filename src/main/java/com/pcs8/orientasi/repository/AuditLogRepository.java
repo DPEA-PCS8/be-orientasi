@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.repository;
 
+import com.pcs8.orientasi.domain.dto.request.AuditLogSearchCriteria;
 import com.pcs8.orientasi.domain.entity.AuditLog;
 import com.pcs8.orientasi.domain.enums.AuditAction;
 import org.springframework.data.domain.Page;
@@ -62,21 +63,15 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
      * Search audit log dengan multiple filter.
      */
     @Query("SELECT a FROM AuditLog a WHERE " +
-           "(:entityName IS NULL OR a.entityName = :entityName) AND " +
-           "(:entityId IS NULL OR a.entityId = :entityId) AND " +
-           "(:action IS NULL OR a.action = :action) AND " +
-           "(:userId IS NULL OR a.userId = :userId) AND " +
-           "(:username IS NULL OR a.username LIKE %:username%) AND " +
-           "(:startDate IS NULL OR a.createdAt >= :startDate) AND " +
-           "(:endDate IS NULL OR a.createdAt <= :endDate)")
+           "(:#{#criteria.entityName} IS NULL OR a.entityName = :#{#criteria.entityName}) AND " +
+           "(:#{#criteria.entityId} IS NULL OR a.entityId = :#{#criteria.entityId}) AND " +
+           "(:#{#criteria.action} IS NULL OR a.action = :#{#criteria.action}) AND " +
+           "(:#{#criteria.userId} IS NULL OR a.userId = :#{#criteria.userId}) AND " +
+           "(:#{#criteria.username} IS NULL OR a.username LIKE %:#{#criteria.username}%) AND " +
+           "(:#{#criteria.startDate} IS NULL OR a.createdAt >= :#{#criteria.startDate}) AND " +
+           "(:#{#criteria.endDate} IS NULL OR a.createdAt <= :#{#criteria.endDate})")
     Page<AuditLog> searchAuditLogs(
-            @Param("entityName") String entityName,
-            @Param("entityId") UUID entityId,
-            @Param("action") AuditAction action,
-            @Param("userId") UUID userId,
-            @Param("username") String username,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
+            @Param("criteria") AuditLogSearchCriteria criteria,
             Pageable pageable);
 
     /**

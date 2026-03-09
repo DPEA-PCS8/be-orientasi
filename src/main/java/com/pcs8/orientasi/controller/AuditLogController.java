@@ -3,6 +3,8 @@ package com.pcs8.orientasi.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.constant.ConstantVariable;
+import com.pcs8.orientasi.domain.dto.request.AuditLogSearchCriteria;
 import com.pcs8.orientasi.domain.dto.response.AuditLogResponse;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.entity.AuditLog;
@@ -23,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * REST Controller untuk Audit Log API.
@@ -56,12 +57,12 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, ConstantVariable.CREATED_AT_FIELD));
         Page<AuditLog> pageResult = auditService.getAllAuditLogs(pageable);
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 buildPageResponse(pageResult)
         ));
     }
@@ -83,7 +84,7 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, ConstantVariable.CREATED_AT_FIELD));
         
         AuditAction auditAction = null;
         if (action != null && !action.isEmpty()) {
@@ -96,12 +97,21 @@ public class AuditLogController {
             }
         }
         
-        Page<AuditLog> pageResult = auditService.searchAuditLogs(
-                entityName, entityId, auditAction, userId, username, startDate, endDate, pageable);
+        AuditLogSearchCriteria criteria = AuditLogSearchCriteria.builder()
+                .entityName(entityName)
+                .entityId(entityId)
+                .action(auditAction)
+                .userId(userId)
+                .username(username)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+        
+        Page<AuditLog> pageResult = auditService.searchAuditLogs(criteria, pageable);
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 buildPageResponse(pageResult)
         ));
     }
@@ -114,7 +124,7 @@ public class AuditLogController {
         AuditLog auditLog = auditService.getAuditLogById(id);
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 mapToResponse(auditLog)
         ));
     }
@@ -129,12 +139,12 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, ConstantVariable.CREATED_AT_FIELD));
         Page<AuditLog> pageResult = auditService.getAuditLogsByEntity(entityName, entityId, pageable);
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 buildPageResponse(pageResult)
         ));
     }
@@ -150,11 +160,11 @@ public class AuditLogController {
         List<AuditLog> auditLogs = auditService.getRecentAuditLogs(entityName, entityId);
         List<AuditLogResponse> responses = auditLogs.stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 responses
         ));
     }
@@ -168,12 +178,12 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, ConstantVariable.CREATED_AT_FIELD));
         Page<AuditLog> pageResult = auditService.getAuditLogsByEntityName(entityName, pageable);
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 buildPageResponse(pageResult)
         ));
     }
@@ -187,12 +197,12 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, ConstantVariable.CREATED_AT_FIELD));
         Page<AuditLog> pageResult = auditService.getAuditLogsByUser(userId, pageable);
         
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 buildPageResponse(pageResult)
         ));
     }
@@ -205,7 +215,7 @@ public class AuditLogController {
         Map<String, Object> stats = auditService.getAuditStatistics();
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 stats
         ));
     }
@@ -218,7 +228,7 @@ public class AuditLogController {
         List<String> entityNames = auditService.getDistinctEntityNames();
         return ResponseEntity.ok(new BaseResponse(
                 HttpStatus.OK.value(),
-                "Success",
+                ConstantVariable.SUCCESS_MESSAGE,
                 entityNames
         ));
     }
@@ -229,7 +239,7 @@ public class AuditLogController {
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent().stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList()));
+                .toList());
         responseData.put("total_elements", pageResult.getTotalElements());
         responseData.put("total_pages", pageResult.getTotalPages());
         responseData.put("page", pageResult.getNumber());
