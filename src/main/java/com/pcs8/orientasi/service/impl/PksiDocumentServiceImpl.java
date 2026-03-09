@@ -12,6 +12,8 @@ import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service implementation untuk dokumen T.01 (PKSI) - MVP Version
+ * Service implementation untuk dokumen T.01 (PKSI) - Refactored Version
  */
 @Service
 @RequiredArgsConstructor
@@ -32,46 +34,46 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
+    private final PksiDocumentMapper mapper;
 
     @Override
     @Transactional
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
-        log.info("Creating PKSI document for user: {}", userId);
+        log.info("Creating PKSI document");
 
-        MstUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+// userId is optional - used for audit/tracking only
+        // Authentication is enforced at controller level via @RequiresRole
+        MstUser user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                log.warn("User not found for tracking, proceeding without user association");
+            }
+        }
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
-                .namaPksi(request.getNamaPksi())
-                .deskripsiPksi(request.getDeskripsiPksi())
-                .tujuanPengajuan(request.getTujuanPengajuan())
-                .kapanDiselesaikan(request.getKapanDiselesaikan())
-                .picSatker(request.getPicSatker())
-                .tujuanPksi(request.getTujuanPksi())
-                .ruangLingkup(request.getRuangLingkup())
-                .pengelolaAplikasi(request.getPengelolaAplikasi())
-                .penggunaAplikasi(request.getPenggunaAplikasi())
-                .programInisiatifRbsi(request.getProgramInisiatifRbsi())
-                .fungsiAplikasi(request.getFungsiAplikasi())
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
-        PksiDocument saved = pksiDocumentRepository.save(document);
-        log.info("PKSI document created with ID: {}", saved.getId());
+        // Use mapper to set all fields from request
+        mapper.mapRequestToDocument(request, document);
 
-        return mapToResponse(saved);
+        PksiDocument saved = pksiDocumentRepository.save(document);
+        log.info("PKSI document created successfully");
+
+        return mapper.mapToResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PksiDocumentResponse getDocumentById(UUID id) {
-        log.info("Fetching PKSI document: {}", id);
+        log.info("Fetching PKSI document by ID");
         
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapToResponse(document);
+        return mapper.mapToResponse(document);
     }
 
     @Override
@@ -80,114 +82,118 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching all PKSI documents");
         
         return pksiDocumentRepository.findAllWithUser().stream()
-                .map(this::mapToResponse)
+                .map(mapper::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PksiDocumentResponse> getDocumentsByUser(UUID userId) {
-        log.info("Fetching PKSI documents for user: {}", userId);
+        log.info("Fetching PKSI documents for user");
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
-                .map(this::mapToResponse)
+                .map(mapper::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
+        log.info("Searching PKSI documents");
+        
+        // Sanitize and format search input with wildcards
+        String searchPattern = formatSearchPattern(search);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        
+        return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
+                .map(mapper::mapToResponse);
+    }
+    
+    /**
+     * Format search input as LIKE pattern with wildcards.
+     * Sanitizes input and adds % wildcards for partial matching.
+     */
+    private String formatSearchPattern(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        // Remove potentially dangerous characters and format as LIKE pattern
+        String sanitized = input.replaceAll("[<>\"'%;()&+\\\\]", "").trim().toLowerCase();
+        if (sanitized.isEmpty()) {
+            return null;
+        }
+        return "%" + sanitized + "%";
+    }
+    
+    /**
+     * Sanitize search input to prevent SQL/JPQL injection
+     */
+    private String sanitizeSearchInput(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        // Remove potentially dangerous characters
+        return input.replaceAll("[<>\"'%;()&+\\\\]", "").trim();
     }
 
     @Override
     @Transactional
     public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
-        log.info("Updating PKSI document: {}", id);
+        log.info("Updating PKSI document");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        document.setNamaPksi(request.getNamaPksi());
-        document.setDeskripsiPksi(request.getDeskripsiPksi());
-        document.setTujuanPengajuan(request.getTujuanPengajuan());
-        document.setKapanDiselesaikan(request.getKapanDiselesaikan());
-        document.setPicSatker(request.getPicSatker());
-        document.setTujuanPksi(request.getTujuanPksi());
-        document.setRuangLingkup(request.getRuangLingkup());
-        document.setPengelolaAplikasi(request.getPengelolaAplikasi());
-        document.setPenggunaAplikasi(request.getPenggunaAplikasi());
-        document.setProgramInisiatifRbsi(request.getProgramInisiatifRbsi());
-        document.setFungsiAplikasi(request.getFungsiAplikasi());
+        // Use mapper to update all fields from request
+        mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
-        log.info("PKSI document updated: {}", updated.getId());
+        log.info("PKSI document updated successfully");
 
-        return mapToResponse(updated);
+        return mapper.mapToResponse(updated);
     }
 
     @Override
     @Transactional
     public void deleteDocument(UUID id) {
-        log.info("Deleting PKSI document: {}", id);
+        log.info("Deleting PKSI document");
 
         if (!pksiDocumentRepository.existsById(id)) {
             throw new ResourceNotFoundException(PKSI_NOT_FOUND);
         }
 
         pksiDocumentRepository.deleteById(id);
-        log.info("PKSI document deleted: {}", id);
+        log.info("PKSI document deleted successfully");
     }
 
     @Override
     @Transactional
     public PksiDocumentResponse updateStatus(UUID id, String status) {
-        log.info("Updating status for PKSI document: {}", id);
+        log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        PksiDocument.DocumentStatus newStatus;
-        try {
-            newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid status value provided for document: {}", id);
-            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
-            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
-        }
-        
+        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(status, id);
         document.setStatus(newStatus);
 
         pksiDocumentRepository.save(document);
-        log.info("PKSI document status updated: {} -> {}", id, newStatus);
+        log.info("PKSI document status updated successfully");
 
         // Re-fetch with user to avoid lazy loading issues
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapToResponse(updated);
+        return mapper.mapToResponse(updated);
     }
 
-    private PksiDocumentResponse mapToResponse(PksiDocument document) {
-        String userId = null;
-        String userName = null;
-        if (document.getUser() != null) {
-            userId = document.getUser().getUuid() != null ? document.getUser().getUuid().toString() : null;
-            userName = document.getUser().getFullName();
+    private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
+        try {
+            return PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid status value provided");
+            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
+            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
-        
-        return PksiDocumentResponse.builder()
-                .id(document.getId().toString())
-                .userId(userId)
-                .userName(userName)
-                .namaPksi(document.getNamaPksi())
-                .deskripsiPksi(document.getDeskripsiPksi())
-                .tujuanPengajuan(document.getTujuanPengajuan())
-                .kapanDiselesaikan(document.getKapanDiselesaikan())
-                .picSatker(document.getPicSatker())
-                .tujuanPksi(document.getTujuanPksi())
-                .ruangLingkup(document.getRuangLingkup())
-                .pengelolaAplikasi(document.getPengelolaAplikasi())
-                .penggunaAplikasi(document.getPenggunaAplikasi())
-                .programInisiatifRbsi(document.getProgramInisiatifRbsi())
-                .fungsiAplikasi(document.getFungsiAplikasi())
-                .status(document.getStatus() != null ? document.getStatus().name() : null)
-                .createdAt(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)
-                .updatedAt(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)
-                .build();
     }
 }
