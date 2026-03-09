@@ -41,8 +41,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
         log.info("Creating PKSI document for user: {}", userId);
 
-        MstUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        MstUser user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId).orElse(null);
+        }
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
