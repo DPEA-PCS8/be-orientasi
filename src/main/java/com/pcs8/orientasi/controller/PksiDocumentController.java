@@ -51,7 +51,7 @@ public class PksiDocumentController {
             @Valid @RequestBody PksiDocumentRequest request,
             HttpServletRequest httpRequest) {
         
-        // User is already authenticated via @RequiresRole - extract userId for tracking (optional)
+// User is already authenticated via @RequiresRole - extract userId for tracking (optional)
         UUID userId = extractUserIdFromRequest(httpRequest);
         if (userId == null) {
             log.info("Creating document without user tracking - user authenticated via role-based auth");
