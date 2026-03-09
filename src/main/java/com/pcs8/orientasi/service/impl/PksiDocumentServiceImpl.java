@@ -101,12 +101,28 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
         log.info("Searching PKSI documents");
         
-        // Sanitize search input to prevent injection
-        String sanitizedSearch = sanitizeSearchInput(search);
+        // Sanitize and format search input - add wildcards here instead of in JPQL CONCAT
+        String searchPattern = formatSearchPattern(search);
         String sanitizedStatus = sanitizeSearchInput(status);
         
-        return pksiDocumentRepository.searchDocuments(sanitizedSearch, sanitizedStatus, pageable)
+        return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
                 .map(mapper::mapToResponse);
+    }
+    
+    /**
+     * Format search input as LIKE pattern with wildcards
+     * Sanitizes input and adds % wildcards for partial matching
+     */
+    private String formatSearchPattern(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        // Remove potentially dangerous characters and format as LIKE pattern
+        String sanitized = input.replaceAll("[<>\"'%;()&+\\\\]", "").trim().toLowerCase();
+        if (sanitized.isEmpty()) {
+            return null;
+        }
+        return "%" + sanitized + "%";
     }
     
     /**
