@@ -39,13 +39,23 @@ public class PksiDocumentController {
     
     private final PksiDocumentService pksiDocumentService;
 
+    /**
+     * Create a new PKSI document.
+     * 
+     * Security Note: Authentication and authorization are enforced by @RequiresRole annotation
+     * at class level, which validates JWT token and user roles via AuthorizationInterceptor.
+     * The userId extraction is optional and used only for audit/tracking purposes.
+     */
     @PostMapping
     public ResponseEntity<BaseResponse> createDocument(
             @Valid @RequestBody PksiDocumentRequest request,
             HttpServletRequest httpRequest) {
         
-        // Try to extract userId, but don't fail if not available
+        // User is already authenticated via @RequiresRole - extract userId for tracking (optional)
         UUID userId = extractUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            log.info("Creating document without user tracking - user authenticated via role-based auth");
+        }
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
