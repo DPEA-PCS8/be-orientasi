@@ -13,23 +13,23 @@ import java.util.UUID;
 @Repository
 public interface RbsiProgramRepository extends JpaRepository<RbsiProgram, UUID> {
 
-    List<RbsiProgram> findByRbsiIdOrderByNomorProgramAsc(UUID rbsiId);
+    List<RbsiProgram> findByRbsiIdAndIsDeletedFalseOrderByNomorProgramAsc(UUID rbsiId);
 
-    List<RbsiProgram> findByRbsiIdAndTahunOrderByNomorProgramAsc(UUID rbsiId, Integer tahun);
+    List<RbsiProgram> findByRbsiIdAndTahunAndIsDeletedFalseOrderByNomorProgramAsc(UUID rbsiId, Integer tahun);
 
-    Optional<RbsiProgram> findByRbsiIdAndTahunAndNomorProgram(UUID rbsiId, Integer tahun, String nomorProgram);
+    Optional<RbsiProgram> findByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(UUID rbsiId, Integer tahun, String nomorProgram);
 
-    boolean existsByRbsiIdAndTahunAndNomorProgram(UUID rbsiId, Integer tahun, String nomorProgram);
+    boolean existsByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(UUID rbsiId, Integer tahun, String nomorProgram);
 
-    @Query("SELECT DISTINCT p FROM RbsiProgram p LEFT JOIN FETCH p.inisiatifs i WHERE p.rbsi.id = :rbsiId AND p.tahun = :tahun ORDER BY p.nomorProgram ASC")
+    @Query("SELECT DISTINCT p FROM RbsiProgram p LEFT JOIN FETCH p.inisiatifs i WHERE p.rbsi.id = :rbsiId AND p.tahun = :tahun AND p.isDeleted = false ORDER BY p.nomorProgram ASC")
     List<RbsiProgram> findByRbsiIdAndTahunWithInisiatifs(@Param("rbsiId") UUID rbsiId, @Param("tahun") Integer tahun);
 
-    @Query("SELECT DISTINCT p FROM RbsiProgram p LEFT JOIN FETCH p.inisiatifs i WHERE p.rbsi.id = :rbsiId ORDER BY p.tahun DESC, p.nomorProgram ASC")
+    @Query("SELECT DISTINCT p FROM RbsiProgram p LEFT JOIN FETCH p.inisiatifs i WHERE p.rbsi.id = :rbsiId AND p.isDeleted = false ORDER BY p.tahun DESC, p.nomorProgram ASC")
     List<RbsiProgram> findByRbsiIdWithInisiatifs(@Param("rbsiId") UUID rbsiId);
 
-    @Query("SELECT MAX(p.tahun) FROM RbsiProgram p WHERE p.rbsi.id = :rbsiId")
+    @Query("SELECT MAX(p.tahun) FROM RbsiProgram p WHERE p.rbsi.id = :rbsiId AND p.isDeleted = false")
     Integer findMaxTahunByRbsiId(@Param("rbsiId") UUID rbsiId);
 
-    @Query("SELECT DISTINCT p.tahun FROM RbsiProgram p WHERE p.rbsi.id = :rbsiId ORDER BY p.tahun DESC")
+    @Query("SELECT DISTINCT p.tahun FROM RbsiProgram p WHERE p.rbsi.id = :rbsiId AND p.isDeleted = false ORDER BY p.tahun DESC")
     List<Integer> findDistinctTahunByRbsiId(@Param("rbsiId") UUID rbsiId);
 }
