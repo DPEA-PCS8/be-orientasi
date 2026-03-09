@@ -14,9 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trn_rbsi_program", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"rbsi_id", "tahun", "nomor_program"})
-})
+@Table(name = "trn_rbsi_program")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
@@ -41,6 +39,10 @@ public class RbsiProgram extends BaseEntity {
 
     @Column(name = "nama_program", nullable = false, length = 255)
     private String namaProgram;
+
+    @Default
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BIT DEFAULT 0")
+    private Boolean isDeleted = false;
 
     @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
     @Default

@@ -177,7 +177,7 @@ public class RbsiServiceImpl implements RbsiService {
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
         RbsiProgram existingProgram = programRepository
-                .findByRbsiIdAndTahunAndNomorProgram(request.getRbsiId(), request.getTahun(), request.getNomorProgram())
+                .findByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(request.getRbsiId(), request.getTahun(), request.getNomorProgram())
                 .orElse(null);
         
         boolean isNew = (existingProgram == null);
@@ -228,7 +228,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         if (!program.getNomorProgram().equals(request.getNomorProgram())
                 || !program.getTahun().equals(request.getTahun())) {
-            boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgram(
+            boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(
                     request.getRbsiId(), request.getTahun(), request.getNomorProgram()
             );
             if (exists) {
@@ -244,7 +244,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         if (!previousTahun.equals(request.getTahun())) {
             List<RbsiInisiatif> inisiatifs = inisiatifRepository
-                    .findByProgramIdAndTahunOrderByNomorInisiatifAsc(savedProgram.getId(), previousTahun);
+                    .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(savedProgram.getId(), previousTahun);
             for (RbsiInisiatif inisiatif : inisiatifs) {
                 inisiatif.setTahun(request.getTahun());
                 inisiatifRepository.save(inisiatif);
@@ -274,11 +274,26 @@ public class RbsiServiceImpl implements RbsiService {
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
         
+        // Check if already deleted
+        if (Boolean.TRUE.equals(program.getIsDeleted())) {
+            throw new BadRequestException("Program sudah dihapus sebelumnya");
+        }
+        
         // Capture old value untuk audit sebelum delete
         RbsiProgramResponse oldValue = mapToProgramResponse(program, false);
         
-        programRepository.delete(program);
-        log.info("Program deleted: {}", programId);
+        // Soft delete all child inisiatifs
+        List<RbsiInisiatif> inisiatifs = inisiatifRepository.findByProgramIdAndIsDeletedFalse(programId);
+        for (RbsiInisiatif inisiatif : inisiatifs) {
+            inisiatif.setIsDeleted(true);
+            inisiatifRepository.save(inisiatif);
+            log.info("Inisiatif soft deleted (cascade): {}", inisiatif.getId());
+        }
+        
+        // Soft delete the program
+        program.setIsDeleted(true);
+        programRepository.save(program);
+        log.info("Program soft deleted: {} with {} inisiatifs", programId, inisiatifs.size());
         
         // Audit log
         auditService.logDelete(ENTITY_NAME_PROGRAM, programId, oldValue, userId, username);
@@ -299,7 +314,7 @@ public class RbsiServiceImpl implements RbsiService {
         }
 
         RbsiInisiatif existingInisiatif = inisiatifRepository
-                .findByProgramIdAndTahunAndNomorInisiatif(request.getProgramId(), request.getTahun(), request.getNomorInisiatif())
+                .findByProgramIdAndTahunAndNomorInisiatifAndIsDeletedFalse(request.getProgramId(), request.getTahun(), request.getNomorInisiatif())
                 .orElse(null);
         
         boolean isNew = (existingInisiatif == null);
@@ -361,7 +376,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         if (!inisiatif.getNomorInisiatif().equals(request.getNomorInisiatif())
                 || !inisiatif.getTahun().equals(request.getTahun())) {
-            boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatif(
+            boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatifAndIsDeletedFalse(
                     request.getProgramId(), request.getTahun(), request.getNomorInisiatif()
             );
             if (exists) {
@@ -397,11 +412,18 @@ public class RbsiServiceImpl implements RbsiService {
         RbsiInisiatif inisiatif = inisiatifRepository.findById(inisiatifId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
         
+        // Check if already deleted
+        if (Boolean.TRUE.equals(inisiatif.getIsDeleted())) {
+            throw new BadRequestException("Inisiatif sudah dihapus sebelumnya");
+        }
+        
         // Capture old value untuk audit sebelum delete
         RbsiInisiatifResponse oldValue = mapToInisiatifResponse(inisiatif);
         
-        inisiatifRepository.delete(inisiatif);
-        log.info("Inisiatif deleted: {}", inisiatifId);
+        // Soft delete the inisiatif
+        inisiatif.setIsDeleted(true);
+        inisiatifRepository.save(inisiatif);
+        log.info("Inisiatif soft deleted: {}", inisiatifId);
         
         // Audit log
         auditService.logDelete(ENTITY_NAME_INISIATIF, inisiatifId, oldValue, userId, username);
@@ -481,7 +503,7 @@ public class RbsiServiceImpl implements RbsiService {
 
             // Copy inisiatifs
             List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
-                    .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), fromTahun);
+                    .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(sourceProgram.getId(), fromTahun);
 
             for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
                 RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
@@ -513,7 +535,7 @@ public class RbsiServiceImpl implements RbsiService {
         String targetNomorProgram = newNomorProgram != null ? newNomorProgram : sourceProgram.getNomorProgram();
 
         // Check if same nomor_program already exists in target year
-        boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgram(
+        boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(
                 rbsi.getId(), toTahun, targetNomorProgram);
         if (exists) {
             throw new BadRequestException("Program dengan nomor " + targetNomorProgram + 
@@ -531,7 +553,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         // Copy inisiatifs with renumbering
         List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
-                .findByProgramIdAndTahunOrderByNomorInisiatifAsc(sourceProgram.getId(), sourceProgram.getTahun());
+                .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(sourceProgram.getId(), sourceProgram.getTahun());
 
         int inisiatifIndex = 1;
         for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
@@ -566,7 +588,7 @@ public class RbsiServiceImpl implements RbsiService {
         String targetNomorInisiatif = newNomorInisiatif != null ? newNomorInisiatif : sourceInisiatif.getNomorInisiatif();
 
         // Check if same nomor_inisiatif already exists in target program
-        boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatif(
+        boolean exists = inisiatifRepository.existsByProgramIdAndTahunAndNomorInisiatifAndIsDeletedFalse(
                 toProgramId, targetProgram.getTahun(), targetNomorInisiatif);
         if (exists) {
             throw new BadRequestException("Inisiatif dengan nomor " + targetNomorInisiatif +
@@ -649,7 +671,7 @@ public class RbsiServiceImpl implements RbsiService {
 
             for (RbsiProgram program : programs) {
                 List<RbsiInisiatif> inisiatifs = inisiatifRepository
-                        .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), targetTahun);
+                        .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(program.getId(), targetTahun);
 
                 for (RbsiInisiatif inisiatif : inisiatifs) {
                     List<KepProgressFullResponse.KepProgressItem> kepProgressItems = new ArrayList<>();
@@ -775,7 +797,7 @@ public class RbsiServiceImpl implements RbsiService {
 
     private void upsertInisiatifs(RbsiProgram program, List<RbsiInisiatifItemRequest> inisiatifs) {
         Map<String, RbsiInisiatif> existing = inisiatifRepository
-            .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), program.getTahun()).stream()
+            .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(program.getId(), program.getTahun()).stream()
             .collect(Collectors.toMap(RbsiInisiatif::getNomorInisiatif, item -> item, (a, b) -> a));
 
         for (RbsiInisiatifItemRequest item : inisiatifs) {
@@ -804,7 +826,7 @@ public class RbsiServiceImpl implements RbsiService {
         List<RbsiInisiatifResponse> inisiatifs = null;
         if (includeInisiatif) {
             inisiatifs = inisiatifRepository
-                    .findByProgramIdAndTahunOrderByNomorInisiatifAsc(program.getId(), program.getTahun())
+                    .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(program.getId(), program.getTahun())
                     .stream()
                     .map(this::mapToInisiatifResponse)
                     .collect(Collectors.toList());

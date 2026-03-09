@@ -2,6 +2,7 @@ package com.pcs8.orientasi.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 import lombok.Data;
@@ -11,9 +12,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trn_rbsi_inisiatif", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"program_id", "tahun", "nomor_inisiatif"})
-})
+@Table(name = "trn_rbsi_inisiatif")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
@@ -42,4 +41,8 @@ public class RbsiInisiatif extends BaseEntity {
 
     @Column(name = "nama_inisiatif", nullable = false, length = 255)
     private String namaInisiatif;
+
+    @Default
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BIT DEFAULT 0")
+    private Boolean isDeleted = false;
 }

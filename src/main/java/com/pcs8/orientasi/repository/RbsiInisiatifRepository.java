@@ -11,9 +11,12 @@ import java.util.UUID;
 @Repository
 public interface RbsiInisiatifRepository extends JpaRepository<RbsiInisiatif, UUID> {
 
-    List<RbsiInisiatif> findByProgramIdAndTahunOrderByNomorInisiatifAsc(UUID programId, Integer tahun);
+    List<RbsiInisiatif> findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(UUID programId, Integer tahun);
 
-    Optional<RbsiInisiatif> findByProgramIdAndTahunAndNomorInisiatif(UUID programId, Integer tahun, String nomorInisiatif);
+    Optional<RbsiInisiatif> findByProgramIdAndTahunAndNomorInisiatifAndIsDeletedFalse(UUID programId, Integer tahun, String nomorInisiatif);
 
-    boolean existsByProgramIdAndTahunAndNomorInisiatif(UUID programId, Integer tahun, String nomorInisiatif);
+    boolean existsByProgramIdAndTahunAndNomorInisiatifAndIsDeletedFalse(UUID programId, Integer tahun, String nomorInisiatif);
+
+    // For soft delete cascade - get all inisiatifs (including already deleted) by program
+    List<RbsiInisiatif> findByProgramIdAndIsDeletedFalse(UUID programId);
 }
