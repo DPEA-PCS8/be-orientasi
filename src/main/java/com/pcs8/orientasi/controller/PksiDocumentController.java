@@ -6,13 +6,23 @@ import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.service.PksiDocumentService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -21,14 +31,24 @@ import java.util.UUID;
 @RequiresRole({"Admin", "Pengembang", "Satker"})
 public class PksiDocumentController {
 
+    private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "createdAt", "updatedAt", "namaPksi", "status", "tanggalPengajuan"
+    );
+    private static final String DEFAULT_SORT_FIELD = "createdAt";
+    
     private final PksiDocumentService pksiDocumentService;
 
     @PostMapping
     public ResponseEntity<BaseResponse> createDocument(
-            @Valid @RequestBody PksiDocumentRequest request) {
+            @Valid @RequestBody PksiDocumentRequest request,
+            HttpServletRequest httpRequest) {
         
-        // Get user ID from request body (sent from frontend)
-        UUID userId = UUID.fromString(request.getUserId());
+        UUID userId = extractUserIdFromRequest(httpRequest);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new BaseResponse(HttpStatus.UNAUTHORIZED.value(), "User authentication required", null));
+        }
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -45,6 +65,37 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> getAllDocuments() {
         List<PksiDocumentResponse> responses = pksiDocumentService.getAllDocuments();
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<BaseResponse> searchDocuments(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        // Validate sortBy to prevent injection - use whitelist approach
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
+        
+        Sort sort = "desc".equalsIgnoreCase(sortDir) 
+                ? Sort.by(safeSortBy).descending() 
+                : Sort.by(safeSortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(search, status, pageable);
+        
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("content", pageResult.getContent());
+        responseData.put("total_elements", pageResult.getTotalElements());
+        responseData.put("total_pages", pageResult.getTotalPages());
+        responseData.put("page", pageResult.getNumber());
+        responseData.put("size", pageResult.getSize());
+        responseData.put("has_next", pageResult.hasNext());
+        responseData.put("has_previous", pageResult.hasPrevious());
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responseData));
     }
 
     @GetMapping("/user/{userId}")
@@ -75,5 +126,19 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> deleteDocument(@PathVariable UUID id) {
         pksiDocumentService.deleteDocument(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document deleted successfully", null));
+    }
+
+    private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {
+        String userUuidStr = (String) httpRequest.getAttribute("user_uuid");
+        if (userUuidStr == null || userUuidStr.isEmpty()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(userUuidStr);
+        } catch (IllegalArgumentException e) {
+            // Sanitize log output to prevent log injection
+            log.warn("Invalid UUID format received");
+            return null;
+        }
     }
 }

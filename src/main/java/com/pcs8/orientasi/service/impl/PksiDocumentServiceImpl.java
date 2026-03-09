@@ -12,6 +12,8 @@ import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service implementation untuk dokumen T.01 (PKSI) - MVP Version
+ * Service implementation untuk dokumen T.01 (PKSI) - Refactored Version
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +34,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
+    private final PksiDocumentMapper mapper;
 
     @Override
     @Transactional
@@ -43,24 +46,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
-                .namaPksi(request.getNamaPksi())
-                .deskripsiPksi(request.getDeskripsiPksi())
-                .tujuanPengajuan(request.getTujuanPengajuan())
-                .kapanDiselesaikan(request.getKapanDiselesaikan())
-                .picSatker(request.getPicSatker())
-                .tujuanPksi(request.getTujuanPksi())
-                .ruangLingkup(request.getRuangLingkup())
-                .pengelolaAplikasi(request.getPengelolaAplikasi())
-                .penggunaAplikasi(request.getPenggunaAplikasi())
-                .programInisiatifRbsi(request.getProgramInisiatifRbsi())
-                .fungsiAplikasi(request.getFungsiAplikasi())
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
+
+        // Use mapper to set all fields from request
+        mapper.mapRequestToDocument(request, document);
 
         PksiDocument saved = pksiDocumentRepository.save(document);
         log.info("PKSI document created with ID: {}", saved.getId());
 
-        return mapToResponse(saved);
+        return mapper.mapToResponse(saved);
     }
 
     @Override
@@ -71,7 +66,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapToResponse(document);
+        return mapper.mapToResponse(document);
     }
 
     @Override
@@ -80,7 +75,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching all PKSI documents");
         
         return pksiDocumentRepository.findAllWithUser().stream()
-                .map(this::mapToResponse)
+                .map(mapper::mapToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -90,8 +85,17 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching PKSI documents for user: {}", userId);
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
-                .map(this::mapToResponse)
+                .map(mapper::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
+        log.info("Searching PKSI documents");
+        
+        return pksiDocumentRepository.searchDocuments(search, status, pageable)
+                .map(mapper::mapToResponse);
     }
 
     @Override
@@ -102,22 +106,13 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        document.setNamaPksi(request.getNamaPksi());
-        document.setDeskripsiPksi(request.getDeskripsiPksi());
-        document.setTujuanPengajuan(request.getTujuanPengajuan());
-        document.setKapanDiselesaikan(request.getKapanDiselesaikan());
-        document.setPicSatker(request.getPicSatker());
-        document.setTujuanPksi(request.getTujuanPksi());
-        document.setRuangLingkup(request.getRuangLingkup());
-        document.setPengelolaAplikasi(request.getPengelolaAplikasi());
-        document.setPenggunaAplikasi(request.getPenggunaAplikasi());
-        document.setProgramInisiatifRbsi(request.getProgramInisiatifRbsi());
-        document.setFungsiAplikasi(request.getFungsiAplikasi());
+        // Use mapper to update all fields from request
+        mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated: {}", updated.getId());
 
-        return mapToResponse(updated);
+        return mapper.mapToResponse(updated);
     }
 
     @Override
@@ -141,15 +136,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        PksiDocument.DocumentStatus newStatus;
-        try {
-            newStatus = PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid status value provided for document: {}", id);
-            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
-            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
-        }
-        
+        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(status, id);
         document.setStatus(newStatus);
 
         pksiDocumentRepository.save(document);
@@ -159,35 +146,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapToResponse(updated);
+        return mapper.mapToResponse(updated);
     }
 
-    private PksiDocumentResponse mapToResponse(PksiDocument document) {
-        String userId = null;
-        String userName = null;
-        if (document.getUser() != null) {
-            userId = document.getUser().getUuid() != null ? document.getUser().getUuid().toString() : null;
-            userName = document.getUser().getFullName();
+    private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
+        try {
+            return PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid status value provided for document: {}", documentId);
+            String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
+            throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
-        
-        return PksiDocumentResponse.builder()
-                .id(document.getId().toString())
-                .userId(userId)
-                .userName(userName)
-                .namaPksi(document.getNamaPksi())
-                .deskripsiPksi(document.getDeskripsiPksi())
-                .tujuanPengajuan(document.getTujuanPengajuan())
-                .kapanDiselesaikan(document.getKapanDiselesaikan())
-                .picSatker(document.getPicSatker())
-                .tujuanPksi(document.getTujuanPksi())
-                .ruangLingkup(document.getRuangLingkup())
-                .pengelolaAplikasi(document.getPengelolaAplikasi())
-                .penggunaAplikasi(document.getPenggunaAplikasi())
-                .programInisiatifRbsi(document.getProgramInisiatifRbsi())
-                .fungsiAplikasi(document.getFungsiAplikasi())
-                .status(document.getStatus() != null ? document.getStatus().name() : null)
-                .createdAt(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)
-                .updatedAt(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)
-                .build();
     }
 }
