@@ -65,19 +65,9 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         Boolean hasRole = claims.get("has_role", Boolean.class);
 
         // Store user info in request attributes for later use
-        String userUuid = claims.get("uuid", String.class);
-        String username = claims.getSubject();
-        
-        request.setAttribute("user_uuid", userUuid);
-        request.setAttribute("username", username);  // Subject is the username
-        request.setAttribute("full_name", claims.get("full_name", String.class));
+        request.setAttribute("user_uuid", claims.get("uuid", String.class));
         request.setAttribute("user_roles", userRoles);
         request.setAttribute("has_role", hasRole);
-
-        log.info("User authenticated: username={}, uuid={}, roles={}", 
-                username, 
-                userUuid, 
-                userRoles);
 
         // Check @RequiresRole annotation
         RequiresRole requiresRole = handlerMethod.getMethodAnnotation(RequiresRole.class);
@@ -141,24 +131,13 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     }
 
     private boolean checkRoles(Set<String> userRoles, String[] requiredRoles, boolean requireAll) {
-        // Convert userRoles to lowercase for case-insensitive comparison
-        Set<String> userRolesLower = new HashSet<>();
-        for (String role : userRoles) {
-            userRolesLower.add(role.toLowerCase());
-        }
-        
         if (requireAll) {
             // User must have ALL required roles
-            for (String requiredRole : requiredRoles) {
-                if (!userRolesLower.contains(requiredRole.toLowerCase())) {
-                    return false;
-                }
-            }
-            return true;
+            return userRoles.containsAll(Arrays.asList(requiredRoles));
         } else {
             // User must have at least ONE of the required roles
             for (String requiredRole : requiredRoles) {
-                if (userRolesLower.contains(requiredRole.toLowerCase())) {
+                if (userRoles.contains(requiredRole)) {
                     return true;
                 }
             }

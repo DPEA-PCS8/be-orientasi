@@ -2,10 +2,12 @@ package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
+import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -34,6 +36,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
+    private final MstAplikasiRepository aplikasiRepository;
     private final PksiDocumentMapper mapper;
 
     @Override
@@ -51,8 +54,23 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             }
         }
 
+        // Resolve aplikasi if provided
+        MstAplikasi aplikasi = null;
+        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
+            try {
+                UUID aplikasiUuid = UUID.fromString(request.getAplikasiId());
+                aplikasi = aplikasiRepository.findById(aplikasiUuid).orElse(null);
+                if (aplikasi == null) {
+                    log.warn("Aplikasi not found for ID: {}, proceeding without aplikasi association", request.getAplikasiId());
+                }
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
+
         PksiDocument document = PksiDocument.builder()
                 .user(user)
+                .aplikasi(aplikasi)
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
@@ -112,6 +130,17 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Update aplikasi if provided
+        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
+            try {
+                UUID aplikasiUuid = UUID.fromString(request.getAplikasiId());
+                MstAplikasi aplikasi = aplikasiRepository.findById(aplikasiUuid).orElse(null);
+                document.setAplikasi(aplikasi);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
 
         // Use mapper to update all fields from request
         mapper.mapRequestToDocument(request, document);

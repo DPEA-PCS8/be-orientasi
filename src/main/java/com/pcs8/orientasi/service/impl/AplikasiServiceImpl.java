@@ -1,6 +1,5 @@
 package com.pcs8.orientasi.service.impl;
 
-import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.*;
 import com.pcs8.orientasi.domain.dto.response.*;
 import com.pcs8.orientasi.domain.entity.*;
@@ -11,7 +10,6 @@ import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstVariableRepository;
 import com.pcs8.orientasi.service.AplikasiService;
-import com.pcs8.orientasi.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,22 +29,15 @@ import java.util.stream.Collectors;
 public class AplikasiServiceImpl implements AplikasiService {
 
     private static final Logger log = LoggerFactory.getLogger(AplikasiServiceImpl.class);
-    private static final String ENTITY_NAME = "Aplikasi";
 
     private final MstAplikasiRepository aplikasiRepository;
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
     private final MstVariableRepository variableRepository;
-    private final AuditService auditService;
-    private final UserContext userContext;
 
     @Override
     @Transactional
     public AplikasiResponse create(AplikasiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         String kode = request.getKodeAplikasi().toUpperCase().trim();
         if (aplikasiRepository.existsByKodeAplikasi(kode)) {
             throw new BadRequestException("Aplikasi dengan kode '" + kode + "' sudah ada");
@@ -58,12 +49,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         MstAplikasi saved = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi created: {} - {}", saved.getKodeAplikasi(), saved.getNamaAplikasi());
-        
-        // Audit log
-        AplikasiResponse response = mapToResponse(saved);
-        auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
-        
-        return response;
+        return mapToResponse(saved);
     }
 
     private MstAplikasi buildAplikasiFromRequest(AplikasiRequest request, String kode) {
@@ -223,15 +209,8 @@ public class AplikasiServiceImpl implements AplikasiService {
     @Override
     @Transactional
     public AplikasiResponse update(UUID id, AplikasiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstAplikasi aplikasi = aplikasiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Aplikasi tidak ditemukan"));
-
-        // Capture old value untuk audit
-        AplikasiResponse oldValue = mapToResponse(aplikasi);
 
         String newKode = request.getKodeAplikasi().toUpperCase().trim();
         if (!aplikasi.getKodeAplikasi().equals(newKode) && aplikasiRepository.existsByKodeAplikasi(newKode)) {
@@ -264,12 +243,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi updated: {} - {}", updated.getKodeAplikasi(), updated.getNamaAplikasi());
-        
-        // Audit log
-        AplikasiResponse newValue = mapToResponse(updated);
-        auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
-        
-        return newValue;
+        return mapToResponse(updated);
     }
 
 
@@ -278,15 +252,8 @@ public class AplikasiServiceImpl implements AplikasiService {
     @Override
     @Transactional
     public AplikasiResponse updateStatus(UUID id, String status) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstAplikasi aplikasi = aplikasiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Aplikasi tidak ditemukan"));
-
-        // Capture old value untuk audit
-        AplikasiResponse oldValue = mapToResponse(aplikasi);
 
         // Validate status
         if (!status.equals("AKTIF") && !status.equals("IDLE") && !status.equals("DIAKHIRI")) {
@@ -298,25 +265,14 @@ public class AplikasiServiceImpl implements AplikasiService {
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi status updated: {} - {} -> {}", updated.getKodeAplikasi(), updated.getNamaAplikasi(), status);
 
-        // Audit log
-        AplikasiResponse newValue = mapToResponse(updated);
-        auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
-
-        return newValue;
+        return mapToResponse(updated);
     }
 
     @Override
     @Transactional
     public AplikasiResponse updateStatusWithDetails(UUID id, AplikasiStatusRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstAplikasi aplikasi = aplikasiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Aplikasi tidak ditemukan"));
-
-        // Capture old value untuk audit
-        AplikasiResponse oldValue = mapToResponse(aplikasi);
 
         String status = request.getStatus();
         // Validate status
@@ -352,31 +308,17 @@ public class AplikasiServiceImpl implements AplikasiService {
         MstAplikasi updated = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi status updated with details: {} - {} -> {}", updated.getKodeAplikasi(), updated.getNamaAplikasi(), status);
 
-        // Audit log
-        AplikasiResponse newValue = mapToResponse(updated);
-        auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
-
-        return newValue;
+        return mapToResponse(updated);
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstAplikasi aplikasi = aplikasiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Aplikasi tidak ditemukan"));
 
-        // Capture old value untuk audit sebelum delete
-        AplikasiResponse oldValue = mapToResponse(aplikasi);
-
         aplikasiRepository.delete(aplikasi);
         log.info("Aplikasi deleted: {}", aplikasi.getKodeAplikasi());
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
 
     private AplikasiResponse mapToResponse(MstAplikasi entity) {

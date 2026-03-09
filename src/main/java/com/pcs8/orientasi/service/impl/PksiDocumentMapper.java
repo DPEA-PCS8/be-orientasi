@@ -16,6 +16,7 @@ public interface PksiDocumentMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "aplikasi", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -33,6 +34,9 @@ public interface PksiDocumentMapper {
     @Mapping(target = "id", expression = "java(document.getId().toString())")
     @Mapping(target = "userId", expression = "java(extractUserId(document))")
     @Mapping(target = "userName", expression = "java(extractUserName(document))")
+    @Mapping(target = "aplikasiId", expression = "java(extractAplikasiId(document))")
+    @Mapping(target = "namaAplikasi", expression = "java(extractNamaAplikasi(document))")
+    @Mapping(target = "kodeAplikasi", expression = "java(extractKodeAplikasi(document))")
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
     @Mapping(target = "kapanHarusDiselesaikan", source = "kapanDiselesaikan")
     @Mapping(target = "picSatkerBA", source = "picSatker")
@@ -86,6 +90,27 @@ public interface PksiDocumentMapper {
     default String extractUserName(PksiDocument document) {
         if (document.getUser() != null) {
             return document.getUser().getFullName();
+        }
+        return null;
+    }
+
+    default String extractAplikasiId(PksiDocument document) {
+        if (document.getAplikasi() != null && document.getAplikasi().getId() != null) {
+            return document.getAplikasi().getId().toString();
+        }
+        return null;
+    }
+
+    default String extractNamaAplikasi(PksiDocument document) {
+        if (document.getAplikasi() != null) {
+            return document.getAplikasi().getNamaAplikasi();
+        }
+        return null;
+    }
+
+    default String extractKodeAplikasi(PksiDocument document) {
+        if (document.getAplikasi() != null) {
+            return document.getAplikasi().getKodeAplikasi();
         }
         return null;
     }

@@ -1,6 +1,5 @@
 package com.pcs8.orientasi.service.impl;
 
-import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifItemRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
@@ -28,7 +27,6 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.RbsiKepRepository;
 import com.pcs8.orientasi.repository.RbsiProgramRepository;
 import com.pcs8.orientasi.repository.RbsiRepository;
-import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.RbsiService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -47,9 +45,6 @@ import java.util.stream.Collectors;
 public class RbsiServiceImpl implements RbsiService {
 
     private static final Logger log = LoggerFactory.getLogger(RbsiServiceImpl.class);
-    private static final String ENTITY_NAME_RBSI = "RBSI";
-    private static final String ENTITY_NAME_PROGRAM = "Program RBSI";
-    private static final String ENTITY_NAME_INISIATIF = "Inisiatif RBSI";
 
     private final RbsiRepository rbsiRepository;
     private final RbsiProgramRepository programRepository;
@@ -57,16 +52,10 @@ public class RbsiServiceImpl implements RbsiService {
     private final InisiatifGroupRepository inisiatifGroupRepository;
     private final RbsiKepRepository kepRepository;
     private final KepProgressRepository kepProgressRepository;
-    private final AuditService auditService;
-    private final UserContext userContext;
 
     @Override
     @Transactional
     public RbsiResponse createRbsi(RbsiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         if (rbsiRepository.existsByPeriode(request.getPeriode())) {
             throw new BadRequestException("RBSI dengan periode ini sudah ada");
         }
@@ -77,12 +66,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         Rbsi saved = rbsiRepository.save(rbsi);
         log.info("RBSI created: {}", saved.getId());
-        
-        // Audit log
-        RbsiResponse response = mapToRbsiResponse(saved, null);
-        auditService.logCreate(ENTITY_NAME_RBSI, saved.getId(), response, userId, username);
-        
-        return response;
+        return mapToRbsiResponse(saved, null);
     }
 
     @Override
@@ -121,15 +105,8 @@ public class RbsiServiceImpl implements RbsiService {
     @Override
     @Transactional
     public RbsiResponse updateRbsi(UUID id, RbsiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
-
-        // Capture old value untuk audit
-        RbsiResponse oldValue = mapToRbsiResponse(rbsi, null);
 
         if (!rbsi.getPeriode().equals(request.getPeriode()) && rbsiRepository.existsByPeriode(request.getPeriode())) {
             throw new BadRequestException("RBSI dengan periode ini sudah ada");
@@ -138,56 +115,31 @@ public class RbsiServiceImpl implements RbsiService {
         rbsi.setPeriode(request.getPeriode());
         Rbsi saved = rbsiRepository.save(rbsi);
         log.info("RBSI updated: {}", saved.getId());
-        
-        // Audit log
-        RbsiResponse newValue = mapToRbsiResponse(saved, null);
-        auditService.logUpdate(ENTITY_NAME_RBSI, id, oldValue, newValue, userId, username);
-        
-        return newValue;
+        return mapToRbsiResponse(saved, null);
     }
 
     @Override
     @Transactional
     public void deleteRbsi(UUID id) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         Rbsi rbsi = rbsiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
-        
-        // Capture old value untuk audit sebelum delete
-        RbsiResponse oldValue = mapToRbsiResponse(rbsi, null);
-        
         rbsiRepository.delete(rbsi);
         log.info("RBSI deleted: {}", id);
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME_RBSI, id, oldValue, userId, username);
     }
 
     @Override
     @Transactional
     public RbsiProgramResponse createOrUpdateProgram(RbsiProgramRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         Rbsi rbsi = rbsiRepository.findById(request.getRbsiId())
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        RbsiProgram existingProgram = programRepository
+        RbsiProgram program = programRepository
                 .findByRbsiIdAndTahunAndNomorProgram(request.getRbsiId(), request.getTahun(), request.getNomorProgram())
-                .orElse(null);
-        
-        boolean isNew = (existingProgram == null);
-        RbsiProgramResponse oldValue = isNew ? null : mapToProgramResponse(existingProgram, false);
-        
-        RbsiProgram program = existingProgram != null ? existingProgram : RbsiProgram.builder()
-                .rbsi(rbsi)
-                .tahun(request.getTahun())
-                .nomorProgram(request.getNomorProgram())
-                .build();
+                .orElseGet(() -> RbsiProgram.builder()
+                        .rbsi(rbsi)
+                        .tahun(request.getTahun())
+                        .nomorProgram(request.getNomorProgram())
+                        .build());
 
         program.setNamaProgram(request.getNamaProgram());
         RbsiProgram savedProgram = programRepository.save(program);
@@ -197,30 +149,14 @@ public class RbsiServiceImpl implements RbsiService {
         }
 
         log.info("Program saved: {}", savedProgram.getId());
-        
-        // Audit log
-        RbsiProgramResponse response = mapToProgramResponse(savedProgram, true);
-        if (isNew) {
-            auditService.logCreate(ENTITY_NAME_PROGRAM, savedProgram.getId(), response, userId, username);
-        } else {
-            auditService.logUpdate(ENTITY_NAME_PROGRAM, savedProgram.getId(), oldValue, response, userId, username);
-        }
-        
-        return response;
+        return mapToProgramResponse(savedProgram, true);
     }
 
     @Override
     @Transactional
     public RbsiProgramResponse updateProgram(UUID programId, RbsiProgramRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
-
-        // Capture old value untuk audit
-        RbsiProgramResponse oldValue = mapToProgramResponse(program, false);
 
         if (!program.getRbsi().getId().equals(request.getRbsiId())) {
             throw new BadRequestException("Rbsi id tidak sesuai dengan program");
@@ -256,41 +192,21 @@ public class RbsiServiceImpl implements RbsiService {
         }
 
         log.info("Program updated: {}", savedProgram.getId());
-        
-        // Audit log
-        RbsiProgramResponse newValue = mapToProgramResponse(savedProgram, true);
-        auditService.logUpdate(ENTITY_NAME_PROGRAM, programId, oldValue, newValue, userId, username);
-        
-        return newValue;
+        return mapToProgramResponse(savedProgram, true);
     }
 
     @Override
     @Transactional
     public void deleteProgram(UUID programId) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
-        
-        // Capture old value untuk audit sebelum delete
-        RbsiProgramResponse oldValue = mapToProgramResponse(program, false);
-        
         programRepository.delete(program);
         log.info("Program deleted: {}", programId);
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME_PROGRAM, programId, oldValue, userId, username);
     }
 
     @Override
     @Transactional
     public RbsiInisiatifResponse createOrUpdateInisiatif(RbsiInisiatifRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         RbsiProgram program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
 
@@ -298,31 +214,23 @@ public class RbsiServiceImpl implements RbsiService {
             throw new BadRequestException("Tahun inisiatif harus sama dengan tahun program");
         }
 
-        RbsiInisiatif existingInisiatif = inisiatifRepository
+        RbsiInisiatif inisiatif = inisiatifRepository
                 .findByProgramIdAndTahunAndNomorInisiatif(request.getProgramId(), request.getTahun(), request.getNomorInisiatif())
-                .orElse(null);
-        
-        boolean isNew = (existingInisiatif == null);
-        RbsiInisiatifResponse oldValue = isNew ? null : mapToInisiatifResponse(existingInisiatif);
-        
-        RbsiInisiatif inisiatif;
-        if (existingInisiatif != null) {
-            inisiatif = existingInisiatif;
-        } else {
-            // Create new inisiatif group
-            InisiatifGroup group = InisiatifGroup.builder()
-                    .rbsi(program.getRbsi())
-                    .namaInisiatif(request.getNamaInisiatif())
-                    .build();
-            InisiatifGroup savedGroup = inisiatifGroupRepository.save(group);
+                .orElseGet(() -> {
+                    // Create new inisiatif group
+                    InisiatifGroup group = InisiatifGroup.builder()
+                            .rbsi(program.getRbsi())
+                            .namaInisiatif(request.getNamaInisiatif())
+                            .build();
+                    InisiatifGroup savedGroup = inisiatifGroupRepository.save(group);
 
-            inisiatif = RbsiInisiatif.builder()
-                    .program(program)
-                    .group(savedGroup)
-                    .tahun(request.getTahun())
-                    .nomorInisiatif(request.getNomorInisiatif())
-                    .build();
-        }
+                    return RbsiInisiatif.builder()
+                            .program(program)
+                            .group(savedGroup)
+                            .tahun(request.getTahun())
+                            .nomorInisiatif(request.getNomorInisiatif())
+                            .build();
+                });
 
         inisiatif.setNamaInisiatif(request.getNamaInisiatif());
         // Update group nama as well
@@ -330,30 +238,14 @@ public class RbsiServiceImpl implements RbsiService {
 
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(inisiatif);
         log.info("Inisiatif saved: {} with group: {}", savedInisiatif.getId(), savedInisiatif.getGroup().getId());
-        
-        // Audit log
-        RbsiInisiatifResponse response = mapToInisiatifResponse(savedInisiatif);
-        if (isNew) {
-            auditService.logCreate(ENTITY_NAME_INISIATIF, savedInisiatif.getId(), response, userId, username);
-        } else {
-            auditService.logUpdate(ENTITY_NAME_INISIATIF, savedInisiatif.getId(), oldValue, response, userId, username);
-        }
-        
-        return response;
+        return mapToInisiatifResponse(savedInisiatif);
     }
 
     @Override
     @Transactional
     public RbsiInisiatifResponse updateInisiatif(UUID inisiatifId, RbsiInisiatifRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         RbsiInisiatif inisiatif = inisiatifRepository.findById(inisiatifId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
-
-        // Capture old value untuk audit
-        RbsiInisiatifResponse oldValue = mapToInisiatifResponse(inisiatif);
 
         if (!inisiatif.getProgram().getId().equals(request.getProgramId())) {
             throw new BadRequestException("Program id tidak sesuai dengan inisiatif");
@@ -379,32 +271,16 @@ public class RbsiServiceImpl implements RbsiService {
 
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(inisiatif);
         log.info("Inisiatif updated: {}", savedInisiatif.getId());
-        
-        // Audit log
-        RbsiInisiatifResponse newValue = mapToInisiatifResponse(savedInisiatif);
-        auditService.logUpdate(ENTITY_NAME_INISIATIF, inisiatifId, oldValue, newValue, userId, username);
-        
-        return newValue;
+        return mapToInisiatifResponse(savedInisiatif);
     }
 
     @Override
     @Transactional
     public void deleteInisiatif(UUID inisiatifId) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         RbsiInisiatif inisiatif = inisiatifRepository.findById(inisiatifId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inisiatif tidak ditemukan"));
-        
-        // Capture old value untuk audit sebelum delete
-        RbsiInisiatifResponse oldValue = mapToInisiatifResponse(inisiatif);
-        
         inisiatifRepository.delete(inisiatif);
         log.info("Inisiatif deleted: {}", inisiatifId);
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME_INISIATIF, inisiatifId, oldValue, userId, username);
     }
 
     @Override

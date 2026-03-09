@@ -16,6 +16,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public abstract class PksiDocumentFields {
 
+    @JsonProperty("aplikasi_id")
+    protected String aplikasiId;
+
     @JsonProperty("nama_pksi")
     protected String namaPksi;
 

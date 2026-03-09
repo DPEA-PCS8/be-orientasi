@@ -1,6 +1,5 @@
 package com.pcs8.orientasi.service.impl;
 
-import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.ArsitekturRbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
 import com.pcs8.orientasi.domain.dto.response.ArsitekturRbsiResponse;
@@ -10,7 +9,6 @@ import com.pcs8.orientasi.domain.entity.*;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.*;
 import com.pcs8.orientasi.service.ArsitekturRbsiService;
-import com.pcs8.orientasi.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +25,6 @@ import java.util.stream.Collectors;
 public class ArsitekturRbsiServiceImpl implements ArsitekturRbsiService {
 
     private static final Logger log = LoggerFactory.getLogger(ArsitekturRbsiServiceImpl.class);
-    private static final String ENTITY_NAME = "Arsitektur RBSI";
 
     private final MstArsitekturRbsiRepository arsitekturRepository;
     private final RbsiRepository rbsiRepository;
@@ -35,25 +32,14 @@ public class ArsitekturRbsiServiceImpl implements ArsitekturRbsiService {
     private final MstAplikasiRepository aplikasiRepository;
     private final RbsiInisiatifRepository inisiatifRepository;
     private final MstSkpaRepository skpaRepository;
-    private final AuditService auditService;
-    private final UserContext userContext;
 
     @Override
     @Transactional
     public ArsitekturRbsiResponse create(ArsitekturRbsiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstArsitekturRbsi arsitektur = buildNewArsitektur(request);
         MstArsitekturRbsi saved = arsitekturRepository.save(arsitektur);
         log.info("ArsitekturRbsi created: {}", saved.getId());
-        
-        // Audit log
-        ArsitekturRbsiResponse response = mapToResponse(saved);
-        auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
-        
-        return response;
+        return mapToResponse(saved);
     }
 
     @Override
@@ -76,45 +62,22 @@ public class ArsitekturRbsiServiceImpl implements ArsitekturRbsiService {
     @Override
     @Transactional
     public ArsitekturRbsiResponse update(UUID id, ArsitekturRbsiRequest request) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstArsitekturRbsi existing = arsitekturRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Arsitektur RBSI tidak ditemukan"));
-
-        // Capture old value untuk audit
-        ArsitekturRbsiResponse oldValue = mapToResponse(existing);
 
         updateArsitekturFromRequest(existing, request);
         MstArsitekturRbsi saved = arsitekturRepository.save(existing);
         log.info("ArsitekturRbsi updated: {}", saved.getId());
-        
-        // Audit log
-        ArsitekturRbsiResponse newValue = mapToResponse(saved);
-        auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
-        
-        return newValue;
+        return mapToResponse(saved);
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
-        
         MstArsitekturRbsi arsitektur = arsitekturRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Arsitektur RBSI tidak ditemukan"));
-        
-        // Capture old value untuk audit sebelum delete
-        ArsitekturRbsiResponse oldValue = mapToResponse(arsitektur);
-        
         arsitekturRepository.delete(arsitektur);
         log.info("ArsitekturRbsi deleted: {}", id);
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
 
     @Override

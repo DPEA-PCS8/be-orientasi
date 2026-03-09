@@ -33,6 +33,10 @@ public class PksiDocument extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private MstUser user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aplikasi_id")
+    private MstAplikasi aplikasi;
+
     // ==================== HEADER ====================
     @Column(name = "nama_pksi", nullable = false, length = 255)
     private String namaPksi;
