@@ -101,7 +101,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
         log.info("Searching PKSI documents");
         
-        // Sanitize and format search input - add wildcards here instead of in JPQL CONCAT
+        // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
         String sanitizedStatus = sanitizeSearchInput(status);
         
@@ -110,8 +110,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     }
     
     /**
-     * Format search input as LIKE pattern with wildcards
-     * Sanitizes input and adds % wildcards for partial matching
+     * Format search input as LIKE pattern with wildcards.
+     * Sanitizes input and adds % wildcards for partial matching.
      */
     private String formatSearchPattern(String input) {
         if (input == null || input.trim().isEmpty()) {
