@@ -3,127 +3,51 @@ package com.pcs8.orientasi.service.impl;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
-import org.springframework.stereotype.Component;
+import org.mapstruct.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 /**
- * Mapper untuk konversi antara PksiDocument entity, request, dan response.
- * Mengurangi duplikasi kode di service implementation.
+ * MapStruct mapper untuk konversi antara PksiDocument entity, request, dan response.
  */
-@Component
-public class PksiDocumentMapper {
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface PksiDocumentMapper {
 
-    /**
-     * Map fields from request to existing document entity (for update)
-     */
-    public void mapRequestToDocument(PksiDocumentRequest request, PksiDocument document) {
-        // Header
-        document.setNamaPksi(request.getNamaPksi());
-        document.setTanggalPengajuan(parseDate(request.getTanggalPengajuan()));
-        // Section 1
-        document.setDeskripsiPksi(request.getDeskripsiPksi());
-        document.setMengapaPksiDiperlukan(request.getMengapaPksiDiperlukan());
-        document.setKapanDiselesaikan(resolveKapanDiselesaikan(request));
-        document.setPicSatker(resolvePicSatker(request));
-        // Section 2
-        document.setKegunaanPksi(request.getKegunaanPksi());
-        document.setTujuanPksi(request.getTujuanPksi());
-        document.setTargetPksi(request.getTargetPksi());
-        // Section 3
-        document.setRuangLingkup(request.getRuangLingkup());
-        document.setBatasanPksi(request.getBatasanPksi());
-        document.setHubunganSistemLain(request.getHubunganSistemLain());
-        document.setAsumsi(request.getAsumsi());
-        // Section 4
-        document.setBatasanDesain(request.getBatasanDesain());
-        document.setRisikoBisnis(request.getRisikoBisnis());
-        document.setRisikoSuksesPksi(request.getRisikoSuksesPksi());
-        document.setPengendalianRisiko(request.getPengendalianRisiko());
-        // Section 5
-        document.setPengelolaAplikasi(request.getPengelolaAplikasi());
-        document.setPenggunaAplikasi(request.getPenggunaAplikasi());
-        document.setProgramInisiatifRbsi(request.getProgramInisiatifRbsi());
-        document.setFungsiAplikasi(request.getFungsiAplikasi());
-        document.setInformasiYangDikelola(request.getInformasiYangDikelola());
-        document.setDasarPeraturan(request.getDasarPeraturan());
-        // Section 6
-        document.setTahap1Awal(parseDate(request.getTahap1Awal()));
-        document.setTahap1Akhir(parseDate(request.getTahap1Akhir()));
-        document.setTahap5Awal(parseDate(request.getTahap5Awal()));
-        document.setTahap5Akhir(parseDate(request.getTahap5Akhir()));
-        document.setTahap7Awal(parseDate(request.getTahap7Awal()));
-        document.setTahap7Akhir(parseDate(request.getTahap7Akhir()));
-        // Section 7
-        document.setRencanaPengelolaan(request.getRencanaPengelolaan());
-        // Legacy
-        document.setTujuanPengajuan(request.getTujuanPengajuan());
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "tanggalPengajuan", expression = "java(parseDate(request.getTanggalPengajuan()))")
+    @Mapping(target = "kapanDiselesaikan", expression = "java(resolveKapanDiselesaikan(request))")
+    @Mapping(target = "picSatker", expression = "java(resolvePicSatker(request))")
+    @Mapping(target = "tahap1Awal", expression = "java(parseDate(request.getTahap1Awal()))")
+    @Mapping(target = "tahap1Akhir", expression = "java(parseDate(request.getTahap1Akhir()))")
+    @Mapping(target = "tahap5Awal", expression = "java(parseDate(request.getTahap5Awal()))")
+    @Mapping(target = "tahap5Akhir", expression = "java(parseDate(request.getTahap5Akhir()))")
+    @Mapping(target = "tahap7Awal", expression = "java(parseDate(request.getTahap7Awal()))")
+    @Mapping(target = "tahap7Akhir", expression = "java(parseDate(request.getTahap7Akhir()))")
+    void mapRequestToDocument(PksiDocumentRequest request, @MappingTarget PksiDocument document);
 
-    /**
-     * Map document entity to response DTO
-     */
-    public PksiDocumentResponse mapToResponse(PksiDocument document) {
-        String userId = extractUserId(document);
-        String userName = extractUserName(document);
-        
-        return PksiDocumentResponse.builder()
-                .id(document.getId().toString())
-                .userId(userId)
-                .userName(userName)
-                // Header
-                .namaPksi(document.getNamaPksi())
-                .tanggalPengajuan(formatDate(document.getTanggalPengajuan()))
-                // Section 1
-                .deskripsiPksi(document.getDeskripsiPksi())
-                .mengapaPksiDiperlukan(document.getMengapaPksiDiperlukan())
-                .kapanHarusDiselesaikan(document.getKapanDiselesaikan())
-                .picSatkerBA(document.getPicSatker())
-                // Section 2
-                .kegunaanPksi(document.getKegunaanPksi())
-                .tujuanPksi(document.getTujuanPksi())
-                .targetPksi(document.getTargetPksi())
-                // Section 3
-                .ruangLingkup(document.getRuangLingkup())
-                .batasanPksi(document.getBatasanPksi())
-                .hubunganSistemLain(document.getHubunganSistemLain())
-                .asumsi(document.getAsumsi())
-                // Section 4
-                .batasanDesain(document.getBatasanDesain())
-                .risikoBisnis(document.getRisikoBisnis())
-                .risikoSuksesPksi(document.getRisikoSuksesPksi())
-                .pengendalianRisiko(document.getPengendalianRisiko())
-                // Section 5
-                .pengelolaAplikasi(document.getPengelolaAplikasi())
-                .penggunaAplikasi(document.getPenggunaAplikasi())
-                .programInisiatifRbsi(document.getProgramInisiatifRbsi())
-                .fungsiAplikasi(document.getFungsiAplikasi())
-                .informasiYangDikelola(document.getInformasiYangDikelola())
-                .dasarPeraturan(document.getDasarPeraturan())
-                // Section 6
-                .tahap1Awal(formatDate(document.getTahap1Awal()))
-                .tahap1Akhir(formatDate(document.getTahap1Akhir()))
-                .tahap5Awal(formatDate(document.getTahap5Awal()))
-                .tahap5Akhir(formatDate(document.getTahap5Akhir()))
-                .tahap7Awal(formatDate(document.getTahap7Awal()))
-                .tahap7Akhir(formatDate(document.getTahap7Akhir()))
-                // Section 7
-                .rencanaPengelolaan(document.getRencanaPengelolaan())
-                // Legacy
-                .tujuanPengajuan(document.getTujuanPengajuan())
-                .kapanDiselesaikan(document.getKapanDiselesaikan())
-                .picSatker(document.getPicSatker())
-                // Status & Metadata
-                .status(document.getStatus() != null ? document.getStatus().name() : null)
-                .createdAt(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)
-                .updatedAt(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)
-                .build();
-    }
+    @Mapping(target = "id", expression = "java(document.getId().toString())")
+    @Mapping(target = "userId", expression = "java(extractUserId(document))")
+    @Mapping(target = "userName", expression = "java(extractUserName(document))")
+    @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
+    @Mapping(target = "kapanHarusDiselesaikan", source = "kapanDiselesaikan")
+    @Mapping(target = "picSatkerBA", source = "picSatker")
+    @Mapping(target = "tahap1Awal", expression = "java(formatDate(document.getTahap1Awal()))")
+    @Mapping(target = "tahap1Akhir", expression = "java(formatDate(document.getTahap1Akhir()))")
+    @Mapping(target = "tahap5Awal", expression = "java(formatDate(document.getTahap5Awal()))")
+    @Mapping(target = "tahap5Akhir", expression = "java(formatDate(document.getTahap5Akhir()))")
+    @Mapping(target = "tahap7Awal", expression = "java(formatDate(document.getTahap7Awal()))")
+    @Mapping(target = "tahap7Akhir", expression = "java(formatDate(document.getTahap7Akhir()))")
+    @Mapping(target = "status", expression = "java(document.getStatus() != null ? document.getStatus().name() : null)")
+    @Mapping(target = "createdAt", expression = "java(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)")
+    @Mapping(target = "updatedAt", expression = "java(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)")
+    PksiDocumentResponse mapToResponse(PksiDocument document);
 
-    // ==================== HELPER METHODS ====================
-
-    public LocalDate parseDate(String dateStr) {
+    default LocalDate parseDate(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) {
             return null;
         }
@@ -134,32 +58,32 @@ public class PksiDocumentMapper {
         }
     }
 
-    public String formatDate(LocalDate date) {
+    default String formatDate(LocalDate date) {
         return date != null ? date.toString() : null;
     }
 
-    public String resolveKapanDiselesaikan(PksiDocumentRequest request) {
+    default String resolveKapanDiselesaikan(PksiDocumentRequest request) {
         if (request.getKapanHarusDiselesaikan() != null && !request.getKapanHarusDiselesaikan().isEmpty()) {
             return request.getKapanHarusDiselesaikan();
         }
         return request.getKapanDiselesaikan();
     }
 
-    public String resolvePicSatker(PksiDocumentRequest request) {
+    default String resolvePicSatker(PksiDocumentRequest request) {
         if (request.getPicSatkerBA() != null && !request.getPicSatkerBA().isEmpty()) {
             return request.getPicSatkerBA();
         }
         return request.getPicSatker();
     }
 
-    private String extractUserId(PksiDocument document) {
+    default String extractUserId(PksiDocument document) {
         if (document.getUser() != null && document.getUser().getUuid() != null) {
             return document.getUser().getUuid().toString();
         }
         return null;
     }
 
-    private String extractUserName(PksiDocument document) {
+    default String extractUserName(PksiDocument document) {
         if (document.getUser() != null) {
             return document.getUser().getFullName();
         }
