@@ -39,7 +39,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
-        log.info("Creating PKSI document for user: {}", userId);
+        log.info("Creating PKSI document");
 
 // userId is optional - used for audit/tracking only
         // Authentication is enforced at controller level via @RequiresRole
@@ -60,7 +60,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument saved = pksiDocumentRepository.save(document);
-        log.info("PKSI document created with ID: {}", saved.getId());
+        log.info("PKSI document created successfully");
 
         return mapper.mapToResponse(saved);
     }
@@ -68,7 +68,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public PksiDocumentResponse getDocumentById(UUID id) {
-        log.info("Fetching PKSI document: {}", id);
+        log.info("Fetching PKSI document by ID");
         
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
@@ -89,7 +89,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public List<PksiDocumentResponse> getDocumentsByUser(UUID userId) {
-        log.info("Fetching PKSI documents for user: {}", userId);
+        log.info("Fetching PKSI documents for user");
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
                 .map(mapper::mapToResponse)
@@ -101,14 +101,29 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable) {
         log.info("Searching PKSI documents");
         
-        return pksiDocumentRepository.searchDocuments(search, status, pageable)
+        // Sanitize search input to prevent injection
+        String sanitizedSearch = sanitizeSearchInput(search);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        
+        return pksiDocumentRepository.searchDocuments(sanitizedSearch, sanitizedStatus, pageable)
                 .map(mapper::mapToResponse);
+    }
+    
+    /**
+     * Sanitize search input to prevent SQL/JPQL injection
+     */
+    private String sanitizeSearchInput(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        // Remove potentially dangerous characters
+        return input.replaceAll("[<>\"'%;()&+\\\\]", "").trim();
     }
 
     @Override
     @Transactional
     public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
-        log.info("Updating PKSI document: {}", id);
+        log.info("Updating PKSI document");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
@@ -117,7 +132,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
-        log.info("PKSI document updated: {}", updated.getId());
+        log.info("PKSI document updated successfully");
 
         return mapper.mapToResponse(updated);
     }
@@ -125,20 +140,20 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional
     public void deleteDocument(UUID id) {
-        log.info("Deleting PKSI document: {}", id);
+        log.info("Deleting PKSI document");
 
         if (!pksiDocumentRepository.existsById(id)) {
             throw new ResourceNotFoundException(PKSI_NOT_FOUND);
         }
 
         pksiDocumentRepository.deleteById(id);
-        log.info("PKSI document deleted: {}", id);
+        log.info("PKSI document deleted successfully");
     }
 
     @Override
     @Transactional
     public PksiDocumentResponse updateStatus(UUID id, String status) {
-        log.info("Updating status for PKSI document: {}", id);
+        log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
@@ -147,7 +162,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         document.setStatus(newStatus);
 
         pksiDocumentRepository.save(document);
-        log.info("PKSI document status updated: {} -> {}", id, newStatus);
+        log.info("PKSI document status updated successfully");
 
         // Re-fetch with user to avoid lazy loading issues
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
@@ -160,7 +175,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         try {
             return PksiDocument.DocumentStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid status value provided for document: {}", documentId);
+            log.warn("Invalid status value provided");
             String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
             throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
