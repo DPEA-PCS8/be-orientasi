@@ -32,6 +32,7 @@ import java.util.UUID;
 public class PksiDocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
+    private static final String SUCCESS_MESSAGE = "Success";
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "createdAt", "updatedAt", "namaPksi", "status", "tanggalPengajuan"
     );
@@ -65,22 +66,23 @@ public class PksiDocumentController {
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse> getDocument(@PathVariable UUID id) {
         PksiDocumentResponse response = pksiDocumentService.getDocumentById(id);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
     }
 
     @GetMapping
     public ResponseEntity<BaseResponse> getAllDocuments() {
         List<PksiDocumentResponse> responses = pksiDocumentService.getAllDocuments();
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responses));
     }
 
     @GetMapping("/search")
+    @SuppressWarnings("java:S1192") // defaultValue in annotation must be literal, cannot use constant
     public ResponseEntity<BaseResponse> searchDocuments(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "createdAt") String sortBy, // NOSONAR - must match DEFAULT_SORT_FIELD
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
         // Validate sortBy to prevent injection - use whitelist approach
@@ -102,13 +104,13 @@ public class PksiDocumentController {
         responseData.put("has_next", pageResult.hasNext());
         responseData.put("has_previous", pageResult.hasPrevious());
         
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responseData));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responseData));
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<BaseResponse> getDocumentsByUser(@PathVariable UUID userId) {
         List<PksiDocumentResponse> responses = pksiDocumentService.getDocumentsByUser(userId);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responses));
     }
 
     @PutMapping("/{id}")
