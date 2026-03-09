@@ -2,132 +2,50 @@
 -- Version: 2
 -- Description: Add all fields to support frontend form
 
--- Add tanggal_pengajuan column
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tanggal_pengajuan')
+-- Helper procedure to add column if not exists
+IF OBJECT_ID('dbo.sp_add_column_if_not_exists', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_add_column_if_not_exists;
+GO
+
+CREATE PROCEDURE dbo.sp_add_column_if_not_exists
+    @table_name NVARCHAR(128),
+    @column_name NVARCHAR(128),
+    @column_definition NVARCHAR(256)
+AS
 BEGIN
-    ALTER TABLE trn_pksi_document ADD tanggal_pengajuan DATE NULL;
+    IF NOT EXISTS (
+        SELECT * FROM sys.columns 
+        WHERE object_id = OBJECT_ID(@table_name) 
+        AND name = @column_name
+    )
+    BEGIN
+        DECLARE @sql NVARCHAR(MAX) = 'ALTER TABLE ' + @table_name + ' ADD ' + @column_name + ' ' + @column_definition;
+        EXEC sp_executesql @sql;
+    END
 END
 GO
 
--- Add mengapa_pksi_diperlukan column
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'mengapa_pksi_diperlukan')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD mengapa_pksi_diperlukan NVARCHAR(MAX) NULL;
-END
-GO
-
--- Section 2: Tujuan dan Kegunaan
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'kegunaan_pksi')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD kegunaan_pksi NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'target_pksi')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD target_pksi NVARCHAR(MAX) NULL;
-END
-GO
-
--- Section 3: Cakupan
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'batasan_pksi')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD batasan_pksi NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'hubungan_sistem_lain')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD hubungan_sistem_lain NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'asumsi')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD asumsi NVARCHAR(MAX) NULL;
-END
-GO
-
--- Section 4: Risiko dan Batasan
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'batasan_desain')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD batasan_desain NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'risiko_bisnis')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD risiko_bisnis NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'risiko_sukses_pksi')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD risiko_sukses_pksi NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'pengendalian_risiko')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD pengendalian_risiko NVARCHAR(MAX) NULL;
-END
-GO
-
--- Section 5: Gambaran Umum Aplikasi (additional fields)
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'informasi_yang_dikelola')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD informasi_yang_dikelola NVARCHAR(MAX) NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'dasar_peraturan')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD dasar_peraturan NVARCHAR(MAX) NULL;
-END
-GO
-
--- Section 6: Usulan Jadwal Pelaksanaan
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap1_awal')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap1_awal DATE NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap1_akhir')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap1_akhir DATE NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap5_awal')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap5_awal DATE NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap5_akhir')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap5_akhir DATE NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap7_awal')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap7_awal DATE NULL;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'tahap7_akhir')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD tahap7_akhir DATE NULL;
-END
-GO
-
--- Section 7: Rencana Pengelolaan
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'trn_pksi_document') AND name = 'rencana_pengelolaan')
-BEGIN
-    ALTER TABLE trn_pksi_document ADD rencana_pengelolaan NVARCHAR(MAX) NULL;
-END
+-- Add all new PKSI document columns
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tanggal_pengajuan', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'mengapa_pksi_diperlukan', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'kegunaan_pksi', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'target_pksi', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'batasan_pksi', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'hubungan_sistem_lain', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'asumsi', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'batasan_desain', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'risiko_bisnis', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'risiko_sukses_pksi', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'pengendalian_risiko', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'informasi_yang_dikelola', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'dasar_peraturan', 'NVARCHAR(MAX) NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap1_awal', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap1_akhir', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap5_awal', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap5_akhir', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap7_awal', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'tahap7_akhir', 'DATE NULL';
+EXEC dbo.sp_add_column_if_not_exists 'trn_pksi_document', 'rencana_pengelolaan', 'NVARCHAR(MAX) NULL';
 GO
 
 -- Make existing required columns nullable for backward compatibility
@@ -141,6 +59,10 @@ ALTER TABLE trn_pksi_document ALTER COLUMN pengelola_aplikasi NVARCHAR(255) NULL
 ALTER TABLE trn_pksi_document ALTER COLUMN pengguna_aplikasi NVARCHAR(MAX) NULL;
 ALTER TABLE trn_pksi_document ALTER COLUMN program_inisiatif_rbsi NVARCHAR(255) NULL;
 ALTER TABLE trn_pksi_document ALTER COLUMN fungsi_aplikasi NVARCHAR(MAX) NULL;
+GO
+
+-- Cleanup helper procedure
+DROP PROCEDURE dbo.sp_add_column_if_not_exists;
 GO
 
 PRINT 'Migration V2: PKSI document full fields added successfully';

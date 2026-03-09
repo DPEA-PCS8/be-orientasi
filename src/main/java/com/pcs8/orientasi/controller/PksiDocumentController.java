@@ -9,6 +9,8 @@ import com.pcs8.orientasi.service.PksiDocumentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ import java.util.UUID;
 @RequiresRole({"Admin", "Pengembang", "Satker"})
 public class PksiDocumentController {
 
+    private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
     private final PksiDocumentService pksiDocumentService;
 
     @PostMapping
@@ -35,13 +38,11 @@ public class PksiDocumentController {
             @Valid @RequestBody PksiDocumentRequest request,
             HttpServletRequest httpRequest) {
         
-        // Get user ID from authenticated context (set by AuthorizationInterceptor)
-        String userUuidStr = (String) httpRequest.getAttribute("user_uuid");
-        if (userUuidStr == null || userUuidStr.isEmpty()) {
+        UUID userId = extractUserIdFromRequest(httpRequest);
+        if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new BaseResponse(HttpStatus.UNAUTHORIZED.value(), "User authentication required", null));
         }
-        UUID userId = UUID.fromString(userUuidStr);
         
         PksiDocumentResponse response = pksiDocumentService.createDocument(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -116,5 +117,18 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> deleteDocument(@PathVariable UUID id) {
         pksiDocumentService.deleteDocument(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document deleted successfully", null));
+    }
+
+    private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {
+        String userUuidStr = (String) httpRequest.getAttribute("user_uuid");
+        if (userUuidStr == null || userUuidStr.isEmpty()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(userUuidStr);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid UUID format: {}", userUuidStr);
+            return null;
+        }
     }
 }
