@@ -41,9 +41,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
         log.info("Creating PKSI document for user: {}", userId);
 
+// userId is optional - used for audit/tracking only
+        // Authentication is enforced at controller level via @RequiresRole
         MstUser user = null;
         if (userId != null) {
             user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                log.warn("User not found for tracking, proceeding without user association");
+            }
         }
 
         PksiDocument document = PksiDocument.builder()
