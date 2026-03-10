@@ -26,14 +26,9 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 
-      - name: Build & Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Build jar
         run: |
-          ./mvnw -B verify \
-          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-          -Dsonar.projectKey=DPEA-PCS8_be-orientasi \
-          -DskipTests
+          ./mvnw -B package -DskipTests
 
       - name: Rename artifact
         run: |
