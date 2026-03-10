@@ -10,11 +10,13 @@ import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstVariableRepository;
+import com.pcs8.orientasi.service.AplikasiHistorisService;
 import com.pcs8.orientasi.service.AplikasiService;
 import com.pcs8.orientasi.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AplikasiServiceImpl implements AplikasiService {
 
     private static final Logger log = LoggerFactory.getLogger(AplikasiServiceImpl.class);
@@ -39,6 +40,25 @@ public class AplikasiServiceImpl implements AplikasiService {
     private final MstVariableRepository variableRepository;
     private final AuditService auditService;
     private final UserContext userContext;
+    private final AplikasiHistorisService aplikasiHistorisService;
+
+    public AplikasiServiceImpl(
+            MstAplikasiRepository aplikasiRepository,
+            MstBidangRepository bidangRepository,
+            MstSkpaRepository skpaRepository,
+            MstVariableRepository variableRepository,
+            AuditService auditService,
+            UserContext userContext,
+            @Lazy AplikasiHistorisService aplikasiHistorisService
+    ) {
+        this.aplikasiRepository = aplikasiRepository;
+        this.bidangRepository = bidangRepository;
+        this.skpaRepository = skpaRepository;
+        this.variableRepository = variableRepository;
+        this.auditService = auditService;
+        this.userContext = userContext;
+        this.aplikasiHistorisService = aplikasiHistorisService;
+    }
 
     @Override
     @Transactional
@@ -58,6 +78,15 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         MstAplikasi saved = aplikasiRepository.save(aplikasi);
         log.info("Aplikasi created: {} - {}", saved.getKodeAplikasi(), saved.getNamaAplikasi());
+        
+        // Auto-create snapshot for current year
+        try {
+            int currentYear = java.time.Year.now().getValue();
+            aplikasiHistorisService.createOrUpdateSnapshot(saved.getId(), currentYear, "CREATED");
+            log.info("Auto-created snapshot for new aplikasi: {} - year {}", saved.getKodeAplikasi(), currentYear);
+        } catch (Exception e) {
+            log.warn("Failed to auto-create snapshot for aplikasi {}: {}", saved.getKodeAplikasi(), e.getMessage());
+        }
         
         // Audit log
         AplikasiResponse response = mapToResponse(saved);
@@ -269,6 +298,9 @@ public class AplikasiServiceImpl implements AplikasiService {
         AplikasiResponse newValue = mapToResponse(updated);
         auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
         
+        // Trigger snapshot update for historis
+        aplikasiHistorisService.onAplikasiUpdated(updated, request.getKeteranganPerubahan());
+        
         return newValue;
     }
 
@@ -301,6 +333,9 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Audit log
         AplikasiResponse newValue = mapToResponse(updated);
         auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
+        
+        // Trigger snapshot update for historis
+        aplikasiHistorisService.onAplikasiUpdated(updated, "Status diubah menjadi " + status);
 
         return newValue;
     }
@@ -355,6 +390,9 @@ public class AplikasiServiceImpl implements AplikasiService {
         // Audit log
         AplikasiResponse newValue = mapToResponse(updated);
         auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
+        
+        // Trigger snapshot update for historis
+        aplikasiHistorisService.onAplikasiUpdated(updated, "Status diubah menjadi " + status);
 
         return newValue;
     }
