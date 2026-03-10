@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
+import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -35,6 +36,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final PksiDocumentRepository pksiDocumentRepository;
     private final MstUserRepository userRepository;
     private final PksiDocumentMapper mapper;
+    private final MstAplikasiRepository aplikasiRepository;
 
     @Override
     @Transactional
@@ -55,6 +57,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .user(user)
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
+
+        // Set aplikasi if provided
+        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
+            try {
+                UUID aplikasiId = UUID.fromString(request.getAplikasiId());
+                aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
 
         // Use mapper to set all fields from request
         mapper.mapRequestToDocument(request, document);
@@ -143,6 +155,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Update aplikasi if provided
+        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
+            try {
+                UUID aplikasiId = UUID.fromString(request.getAplikasiId());
+                aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
 
         // Use mapper to update all fields from request
         mapper.mapRequestToDocument(request, document);
