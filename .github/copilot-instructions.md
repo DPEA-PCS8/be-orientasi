@@ -32,3 +32,7 @@ You are an expert Backend Engineer assisting the team. Always follow these rules
 
 ## 4. Context Awareness
 - If modifying an API, check if the change breaks the Frontend contract.
+
+## 5. SonarQube & Code Quality
+- Always ensure code quality and maintainability. Avoid code smells and bugs as per SonarQube standards.
+- Do not log user-controlled data. Sanitize logs if necessary.

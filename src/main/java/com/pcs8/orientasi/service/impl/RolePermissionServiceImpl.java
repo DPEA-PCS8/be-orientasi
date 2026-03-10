@@ -294,7 +294,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         UUID userId = userContext.getCurrentUserId();
         String username = userContext.getCurrentUsername();
         
-        log.info("[bulkUpdatePermissions] Starting bulk update for role ID: {}", request.getRoleId());
         log.info("[bulkUpdatePermissions] Number of permissions to save: {}", request.getPermissions().size());
         
         MstRole role = roleRepository.findById(request.getRoleId())
@@ -490,8 +489,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional(readOnly = true)
     public RolePermissionMatrixResponse getCombinedPermissionsForRoles(List<String> roleNames) {
-        log.info("Getting combined permissions for roles: {}", roleNames);
-
         // Handle null or empty roles
         if (roleNames == null || roleNames.isEmpty()) {
             log.warn("No roles provided, returning empty permissions");
@@ -507,8 +504,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .anyMatch(roleName -> roleName.equalsIgnoreCase("Admin"));
 
         List<MstMenu> allMenus = menuRepository.findAllActiveMenus();
-        log.info("[getCombinedPermissions] Found {} active menus for roles: {}", allMenus.size(), roleNames);
-        
+
         List<RolePermissionMatrixResponse.MenuPermissionItem> menuPermissions = isAdmin
                 ? buildAdminPermissions(allMenus)
                 : buildCombinedRolePermissions(allMenus, roleNames);
@@ -540,7 +536,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .map(name -> {
                     Optional<MstRole> roleOpt = roleRepository.findByRoleNameIgnoreCase(name);
                     if (roleOpt.isEmpty()) {
-                        log.warn("[buildCombinedRolePermissions] Role not found for name: '{}'", name);
+                        log.warn("[buildCombinedRolePermissions] Role not found");
                     }
                     return roleOpt;
                 })
@@ -548,16 +544,15 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .map(Optional::get)
                 .toList();
 
-        log.info("[buildCombinedRolePermissions] Found {} roles out of {} role names provided. Roles: {}", 
-                roles.size(), roleNames.size(), 
-                roles.stream().map(MstRole::getRoleName).toList());
+        log.info("[buildCombinedRolePermissions] Found {} roles out of {} role names provided", 
+                roles.size(), roleNames.size());
 
         // Log permission count for each role to help debug
         for (MstRole role : roles) {
             List<MstRolePermission> perms = rolePermissionRepository.findByRoleId(role.getId());
             long viewCount = perms.stream().filter(MstRolePermission::getCanView).count();
-            log.info("[buildCombinedRolePermissions] Role '{}' (ID: {}) has {} permission entries, {} with can_view=true", 
-                    role.getRoleName(), role.getId(), perms.size(), viewCount);
+            log.info("[buildCombinedRolePermissions] Role (ID: {}) has {} permission entries, {} with can_view=true", 
+                    role.getId(), perms.size(), viewCount);
         }
 
         return new ArrayList<>(menus.stream()
