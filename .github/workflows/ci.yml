@@ -2,26 +2,66 @@ name: Build & Deploy to OpenShift
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-deploy:
     runs-on: self-hosted
 
     env:
-      # Menggunakan internal registry service agar lebih cepat (sesama cluster)
-      REGISTRY: image-registry.openshift-image-registry.svc:5000
       NAMESPACE: test-orientasi
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Trigger OpenShift Build
-        run: |
-          oc start-build backend-app -n ${{ env.NAMESPACE }} --follow
 
-      - name: Rollout restart
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+      - name: Build & Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B verify \
+          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=DPEA-PCS8_be-orientasi
+
+      - name: Rename artifact
+        run: |
+          cp target/*.jar app.jar
+
+      - name: Start OpenShift Binary Build
+        run: |
+          BUILD=$(oc start-build backend-app \
+            --from-file=app.jar \
+            -n ${{ env.NAMESPACE }} \
+            -o name)
+
+          echo "BUILD_NAME=$BUILD" >> $GITHUB_ENV
+
+      - name: Stream build logs
+        run: |
+          oc logs -f $BUILD_NAME -n ${{ env.NAMESPACE }}
+
+      - name: Verify build
+        run: |
+          STATUS=$(oc get $BUILD_NAME -n ${{ env.NAMESPACE }} -o jsonpath='{.status.phase}')
+
+          echo "Build status: $STATUS"
+
+          if [ "$STATUS" != "Complete" ]; then
+            exit 1
+          fi
+
+      - name: Deploy
         run: |
           oc rollout restart deployment/backend-app -n ${{ env.NAMESPACE }}
-          
-          oc rollout status deployment/backend-app -n ${{ env.NAMESPACE }}
+          oc rollout status deployment/backend-app -n ${{ env.NAMESPACE }} --timeout=180s
