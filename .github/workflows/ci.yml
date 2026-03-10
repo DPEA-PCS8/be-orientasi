@@ -30,14 +30,16 @@ jobs:
         run: |
           ./mvnw -B package -DskipTests
 
-      - name: Rename artifact
+      - name: Prepare build context
         run: |
-          cp target/*.jar app.jar
+          mkdir -p build-context
+          cp target/*.jar build-context/app.jar
+          cp Dockerfile build-context/Dockerfile
 
       - name: Start OpenShift Binary Build
         run: |
           BUILD=$(oc start-build backend-app \
-            --from-file=app.jar \
+            --from-dir=build-context \
             -n ${{ env.NAMESPACE }} \
             -o name)
 
