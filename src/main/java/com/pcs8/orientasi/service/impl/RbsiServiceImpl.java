@@ -551,14 +551,29 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
         RbsiProgram savedProgram = programRepository.save(newProgram);
 
-        // Copy inisiatifs with renumbering
+        // Copy inisiatifs - preserve original number suffix if program number changes
         List<RbsiInisiatif> sourceInisiatifs = inisiatifRepository
                 .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(sourceProgram.getId(), sourceProgram.getTahun());
 
-        int inisiatifIndex = 1;
+        String sourceNomorProgram = sourceProgram.getNomorProgram();
         for (RbsiInisiatif sourceInisiatif : sourceInisiatifs) {
-            // Generate new inisiatif number with new program prefix (no zero padding)
-            String newInisiatifNumber = String.format("%s.%d", targetNomorProgram, inisiatifIndex);
+            String newInisiatifNumber;
+            String sourceNomorInisiatif = sourceInisiatif.getNomorInisiatif();
+            
+            if (targetNomorProgram.equals(sourceNomorProgram)) {
+                // Same program number, keep original inisiatif number
+                newInisiatifNumber = sourceNomorInisiatif;
+            } else {
+                // Different program number, replace prefix with new program number
+                // e.g., "1.2a" with target "3" becomes "3.2a"
+                if (sourceNomorInisiatif.startsWith(sourceNomorProgram + ".")) {
+                    String suffix = sourceNomorInisiatif.substring(sourceNomorProgram.length() + 1);
+                    newInisiatifNumber = targetNomorProgram + "." + suffix;
+                } else {
+                    // Fallback: keep original number if format doesn't match
+                    newInisiatifNumber = sourceNomorInisiatif;
+                }
+            }
 
             RbsiInisiatif newInisiatif = RbsiInisiatif.builder()
                     .program(savedProgram)
@@ -568,7 +583,6 @@ public class RbsiServiceImpl implements RbsiService {
                     .namaInisiatif(sourceInisiatif.getNamaInisiatif())
                     .build();
             inisiatifRepository.save(newInisiatif);
-            inisiatifIndex++;
         }
 
         log.info("Copied program {} to year {} as {} with {} inisiatifs", programId, toTahun, targetNomorProgram, sourceInisiatifs.size());
