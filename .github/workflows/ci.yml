@@ -2,26 +2,76 @@ name: Build & Deploy to OpenShift
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-deploy:
     runs-on: self-hosted
 
     env:
-      # Menggunakan internal registry service agar lebih cepat (sesama cluster)
-      REGISTRY: image-registry.openshift-image-registry.svc:5000
       NAMESPACE: test-orientasi
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Trigger OpenShift Build
-        run: |
-          oc start-build backend-app -n ${{ env.NAMESPACE }} --follow
 
-      - name: Rollout restart
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+      - name: Build jar
+        run: |
+          ./mvnw -B package -DskipTests
+
+      - name: Prepare build context
+        run: |
+          mkdir -p build-context
+          cp target/*.jar build-context/app.jar
+          cp Dockerfile build-context/Dockerfile
+
+      - name: Start OpenShift Binary Build
+        run: |
+          BUILD=$(oc start-build backend-app \
+            --from-dir=build-context \
+            -n ${{ env.NAMESPACE }} \
+            -o name)
+
+          echo "BUILD_NAME=$BUILD" >> $GITHUB_ENV
+
+      - name: Stream build logs
+        run: |
+          oc logs -f $BUILD_NAME -n ${{ env.NAMESPACE }}
+
+      - name: Verify build
+        run: |
+          for i in {1..12}; do
+            STATUS=$(oc get $BUILD_NAME -n ${{ env.NAMESPACE }} -o jsonpath='{.status.phase}')
+            echo "Build status (attempt $i): $STATUS"
+            
+            if [ "$STATUS" = "Complete" ] || [ "$STATUS" = "Succeeded" ]; then
+              echo "Build completed successfully!"
+              exit 0
+            fi
+            
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Error" ]; then
+              echo "Build failed!"
+              exit 1
+            fi
+            
+            sleep 5
+          done
+          
+          echo "Build status check timeout"
+          exit 1
+
+      - name: Deploy
         run: |
           oc rollout restart deployment/backend-app -n ${{ env.NAMESPACE }}
-          
-          oc rollout status deployment/backend-app -n ${{ env.NAMESPACE }}
+          oc rollout status deployment/backend-app -n ${{ env.NAMESPACE }} --timeout=180s

@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.SkpaRequest;
 import com.pcs8.orientasi.domain.dto.response.BidangResponse;
 import com.pcs8.orientasi.domain.dto.response.SkpaResponse;
@@ -9,6 +10,7 @@ import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
+import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.SkpaService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -25,13 +27,20 @@ import java.util.stream.Collectors;
 public class SkpaServiceImpl implements SkpaService {
 
     private static final Logger log = LoggerFactory.getLogger(SkpaServiceImpl.class);
+    private static final String ENTITY_NAME = "SKPA";
 
     private final MstSkpaRepository skpaRepository;
     private final MstBidangRepository bidangRepository;
+    private final AuditService auditService;
+    private final UserContext userContext;
 
     @Override
     @Transactional
     public SkpaResponse create(SkpaRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         String kode = request.getKodeSkpa().toUpperCase().trim();
 
         if (skpaRepository.existsByKodeSkpa(kode)) {
@@ -54,7 +63,12 @@ public class SkpaServiceImpl implements SkpaService {
         MstSkpa saved = skpaRepository.save(skpa);
         log.info("SKPA created: {} - {}", saved.getKodeSkpa(), saved.getNamaSkpa());
 
-        return mapToResponse(saved);
+        SkpaResponse response = mapToResponse(saved);
+        
+        // Audit log
+        auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
+        
+        return response;
     }
 
     @Override
@@ -85,8 +99,15 @@ public class SkpaServiceImpl implements SkpaService {
     @Override
     @Transactional
     public SkpaResponse update(UUID id, SkpaRequest request) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         MstSkpa skpa = skpaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("SKPA tidak ditemukan"));
+
+        // Capture old value untuk audit
+        SkpaResponse oldValue = mapToResponse(skpa);
 
         String newKode = request.getKodeSkpa().toUpperCase().trim();
 
@@ -108,17 +129,32 @@ public class SkpaServiceImpl implements SkpaService {
         MstSkpa updated = skpaRepository.save(skpa);
         log.info("SKPA updated: {} - {}", updated.getKodeSkpa(), updated.getNamaSkpa());
 
-        return mapToResponse(updated);
+        SkpaResponse newValue = mapToResponse(updated);
+        
+        // Audit log
+        auditService.logUpdate(ENTITY_NAME, id, oldValue, newValue, userId, username);
+        
+        return newValue;
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
+        // Get user info di main thread sebelum async audit
+        UUID userId = userContext.getCurrentUserId();
+        String username = userContext.getCurrentUsername();
+        
         MstSkpa skpa = skpaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("SKPA tidak ditemukan"));
 
+        // Capture old value untuk audit sebelum delete
+        SkpaResponse oldValue = mapToResponse(skpa);
+
         skpaRepository.delete(skpa);
         log.info("SKPA deleted: {}", skpa.getKodeSkpa());
+        
+        // Audit log
+        auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
 
     private SkpaResponse mapToResponse(MstSkpa entity) {
