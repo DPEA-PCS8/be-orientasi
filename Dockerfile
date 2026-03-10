@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-jammy
+FROM image-registry.openshift-image-registry.svc:5000/test-orientasi/temurin:17-jre-jammy
 
 WORKDIR /app
 
