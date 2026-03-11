@@ -79,6 +79,11 @@ public interface AplikasiHistorisService {
     List<ChangelogInfo> getChangelogsBySnapshotId(UUID snapshotId);
 
     /**
+     * Delete a changelog entry
+     */
+    void deleteChangelog(UUID changelogId);
+
+    /**
      * Delete a snapshot
      */
     void deleteSnapshot(UUID id);

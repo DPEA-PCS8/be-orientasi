@@ -173,6 +173,15 @@ public class HistorisAplikasiController {
     }
 
     /**
+     * Delete a changelog entry
+     */
+    @DeleteMapping("/changelog/{changelogId}")
+    public ResponseEntity<BaseResponse> deleteChangelog(@PathVariable UUID changelogId) {
+        historisService.deleteChangelog(changelogId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Changelog berhasil dihapus", null));
+    }
+
+    /**
      * Delete a snapshot
      */
     @DeleteMapping("/{id}")

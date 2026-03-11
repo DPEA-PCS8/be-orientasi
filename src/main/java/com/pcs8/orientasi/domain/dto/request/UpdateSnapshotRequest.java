@@ -47,4 +47,11 @@ public class UpdateSnapshotRequest {
 
     @JsonProperty(KETERANGAN_HISTORIS)
     private String keteranganHistoris;
+
+    // Optional changelog fields - if provided, creates a changelog entry
+    @JsonProperty("changelog_tanggal")
+    private LocalDate changelogTanggal;
+
+    @JsonProperty("changelog_keterangan")
+    private String changelogKeterangan;
 }
