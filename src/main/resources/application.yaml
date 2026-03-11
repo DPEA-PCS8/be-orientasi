@@ -55,3 +55,9 @@ logging:
   level:
     "[com.pcs8.orientasi]": INFO
     "[org.springframework.security]": DEBUG
+
+# Azure Blob Storage Configuration
+azure:
+  storage:
+    connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}
+    container-name: ${AZURE_STORAGE_CONTAINER:pksi-documents}
