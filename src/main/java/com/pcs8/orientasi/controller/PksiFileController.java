@@ -45,6 +45,49 @@ public class PksiFileController {
     }
 
     /**
+     * Upload files to temporary storage (before PKSI is created)
+     */
+    @PostMapping("/temp/upload/{sessionId}")
+    public ResponseEntity<BaseResponse> uploadTempFiles(
+            @PathVariable String sessionId,
+            @RequestParam("files") MultipartFile[] files) {
+        
+        log.info("Uploading {} temp files for session: {}", files.length, sessionId);
+        
+        List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));
+    }
+
+    /**
+     * Move temporary files to permanent storage after PKSI is created
+     */
+    @PostMapping("/temp/move/{pksiId}/{sessionId}")
+    public ResponseEntity<BaseResponse> moveTempFiles(
+            @PathVariable UUID pksiId,
+            @PathVariable String sessionId) {
+        
+        log.info("Moving temp files from session {} to PKSI: {}", sessionId, pksiId);
+        
+        List<PksiFileResponse> responses = pksiFileService.moveTempFilesToPermanent(pksiId, sessionId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Files moved successfully", responses));
+    }
+
+    /**
+     * Delete temporary files by session ID
+     */
+    @DeleteMapping("/temp/{sessionId}")
+    public ResponseEntity<BaseResponse> deleteTempFiles(@PathVariable String sessionId) {
+        log.info("Deleting temp files for session: {}", sessionId);
+        
+        pksiFileService.deleteTempFiles(sessionId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Temp files deleted successfully", null));
+    }
+
+    /**
      * Get all files for a PKSI document
      */
     @GetMapping("/pksi/{pksiId}")
@@ -57,6 +100,18 @@ public class PksiFileController {
     }
 
     /**
+     * Get file metadata by ID
+     */
+    @GetMapping("/{fileId}")
+    public ResponseEntity<BaseResponse> getFileById(@PathVariable UUID fileId) {
+        log.info("Getting file metadata for: {}", fileId);
+        
+        PksiFileResponse file = pksiFileService.getFileById(fileId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, file));
+    }
+
+    /**
      * Download a file
      */
     @GetMapping("/download/{fileId}")
@@ -64,20 +119,10 @@ public class PksiFileController {
         log.info("Downloading file: {}", fileId);
         
         byte[] content = pksiFileService.downloadFile(fileId);
+        PksiFileResponse fileInfo = pksiFileService.getFileById(fileId);
         
-        // Get file info for headers - use safe defaults
-        String fileName = "download";
-        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        
-        // Try to get actual file info from service
-        String downloadUrl = pksiFileService.getDownloadUrl(fileId);
-        if (downloadUrl != null) {
-            // Extract filename from URL if available
-            int lastSlash = downloadUrl.lastIndexOf('/');
-            if (lastSlash >= 0 && lastSlash < downloadUrl.length() - 1) {
-                fileName = downloadUrl.substring(lastSlash + 1);
-            }
-        }
+        String fileName = fileInfo.getOriginalName() != null ? fileInfo.getOriginalName() : "download";
+        String contentType = fileInfo.getContentType() != null ? fileInfo.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(contentType));

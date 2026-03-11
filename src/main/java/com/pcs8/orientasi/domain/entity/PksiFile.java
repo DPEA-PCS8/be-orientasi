@@ -28,7 +28,7 @@ public class PksiFile extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pksi_id", nullable = false)
+    @JoinColumn(name = "pksi_id", nullable = true) // Nullable for temp files
     private PksiDocument pksiDocument;
 
     @Column(name = "file_name", nullable = false, length = 255)
@@ -48,4 +48,7 @@ public class PksiFile extends BaseEntity {
 
     @Column(name = "blob_name", length = 500)
     private String blobName;
+
+    @Column(name = "session_id", length = 100)
+    private String sessionId; // For temporary files before PKSI association
 }
