@@ -32,8 +32,6 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
     private final AplikasiSnapshotRepository snapshotRepository;
     private final AplikasiChangelogRepository changelogRepository;
     private final MstAplikasiRepository aplikasiRepository;
-    private final MstBidangRepository bidangRepository;
-    private final MstSkpaRepository skpaRepository;
 
     @Override
     @Transactional
@@ -103,6 +101,18 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
         snapshot.setSnapshotDate(LocalDateTime.now());
         
         AplikasiSnapshot saved = snapshotRepository.save(snapshot);
+        
+        // Add changelog entry if keterangan provided
+        if (request.getChangelogKeterangan() != null && !request.getChangelogKeterangan().isBlank()) {
+            AplikasiChangelog changelog = AplikasiChangelog.builder()
+                    .snapshot(saved)
+                    .tanggalPerubahan(request.getChangelogTanggal() != null ? request.getChangelogTanggal() : LocalDate.now())
+                    .keterangan(request.getChangelogKeterangan())
+                    .build();
+            changelogRepository.save(changelog);
+            log.info("Changelog added during snapshot update: {}", snapshotId);
+        }
+        
         log.info("Snapshot updated: {}", snapshotId);
         
         return mapToResponse(saved);
@@ -218,6 +228,16 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                 .stream()
                 .map(this::mapToChangelogInfo)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void deleteChangelog(UUID changelogId) {
+        if (!changelogRepository.existsById(changelogId)) {
+            throw new ResourceNotFoundException("Changelog tidak ditemukan");
+        }
+        changelogRepository.deleteById(changelogId);
+        log.info("Changelog deleted: {}", changelogId);
     }
 
     @Override
