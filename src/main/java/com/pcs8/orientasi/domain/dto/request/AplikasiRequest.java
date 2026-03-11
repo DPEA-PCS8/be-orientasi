@@ -78,4 +78,8 @@ public class AplikasiRequest {
     @JsonProperty("penghargaans")
     @Valid
     private List<PenghargaanRequest> penghargaans;
+
+    // Optional: Keterangan perubahan untuk historis
+    @JsonProperty("keterangan_perubahan")
+    private String keteranganPerubahan;
 }

@@ -27,4 +27,6 @@ public final class ConstantVariable {
      * Error message ketika gagal membuat audit log
      */
     public static final String AUDIT_LOG_CREATION_FAILED = "Failed to create audit log for {} {}: {}";
+
+    public static final String SNAPSHOT_NOT_FOUND = "Snapshot tidak ditemukan";
 }
