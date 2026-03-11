@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.ChangelogRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateSnapshotRequest;
 import com.pcs8.orientasi.domain.dto.response.*;
@@ -70,7 +71,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
     @Transactional
     public AplikasiSnapshotResponse updateSnapshot(UUID snapshotId, UpdateSnapshotRequest request) {
         AplikasiSnapshot snapshot = snapshotRepository.findById(snapshotId)
-                .orElseThrow(() -> new ResourceNotFoundException("Snapshot tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException(ConstantVariable.SNAPSHOT_NOT_FOUND));
         
         // Update fields if provided
         if (request.getKodeAplikasi() != null) {
@@ -126,7 +127,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
     @Transactional(readOnly = true)
     public AplikasiSnapshotResponse getSnapshotById(UUID id) {
         AplikasiSnapshot snapshot = snapshotRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Snapshot tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException(ConstantVariable.SNAPSHOT_NOT_FOUND));
         return mapToResponse(snapshot);
     }
 
@@ -144,7 +145,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
         List<AplikasiSnapshot> snapshots = snapshotRepository.findByPeriode(startYear, endYear);
         return snapshots.stream()
                 .map(this::mapToListResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -153,7 +154,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
         List<AplikasiSnapshot> snapshots = snapshotRepository.findByTahunOrderByNamaAplikasi(tahun);
         return snapshots.stream()
                 .map(this::mapToListResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -196,7 +197,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
     @Transactional
     public ChangelogInfo addChangelog(UUID snapshotId, ChangelogRequest request) {
         AplikasiSnapshot snapshot = snapshotRepository.findById(snapshotId)
-                .orElseThrow(() -> new ResourceNotFoundException("Snapshot tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException(ConstantVariable.SNAPSHOT_NOT_FOUND));
         
         AplikasiChangelog changelog = AplikasiChangelog.builder()
                 .snapshot(snapshot)
@@ -216,14 +217,14 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
         return changelogRepository.findBySnapshotIdOrderByTanggalPerubahanDesc(snapshotId)
                 .stream()
                 .map(this::mapToChangelogInfo)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
     public void deleteSnapshot(UUID id) {
         if (!snapshotRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Snapshot tidak ditemukan");
+            throw new ResourceNotFoundException(ConstantVariable.SNAPSHOT_NOT_FOUND);
         }
         snapshotRepository.deleteById(id);
         log.info("Snapshot deleted: {}", id);
@@ -235,7 +236,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
         return snapshotRepository.findByAplikasiIdOrderByTahunDesc(aplikasiId)
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -549,7 +550,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                             .tipeAkses(url.getTipeAkses())
                             .keterangan(url.getKeterangan())
                             .build())
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         // Map Satker Internals
@@ -560,7 +561,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                             .namaSatker(satker.getNamaSatker())
                             .keterangan(satker.getKeterangan())
                             .build())
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         // Map Pengguna Eksternals
@@ -571,7 +572,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                             .namaPengguna(pengguna.getNamaPengguna())
                             .keterangan(pengguna.getKeterangan())
                             .build())
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         // Map Komunikasi Sistems
@@ -585,7 +586,7 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                             .keterangan(kom.getKeterangan())
                             .isPlanned(kom.getIsPlanned())
                             .build())
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         // Map Penghargaans
@@ -602,14 +603,14 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
                             .tanggal(p.getTanggal())
                             .deskripsi(p.getDeskripsi())
                             .build())
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         // Map Changelogs
         if (snapshot.getChangelogs() != null && !snapshot.getChangelogs().isEmpty()) {
             builder.changelogs(snapshot.getChangelogs().stream()
                     .map(this::mapToChangelogInfo)
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         return builder.build();

@@ -13,7 +13,6 @@ import com.pcs8.orientasi.repository.MstVariableRepository;
 import com.pcs8.orientasi.service.AplikasiHistorisService;
 import com.pcs8.orientasi.service.AplikasiService;
 import com.pcs8.orientasi.service.AuditService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;

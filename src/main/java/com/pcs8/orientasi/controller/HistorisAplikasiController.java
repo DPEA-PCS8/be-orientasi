@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.ChangelogRequest;
 import com.pcs8.orientasi.domain.dto.request.GenerateSnapshotRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateSnapshotRequest;
@@ -31,7 +32,7 @@ public class HistorisAplikasiController {
     @GetMapping("/tahun/{tahun}")
     public ResponseEntity<BaseResponse> getByTahun(@PathVariable Integer tahun) {
         List<AplikasiHistorisListResponse> responses = historisService.getHistorisByTahun(tahun);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     /**
@@ -43,7 +44,7 @@ public class HistorisAplikasiController {
             @RequestParam(name = "end_year") Integer endYear
     ) {
         List<AplikasiHistorisListResponse> responses = historisService.getHistorisByPeriode(startYear, endYear);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     /**
@@ -52,7 +53,7 @@ public class HistorisAplikasiController {
     @GetMapping("/years")
     public ResponseEntity<BaseResponse> getAvailableYears() {
         List<Integer> years = historisService.getAvailableYears();
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", years));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, years));
     }
 
     /**
@@ -61,7 +62,7 @@ public class HistorisAplikasiController {
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse> getById(@PathVariable UUID id) {
         AplikasiSnapshotResponse response = historisService.getSnapshotById(id);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, response));
     }
 
     /**
@@ -73,7 +74,7 @@ public class HistorisAplikasiController {
             @PathVariable Integer tahun
     ) {
         AplikasiSnapshotResponse response = historisService.getSnapshotByAplikasiAndTahun(aplikasiId, tahun);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, response));
     }
 
     /**
@@ -82,7 +83,7 @@ public class HistorisAplikasiController {
     @GetMapping("/aplikasi/{aplikasiId}")
     public ResponseEntity<BaseResponse> getByAplikasiId(@PathVariable UUID aplikasiId) {
         List<AplikasiSnapshotResponse> responses = historisService.getSnapshotsByAplikasiId(aplikasiId);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     /**
@@ -91,7 +92,7 @@ public class HistorisAplikasiController {
     @GetMapping("/statistik/tahun/{tahun}")
     public ResponseEntity<BaseResponse> getStatistikByTahun(@PathVariable Integer tahun) {
         AplikasiStatistikResponse response = historisService.getStatistikByTahun(tahun);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, response));
     }
 
     /**
@@ -103,7 +104,7 @@ public class HistorisAplikasiController {
             @RequestParam(name = "end_year") Integer endYear
     ) {
         List<AplikasiStatistikResponse> responses = historisService.getStatistikByPeriode(startYear, endYear);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     /**
@@ -168,7 +169,7 @@ public class HistorisAplikasiController {
     @GetMapping("/{snapshotId}/changelog")
     public ResponseEntity<BaseResponse> getChangelogs(@PathVariable UUID snapshotId) {
         List<ChangelogInfo> responses = historisService.getChangelogsBySnapshotId(snapshotId);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     /**

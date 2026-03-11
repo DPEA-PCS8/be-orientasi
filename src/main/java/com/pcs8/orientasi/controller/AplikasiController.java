@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
@@ -38,7 +39,7 @@ public class AplikasiController {
     @GetMapping
     public ResponseEntity<BaseResponse> getAll() {
         List<AplikasiResponse> responses = aplikasiService.getAll();
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     @GetMapping("/search")
@@ -60,7 +61,7 @@ public class AplikasiController {
         responseData.put("page", pageResult.getNumber());
         responseData.put("size", pageResult.getSize());
         
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responseData));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responseData));
     }
 
     @GetMapping("/list")
@@ -71,19 +72,19 @@ public class AplikasiController {
             @RequestParam(required = false) String status
     ) {
         List<AplikasiResponse> responses = aplikasiService.searchList(search, bidangId, skpaId, status);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", responses));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse> getById(@PathVariable UUID id) {
         AplikasiResponse response = aplikasiService.getById(id);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, response));
     }
 
     @GetMapping("/kode/{kode}")
     public ResponseEntity<BaseResponse> getByKode(@PathVariable String kode) {
         AplikasiResponse response = aplikasiService.getByKode(kode);
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, response));
     }
 
     @PutMapping("/{id}")
