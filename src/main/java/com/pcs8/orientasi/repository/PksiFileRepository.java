@@ -15,4 +15,8 @@ public interface PksiFileRepository extends JpaRepository<PksiFile, UUID> {
     List<PksiFile> findByPksiDocumentIdOrderByCreatedAtDesc(UUID pksiId);
     
     void deleteByPksiDocumentId(UUID pksiId);
+    
+    List<PksiFile> findBySessionIdOrderByCreatedAtDesc(String sessionId);
+    
+    void deleteBySessionId(String sessionId);
 }

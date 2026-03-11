@@ -29,6 +29,8 @@ public class PksiFileServiceImpl implements PksiFileService {
     private static final Logger log = LoggerFactory.getLogger(PksiFileServiceImpl.class);
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10MB
     private static final String FILE_NOT_FOUND_MSG = "File not found with id: ";
+    private static final String TEMP_PREFIX = "temp/";
+    private static final String PKSI_PREFIX = "pksi/";
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "application/pdf",
             "application/msword",
@@ -77,12 +79,152 @@ public class PksiFileServiceImpl implements PksiFileService {
                 PksiFileResponse response = uploadSingleFile(pksiDocument, file);
                 responses.add(response);
             } catch (IOException e) {
-                log.error("Failed to upload file for PKSI: {}. Error: {}", pksiId, e.getMessage(), e);
-                throw new IllegalStateException("Failed to upload file for PKSI: " + pksiId, e);
+                log.error("Failed to upload file. Error: {}", e.getMessage(), e);
+                throw new IllegalStateException("Failed to upload file", e);
             }
         }
 
         return responses;
+    }
+
+    @Override
+    @Transactional
+    public List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files) {
+        if (blobContainerClient == null) {
+            throw new IllegalStateException("Azure Blob Storage is not configured");
+        }
+
+        List<PksiFileResponse> responses = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            validateFile(file);
+            
+            try {
+                PksiFileResponse response = uploadSingleTempFile(sessionId, file);
+                responses.add(response);
+            } catch (IOException e) {
+                log.error("Failed to upload temp file. Error: {}", e.getMessage(), e);
+                throw new IllegalStateException("Failed to upload temp file", e);
+            }
+        }
+
+        return responses;
+    }
+
+    private PksiFileResponse uploadSingleTempFile(String sessionId, MultipartFile file) throws IOException {
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.isEmpty()) {
+            throw new IllegalArgumentException("File name is required");
+        }
+        
+        String extension = getFileExtension(originalName);
+        String blobName = String.format("%s%s/%s_%s%s", 
+                TEMP_PREFIX,
+                sessionId, 
+                UUID.randomUUID(), 
+                System.currentTimeMillis(),
+                extension);
+
+        // Upload to Azure Blob Storage with try-with-resources
+        BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
+        try (var inputStream = file.getInputStream()) {
+            blobClient.upload(inputStream, file.getSize(), true);
+        }
+
+        String blobUrl = blobClient.getBlobUrl();
+
+        // Save metadata to database (without PKSI association)
+        PksiFile pksiFile = PksiFile.builder()
+                .pksiDocument(null) // No PKSI association yet
+                .fileName(blobName)
+                .originalName(originalName)
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .blobUrl(blobUrl)
+                .blobName(blobName)
+                .sessionId(sessionId) // Store session ID for later association
+                .build();
+
+        pksiFile = pksiFileRepository.save(pksiFile);
+
+        log.info("Uploaded temp file successfully");
+
+        return mapToResponse(pksiFile);
+    }
+
+    @Override
+    @Transactional
+    public List<PksiFileResponse> moveTempFilesToPermanent(UUID pksiId, String sessionId) {
+        if (blobContainerClient == null) {
+            throw new IllegalStateException("Azure Blob Storage is not configured");
+        }
+
+        PksiDocument pksiDocument = pksiDocumentRepository.findById(pksiId)
+                .orElseThrow(() -> new ResourceNotFoundException("PKSI Document not found with id: " + pksiId));
+
+        // Find all temp files for this session
+        List<PksiFile> tempFiles = pksiFileRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
+        List<PksiFileResponse> responses = new ArrayList<>();
+
+        for (PksiFile tempFile : tempFiles) {
+            try {
+                // Move blob from temp to permanent location
+                String oldBlobName = tempFile.getBlobName();
+                String extension = getFileExtension(tempFile.getOriginalName());
+                String newBlobName = String.format("%s%s/%s_%s%s",
+                        PKSI_PREFIX,
+                        pksiId,
+                        UUID.randomUUID(),
+                        System.currentTimeMillis(),
+                        extension);
+
+                BlobClient sourceBlob = blobContainerClient.getBlobClient(oldBlobName);
+                BlobClient destBlob = blobContainerClient.getBlobClient(newBlobName);
+
+                // Copy blob to new location
+                destBlob.copyFromUrl(sourceBlob.getBlobUrl());
+
+                // Delete old blob
+                if (Boolean.TRUE.equals(sourceBlob.exists())) {
+                    sourceBlob.delete();
+                }
+
+                // Update database record
+                tempFile.setPksiDocument(pksiDocument);
+                tempFile.setBlobName(newBlobName);
+                tempFile.setFileName(newBlobName);
+                tempFile.setBlobUrl(destBlob.getBlobUrl());
+                tempFile.setSessionId(null); // Clear session ID
+                tempFile = pksiFileRepository.save(tempFile);
+
+                responses.add(mapToResponse(tempFile));
+                log.info("Moved temp file to permanent location successfully");
+
+            } catch (Exception e) {
+                log.error("Failed to move temp file to permanent. Error: {}", e.getMessage(), e);
+                throw new IllegalStateException("Failed to move temp file to permanent storage", e);
+            }
+        }
+
+        return responses;
+    }
+
+    @Override
+    @Transactional
+    public void deleteTempFiles(String sessionId) {
+        List<PksiFile> tempFiles = pksiFileRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
+
+        for (PksiFile file : tempFiles) {
+            if (blobContainerClient != null && file.getBlobName() != null) {
+                BlobClient blobClient = blobContainerClient.getBlobClient(file.getBlobName());
+                if (Boolean.TRUE.equals(blobClient.exists())) {
+                    blobClient.delete();
+                }
+            }
+            pksiFileRepository.delete(file);
+        }
+
+        log.info("Deleted temp files successfully");
     }
 
     private PksiFileResponse uploadSingleFile(PksiDocument pksiDocument, MultipartFile file) throws IOException {
@@ -92,7 +234,8 @@ public class PksiFileServiceImpl implements PksiFileService {
         }
         
         String extension = getFileExtension(originalName);
-        String blobName = String.format("pksi/%s/%s_%s%s", 
+        String blobName = String.format("%s%s/%s_%s%s", 
+                PKSI_PREFIX,
                 pksiDocument.getId(), 
                 UUID.randomUUID(), 
                 System.currentTimeMillis(),
@@ -119,7 +262,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         pksiFile = pksiFileRepository.save(pksiFile);
 
-        log.info("Uploaded file with id {} for PKSI {}", pksiFile.getId(), pksiDocument.getId());
+        log.info("Uploaded file successfully");
 
         return mapToResponse(pksiFile);
     }
@@ -165,7 +308,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         // Delete from database
         pksiFileRepository.delete(pksiFile);
-        log.info("Deleted file with id: {}", fileId);
+        log.info("Deleted file successfully");
     }
 
     @Override
@@ -183,7 +326,7 @@ public class PksiFileServiceImpl implements PksiFileService {
         }
 
         pksiFileRepository.deleteByPksiDocumentId(pksiId);
-        log.info("Deleted all files for PKSI: {}", pksiId);
+        log.info("Deleted all files for PKSI document successfully");
     }
 
     @Override
@@ -208,15 +351,22 @@ public class PksiFileServiceImpl implements PksiFileService {
             blobClient.downloadStream(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
-            log.error("Failed to download file with id: {}. Error: {}", fileId, e.getMessage(), e);
-            throw new IllegalStateException("Failed to download file with id: " + fileId, e);
+            log.error("Failed to download file. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to download file", e);
         }
+    }
+
+    @Override
+    public PksiFileResponse getFileById(UUID fileId) {
+        PksiFile pksiFile = pksiFileRepository.findById(fileId)
+                .orElseThrow(() -> new ResourceNotFoundException(FILE_NOT_FOUND_MSG + fileId));
+        return mapToResponse(pksiFile);
     }
 
     private PksiFileResponse mapToResponse(PksiFile file) {
         return PksiFileResponse.builder()
                 .id(file.getId())
-                .pksiId(file.getPksiDocument().getId())
+                .pksiId(file.getPksiDocument() != null ? file.getPksiDocument().getId() : null)
                 .fileName(file.getFileName())
                 .originalName(file.getOriginalName())
                 .contentType(file.getContentType())
