@@ -79,8 +79,8 @@ public class PksiFileServiceImpl implements PksiFileService {
                 PksiFileResponse response = uploadSingleFile(pksiDocument, file);
                 responses.add(response);
             } catch (IOException e) {
-                log.error("Failed to upload file for PKSI: {}. Error: {}", pksiId, e.getMessage(), e);
-                throw new IllegalStateException("Failed to upload file for PKSI: " + pksiId, e);
+                log.error("Failed to upload file. Error: {}", e.getMessage(), e);
+                throw new IllegalStateException("Failed to upload file", e);
             }
         }
 
@@ -103,8 +103,8 @@ public class PksiFileServiceImpl implements PksiFileService {
                 PksiFileResponse response = uploadSingleTempFile(sessionId, file);
                 responses.add(response);
             } catch (IOException e) {
-                log.error("Failed to upload temp file for session: {}. Error: {}", sessionId, e.getMessage(), e);
-                throw new IllegalStateException("Failed to upload temp file for session: " + sessionId, e);
+                log.error("Failed to upload temp file. Error: {}", e.getMessage(), e);
+                throw new IllegalStateException("Failed to upload temp file", e);
             }
         }
 
@@ -147,7 +147,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         pksiFile = pksiFileRepository.save(pksiFile);
 
-        log.info("Uploaded temp file with id {} for session {}", pksiFile.getId(), sessionId);
+        log.info("Uploaded temp file successfully");
 
         return mapToResponse(pksiFile);
     }
@@ -198,10 +198,10 @@ public class PksiFileServiceImpl implements PksiFileService {
                 tempFile = pksiFileRepository.save(tempFile);
 
                 responses.add(mapToResponse(tempFile));
-                log.info("Moved temp file {} to permanent location for PKSI {}", tempFile.getId(), pksiId);
+                log.info("Moved temp file to permanent location successfully");
 
             } catch (Exception e) {
-                log.error("Failed to move temp file {} to permanent. Error: {}", tempFile.getId(), e.getMessage(), e);
+                log.error("Failed to move temp file to permanent. Error: {}", e.getMessage(), e);
                 throw new IllegalStateException("Failed to move temp file to permanent storage", e);
             }
         }
@@ -224,7 +224,7 @@ public class PksiFileServiceImpl implements PksiFileService {
             pksiFileRepository.delete(file);
         }
 
-        log.info("Deleted {} temp files for session: {}", tempFiles.size(), sessionId);
+        log.info("Deleted temp files successfully");
     }
 
     private PksiFileResponse uploadSingleFile(PksiDocument pksiDocument, MultipartFile file) throws IOException {
@@ -262,7 +262,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         pksiFile = pksiFileRepository.save(pksiFile);
 
-        log.info("Uploaded file with id {} for PKSI {}", pksiFile.getId(), pksiDocument.getId());
+        log.info("Uploaded file successfully");
 
         return mapToResponse(pksiFile);
     }
@@ -308,7 +308,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         // Delete from database
         pksiFileRepository.delete(pksiFile);
-        log.info("Deleted file with id: {}", fileId);
+        log.info("Deleted file successfully");
     }
 
     @Override
@@ -326,7 +326,7 @@ public class PksiFileServiceImpl implements PksiFileService {
         }
 
         pksiFileRepository.deleteByPksiDocumentId(pksiId);
-        log.info("Deleted all files for PKSI: {}", pksiId);
+        log.info("Deleted all files for PKSI document successfully");
     }
 
     @Override
@@ -351,8 +351,8 @@ public class PksiFileServiceImpl implements PksiFileService {
             blobClient.downloadStream(outputStream);
             return outputStream.toByteArray();
         } catch (IOException e) {
-            log.error("Failed to download file with id: {}. Error: {}", fileId, e.getMessage(), e);
-            throw new IllegalStateException("Failed to download file with id: " + fileId, e);
+            log.error("Failed to download file. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to download file", e);
         }
     }
 

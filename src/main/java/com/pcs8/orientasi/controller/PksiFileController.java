@@ -36,7 +36,7 @@ public class PksiFileController {
             @PathVariable UUID pksiId,
             @RequestParam("files") MultipartFile[] files) {
         
-        log.info("Uploading {} files for PKSI: {}", files.length, pksiId);
+        log.info("Uploading files for PKSI document");
         
         List<PksiFileResponse> responses = pksiFileService.uploadFiles(pksiId, files);
         
@@ -52,7 +52,7 @@ public class PksiFileController {
             @PathVariable String sessionId,
             @RequestParam("files") MultipartFile[] files) {
         
-        log.info("Uploading {} temp files for session: {}", files.length, sessionId);
+        log.info("Uploading temp files");
         
         List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files);
         
@@ -68,7 +68,7 @@ public class PksiFileController {
             @PathVariable UUID pksiId,
             @PathVariable String sessionId) {
         
-        log.info("Moving temp files from session {} to PKSI: {}", sessionId, pksiId);
+        log.info("Moving temp files to permanent storage");
         
         List<PksiFileResponse> responses = pksiFileService.moveTempFilesToPermanent(pksiId, sessionId);
         
@@ -80,7 +80,7 @@ public class PksiFileController {
      */
     @DeleteMapping("/temp/{sessionId}")
     public ResponseEntity<BaseResponse> deleteTempFiles(@PathVariable String sessionId) {
-        log.info("Deleting temp files for session: {}", sessionId);
+        log.info("Deleting temp files");
         
         pksiFileService.deleteTempFiles(sessionId);
         
@@ -92,7 +92,7 @@ public class PksiFileController {
      */
     @GetMapping("/pksi/{pksiId}")
     public ResponseEntity<BaseResponse> getFilesByPksiId(@PathVariable UUID pksiId) {
-        log.info("Getting files for PKSI: {}", pksiId);
+        log.info("Getting files for PKSI document");
         
         List<PksiFileResponse> files = pksiFileService.getFilesByPksiId(pksiId);
         
@@ -104,7 +104,7 @@ public class PksiFileController {
      */
     @GetMapping("/{fileId}")
     public ResponseEntity<BaseResponse> getFileById(@PathVariable UUID fileId) {
-        log.info("Getting file metadata for: {}", fileId);
+        log.info("Getting file metadata");
         
         PksiFileResponse file = pksiFileService.getFileById(fileId);
         
@@ -116,7 +116,7 @@ public class PksiFileController {
      */
     @GetMapping("/download/{fileId}")
     public ResponseEntity<byte[]> downloadFile(@PathVariable UUID fileId) {
-        log.info("Downloading file: {}", fileId);
+        log.info("Downloading file");
         
         byte[] content = pksiFileService.downloadFile(fileId);
         PksiFileResponse fileInfo = pksiFileService.getFileById(fileId);
@@ -137,7 +137,7 @@ public class PksiFileController {
      */
     @DeleteMapping("/{fileId}")
     public ResponseEntity<BaseResponse> deleteFile(@PathVariable UUID fileId) {
-        log.info("Deleting file: {}", fileId);
+        log.info("Deleting file");
         
         pksiFileService.deleteFile(fileId);
         
@@ -149,7 +149,7 @@ public class PksiFileController {
      */
     @DeleteMapping("/pksi/{pksiId}")
     public ResponseEntity<BaseResponse> deleteFilesByPksiId(@PathVariable UUID pksiId) {
-        log.info("Deleting all files for PKSI: {}", pksiId);
+        log.info("Deleting all files for PKSI document");
         
         pksiFileService.deleteFilesByPksiId(pksiId);
         
