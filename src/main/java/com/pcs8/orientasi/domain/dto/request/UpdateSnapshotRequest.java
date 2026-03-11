@@ -1,7 +1,6 @@
 package com.pcs8.orientasi.domain.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,40 +9,42 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static com.pcs8.orientasi.domain.constants.AplikasiFieldNames.*;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateSnapshotRequest {
 
-    @JsonProperty("kode_aplikasi")
+    @JsonProperty(KODE_APLIKASI)
     @Size(max = 50, message = "Kode aplikasi max 50 characters")
     private String kodeAplikasi;
 
-    @JsonProperty("nama_aplikasi")
+    @JsonProperty(NAMA_APLIKASI)
     @Size(max = 255, message = "Nama aplikasi max 255 characters")
     private String namaAplikasi;
 
-    @JsonProperty("deskripsi")
+    @JsonProperty(DESKRIPSI)
     private String deskripsi;
 
-    @JsonProperty("status_aplikasi")
+    @JsonProperty(STATUS_APLIKASI)
     private String statusAplikasi; // AKTIF, IDLE, DIAKHIRI
 
-    @JsonProperty("bidang_id")
+    @JsonProperty(BIDANG_ID)
     private UUID bidangId;
 
-    @JsonProperty("skpa_id")
+    @JsonProperty(SKPA_ID)
     private UUID skpaId;
 
-    @JsonProperty("tanggal_implementasi")
+    @JsonProperty(TANGGAL_IMPLEMENTASI)
     private LocalDate tanggalImplementasi;
 
-    @JsonProperty("akses")
+    @JsonProperty(AKSES)
     private String akses; // INTERNET, INTRANET, BOTH
 
-    @JsonProperty("proses_data_pribadi")
+    @JsonProperty(PROSES_DATA_PRIBADI)
     private Boolean prosesDataPribadi;
 
-    @JsonProperty("keterangan_historis")
+    @JsonProperty(KETERANGAN_HISTORIS)
     private String keteranganHistoris;
 }

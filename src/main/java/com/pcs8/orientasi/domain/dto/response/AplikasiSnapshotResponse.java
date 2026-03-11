@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.pcs8.orientasi.domain.constants.AplikasiFieldNames.*;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,76 +23,76 @@ public class AplikasiSnapshotResponse {
 
     private UUID id;
 
-    @JsonProperty("aplikasi_id")
+    @JsonProperty(APLIKASI_ID)
     private UUID aplikasiId;
 
-    @JsonProperty("tahun")
+    @JsonProperty(TAHUN)
     private Integer tahun;
 
-    @JsonProperty("kode_aplikasi")
+    @JsonProperty(KODE_APLIKASI)
     private String kodeAplikasi;
 
-    @JsonProperty("nama_aplikasi")
+    @JsonProperty(NAMA_APLIKASI)
     private String namaAplikasi;
 
-    @JsonProperty("deskripsi")
+    @JsonProperty(DESKRIPSI)
     private String deskripsi;
 
-    @JsonProperty("status_aplikasi")
+    @JsonProperty(STATUS_APLIKASI)
     private String statusAplikasi;
 
-    @JsonProperty("tanggal_status")
+    @JsonProperty(TANGGAL_STATUS)
     private LocalDate tanggalStatus;
 
-    @JsonProperty("bidang")
+    @JsonProperty(BIDANG)
     private BidangInfo bidang;
 
-    @JsonProperty("skpa")
+    @JsonProperty(SKPA)
     private SkpaInfo skpa;
 
-    @JsonProperty("tanggal_implementasi")
+    @JsonProperty(TANGGAL_IMPLEMENTASI)
     private LocalDate tanggalImplementasi;
 
-    @JsonProperty("akses")
+    @JsonProperty(AKSES)
     private String akses;
 
-    @JsonProperty("proses_data_pribadi")
+    @JsonProperty(PROSES_DATA_PRIBADI)
     private Boolean prosesDataPribadi;
 
-    @JsonProperty("data_pribadi_diproses")
+    @JsonProperty(DATA_PRIBADI_DIPROSES)
     private String dataPribadiDiproses;
 
-    @JsonProperty("idle_info")
+    @JsonProperty(IDLE_INFO)
     private IdleInfo idleInfo;
 
     // Nested lists
-    @JsonProperty("urls")
+    @JsonProperty(URLS)
     private List<UrlInfo> urls;
 
-    @JsonProperty("satker_internals")
+    @JsonProperty(SATKER_INTERNALS)
     private List<SatkerInternalInfo> satkerInternals;
 
-    @JsonProperty("pengguna_eksternals")
+    @JsonProperty(PENGGUNA_EKSTERNALS)
     private List<PenggunaEksternalInfo> penggunaEksternals;
 
-    @JsonProperty("komunikasi_sistems")
+    @JsonProperty(KOMUNIKASI_SISTEMS)
     private List<KomunikasiSistemInfo> komunikasiSistems;
 
-    @JsonProperty("penghargaans")
+    @JsonProperty(PENGHARGAANS)
     private List<PenghargaanInfo> penghargaans;
 
-    @JsonProperty("changelogs")
+    @JsonProperty(CHANGELOGS)
     private List<ChangelogInfo> changelogs;
 
-    @JsonProperty("snapshot_date")
+    @JsonProperty(SNAPSHOT_DATE)
     private LocalDateTime snapshotDate;
 
-    @JsonProperty("snapshot_type")
+    @JsonProperty(SNAPSHOT_TYPE)
     private String snapshotType;
 
-    @JsonProperty("created_at")
+    @JsonProperty(CREATED_AT)
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
+    @JsonProperty(UPDATED_AT)
     private LocalDateTime updatedAt;
 }

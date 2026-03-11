@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.pcs8.orientasi.domain.constants.AplikasiFieldNames.*;
+
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -18,92 +20,92 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "his_aplikasi_snapshot", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"aplikasi_id", "tahun"})
+    @UniqueConstraint(columnNames = {APLIKASI_ID, TAHUN})
 })
 public class AplikasiSnapshot extends BaseEntity {
 
     @Id
     @UuidGenerator
-    @Column(name = "id", updatable = false, nullable = false)
+    @Column(name = ID, updatable = false, nullable = false)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aplikasi_id", nullable = false)
+    @JoinColumn(name = APLIKASI_ID, nullable = false)
     @ToString.Exclude
     private MstAplikasi aplikasi;
 
-    @Column(name = "tahun", nullable = false)
+    @Column(name = TAHUN, nullable = false)
     private Integer tahun;
 
     // Copy of aplikasi fields at snapshot time
-    @Column(name = "kode_aplikasi", nullable = false, length = 50)
+    @Column(name = KODE_APLIKASI, nullable = false, length = 50)
     private String kodeAplikasi;
 
-    @Column(name = "nama_aplikasi", nullable = false, length = 255)
+    @Column(name = NAMA_APLIKASI, nullable = false, length = 255)
     private String namaAplikasi;
 
-    @Column(name = "deskripsi", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = DESKRIPSI, columnDefinition = "NVARCHAR(MAX)")
     private String deskripsi;
 
-    @Column(name = "status_aplikasi", nullable = false, length = 20)
+    @Column(name = STATUS_APLIKASI, nullable = false, length = 20)
     private String statusAplikasi;
 
-    @Column(name = "tanggal_status")
+    @Column(name = TANGGAL_STATUS)
     private LocalDate tanggalStatus;
 
-    @Column(name = "bidang_id")
+    @Column(name = BIDANG_ID)
     private UUID bidangId;
 
-    @Column(name = "bidang_kode", length = 50)
+    @Column(name = BIDANG_KODE, length = 50)
     private String bidangKode;
 
-    @Column(name = "bidang_nama", length = 255)
+    @Column(name = BIDANG_NAMA, length = 255)
     private String bidangNama;
 
-    @Column(name = "skpa_id")
+    @Column(name = SKPA_ID)
     private UUID skpaId;
 
-    @Column(name = "skpa_kode", length = 50)
+    @Column(name = SKPA_KODE, length = 50)
     private String skpaKode;
 
-    @Column(name = "skpa_nama", length = 255)
+    @Column(name = SKPA_NAMA, length = 255)
     private String skpaNama;
 
-    @Column(name = "tanggal_implementasi")
+    @Column(name = TANGGAL_IMPLEMENTASI)
     private LocalDate tanggalImplementasi;
 
-    @Column(name = "akses", length = 20)
+    @Column(name = AKSES, length = 20)
     private String akses;
 
-    @Column(name = "proses_data_pribadi", nullable = false)
+    @Column(name = PROSES_DATA_PRIBADI, nullable = false)
     @Builder.Default
     private Boolean prosesDataPribadi = false;
 
-    @Column(name = "data_pribadi_diproses", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = DATA_PRIBADI_DIPROSES, columnDefinition = "NVARCHAR(MAX)")
     private String dataPribadiDiproses;
 
     // Idle-specific fields
-    @Column(name = "kategori_idle", length = 100)
+    @Column(name = KATEGORI_IDLE, length = 100)
     private String kategoriIdle;
 
-    @Column(name = "alasan_idle", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = ALASAN_IDLE, columnDefinition = "NVARCHAR(MAX)")
     private String alasanIdle;
 
-    @Column(name = "rencana_pengakhiran", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = RENCANA_PENGAKHIRAN, columnDefinition = "NVARCHAR(MAX)")
     private String rencanaPengakhiran;
 
-    @Column(name = "alasan_belum_diakhiri", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = ALASAN_BELUM_DIAKHIRI, columnDefinition = "NVARCHAR(MAX)")
     private String alasanBelumDiakhiri;
 
     // Snapshot metadata
-    @Column(name = "snapshot_date", nullable = false)
+    @Column(name = SNAPSHOT_DATE, nullable = false)
     private LocalDateTime snapshotDate;
 
-    @Column(name = "snapshot_type", nullable = false, length = 20)
+    @Column(name = SNAPSHOT_TYPE, nullable = false, length = 20)
     @Builder.Default
     private String snapshotType = "AUTO"; // AUTO, MANUAL
 
-    @Column(name = "keterangan_historis", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = KETERANGAN_HISTORIS, columnDefinition = "NVARCHAR(MAX)")
     private String keteranganHistoris;
 
     // One-to-many relations

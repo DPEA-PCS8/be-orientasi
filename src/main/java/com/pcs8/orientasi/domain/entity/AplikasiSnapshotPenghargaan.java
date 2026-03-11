@@ -3,7 +3,6 @@ package com.pcs8.orientasi.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,17 +14,7 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "his_aplikasi_penghargaan")
-public class AplikasiSnapshotPenghargaan extends BaseEntity {
-
-    @Id
-    @UuidGenerator
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "snapshot_id", nullable = false)
-    @ToString.Exclude
-    private AplikasiSnapshot snapshot;
+public class AplikasiSnapshotPenghargaan extends BaseSnapshotChildEntity {
 
     @Column(name = "kategori_id")
     private UUID kategoriId;
