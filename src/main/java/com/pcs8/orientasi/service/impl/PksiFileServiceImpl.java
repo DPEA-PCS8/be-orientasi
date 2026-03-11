@@ -9,9 +9,9 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.repository.PksiFileRepository;
 import com.pcs8.orientasi.service.PksiFileService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class PksiFileServiceImpl implements PksiFileService {
 
     private static final Logger log = LoggerFactory.getLogger(PksiFileServiceImpl.class);
@@ -44,6 +43,20 @@ public class PksiFileServiceImpl implements PksiFileService {
     private final BlobContainerClient blobContainerClient;
     private final PksiFileRepository pksiFileRepository;
     private final PksiDocumentRepository pksiDocumentRepository;
+
+    @Autowired
+    public PksiFileServiceImpl(
+            @Autowired(required = false) BlobContainerClient blobContainerClient,
+            PksiFileRepository pksiFileRepository,
+            PksiDocumentRepository pksiDocumentRepository) {
+        this.blobContainerClient = blobContainerClient;
+        this.pksiFileRepository = pksiFileRepository;
+        this.pksiDocumentRepository = pksiDocumentRepository;
+        
+        if (blobContainerClient == null) {
+            log.warn("Azure Blob Storage is not configured. File upload feature will be disabled.");
+        }
+    }
 
     @Override
     @Transactional
