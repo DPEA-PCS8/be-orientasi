@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.service;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,7 @@ public interface PksiDocumentService {
     
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
-    PksiDocumentResponse updateStatus(UUID id, String status);
+    PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request);
     
     void deleteDocument(UUID id);
 }

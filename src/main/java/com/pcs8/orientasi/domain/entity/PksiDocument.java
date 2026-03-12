@@ -143,6 +143,19 @@ public class PksiDocument extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private DocumentStatus status;
 
+    // ==================== APPROVAL FIELDS (set when status = DISETUJUI) ====================
+    @Column(name = "iku", length = 10)
+    private String iku;
+
+    @Column(name = "inhouse_outsource", length = 20)
+    private String inhouseOutsource;
+
+    @Column(name = "pic_approval", length = 255)
+    private String picApproval;
+
+    @Column(name = "anggota_tim", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTim;
+
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
     private String tujuanPengajuan;
