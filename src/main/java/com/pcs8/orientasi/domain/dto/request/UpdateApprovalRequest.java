@@ -3,6 +3,7 @@ package com.pcs8.orientasi.domain.dto.request;
 import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -12,6 +13,7 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class UpdateApprovalRequest extends ApprovalFields {
     // All fields are inherited from ApprovalFields
