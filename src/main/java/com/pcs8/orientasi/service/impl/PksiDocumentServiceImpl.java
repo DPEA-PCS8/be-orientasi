@@ -220,6 +220,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             if (request.getAnggotaTimNames() != null) {
                 document.setAnggotaTimNames(request.getAnggotaTimNames());
             }
+            if (request.getProgress() != null) {
+                document.setProgress(request.getProgress());
+            }
         }
 
         pksiDocumentRepository.save(document);
