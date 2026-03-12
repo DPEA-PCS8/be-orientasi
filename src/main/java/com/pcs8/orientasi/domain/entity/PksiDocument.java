@@ -153,8 +153,14 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "pic_approval", length = 255)
     private String picApproval;
 
+    @Column(name = "pic_approval_name", length = 255)
+    private String picApprovalName;
+
     @Column(name = "anggota_tim", columnDefinition = "NVARCHAR(MAX)")
     private String anggotaTim;
+
+    @Column(name = "anggota_tim_names", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTimNames;
 
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
