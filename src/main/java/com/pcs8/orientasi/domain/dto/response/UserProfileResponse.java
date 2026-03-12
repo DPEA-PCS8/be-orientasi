@@ -16,6 +16,8 @@ public class UserProfileResponse {
     
     private String uuid;
     
+    private String username;
+    
     @JsonProperty("full_name")
     private String fullName;
     

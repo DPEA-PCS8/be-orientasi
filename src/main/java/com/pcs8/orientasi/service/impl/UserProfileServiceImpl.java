@@ -41,6 +41,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         
         return UserProfileResponse.builder()
                 .uuid(user.getUuid().toString())
+                .username(user.getUsername())
                 .fullName(user.getFullName())
                 .departemen(user.getDepartment())
                 .title(user.getTitle())
