@@ -33,4 +33,7 @@ public abstract class ApprovalFields {
 
     @JsonProperty("anggota_tim_names")
     protected String anggotaTimNames;
+
+    @JsonProperty("progress")
+    protected String progress;
 }

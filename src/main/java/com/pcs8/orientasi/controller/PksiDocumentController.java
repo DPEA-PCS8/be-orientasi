@@ -2,6 +2,7 @@ package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
@@ -129,6 +130,15 @@ public class PksiDocumentController {
         
         PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document status updated successfully", response));
+    }
+
+    @PatchMapping("/{id}/approval")
+    public ResponseEntity<BaseResponse> updateApprovalFields(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateApprovalRequest request) {
+        
+        PksiDocumentResponse response = pksiDocumentService.updateApprovalFields(id, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document approval fields updated successfully", response));
     }
 
     @DeleteMapping("/{id}")

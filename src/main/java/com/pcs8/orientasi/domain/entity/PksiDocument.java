@@ -162,6 +162,9 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "anggota_tim_names", columnDefinition = "NVARCHAR(MAX)")
     private String anggotaTimNames;
 
+    @Column(name = "progress", length = 50)
+    private String progress;
+
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
     private String tujuanPengajuan;
