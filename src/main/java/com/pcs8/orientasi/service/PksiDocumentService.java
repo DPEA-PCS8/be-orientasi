@@ -22,7 +22,7 @@ public interface PksiDocumentService {
     
     Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable);
     
-    Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean isAdmin);
+    Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean canSeeAll);
     
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
