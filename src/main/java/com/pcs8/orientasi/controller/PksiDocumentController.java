@@ -84,7 +84,8 @@ public class PksiDocumentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy, // NOSONAR - must match DEFAULT_SORT_FIELD
-            @RequestParam(defaultValue = "desc") String sortDir
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest httpRequest
     ) {
         // Validate sortBy to prevent injection - use whitelist approach
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
@@ -94,7 +95,17 @@ public class PksiDocumentController {
                 : Sort.by(safeSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(search, status, pageable);
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        boolean isAdmin = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role));
+        
+        // Get user department from JWT (we need to add it to interceptor)
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(
+                search, status, pageable, userDepartment, isAdmin);
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());

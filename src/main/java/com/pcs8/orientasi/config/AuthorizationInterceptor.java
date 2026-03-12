@@ -67,10 +67,12 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         // Store user info in request attributes for later use
         String userUuid = claims.get("uuid", String.class);
         String username = claims.getSubject();
+        String department = claims.get("department", String.class);
         
         request.setAttribute("user_uuid", userUuid);
         request.setAttribute("username", username);  // Subject is the username
         request.setAttribute("full_name", claims.get("full_name", String.class));
+        request.setAttribute("department", department);
         request.setAttribute("user_roles", userRoles);
         request.setAttribute("has_role", hasRole);
 

@@ -122,6 +122,26 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
                 .map(mapper::mapToResponse);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean isAdmin) {
+        log.info("Searching PKSI documents with department filter");
+        
+        // Sanitize and format search input with wildcards
+        String searchPattern = formatSearchPattern(search);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        
+        // Admin can see all documents
+        if (isAdmin) {
+            return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
+                    .map(mapper::mapToResponse);
+        }
+        
+        // Non-admin users only see documents where SKPA matches their department
+        return pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment, pageable)
+                .map(mapper::mapToResponse);
+    }
     
     /**
      * Format search input as LIKE pattern with wildcards.

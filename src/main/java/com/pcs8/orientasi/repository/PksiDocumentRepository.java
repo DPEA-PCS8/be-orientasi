@@ -42,4 +42,17 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
 
     @Query("SELECT COUNT(p) FROM PksiDocument p WHERE p.status = :status")
     long countByStatus(@Param("status") PksiDocument.DocumentStatus status);
+
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
+           "AND (:userDepartment IS NULL OR :userDepartment = '' OR LOWER(s.namaSkpa) LIKE LOWER(CONCAT('%', :userDepartment, '%')))")
+    Page<PksiDocument> searchDocumentsByDepartment(
+            @Param("searchPattern") String searchPattern, 
+            @Param("status") String status,
+            @Param("userDepartment") String userDepartment,
+            Pageable pageable);
 }
