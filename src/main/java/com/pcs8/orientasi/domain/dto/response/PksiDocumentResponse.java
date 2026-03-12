@@ -45,19 +45,6 @@ public class PksiDocumentResponse extends PksiDocumentFields {
     @JsonProperty("status")
     private String status;
 
-    // Approval fields
-    @JsonProperty("iku")
-    private String iku;
-
-    @JsonProperty("inhouse_outsource")
-    private String inhouseOutsource;
-
-    @JsonProperty("pic_approval")
-    private String picApproval;
-
-    @JsonProperty("anggota_tim")
-    private String anggotaTim;
-
     @JsonProperty("created_at")
     private String createdAt;
 
