@@ -98,16 +98,20 @@ public class PksiDocumentController {
         // Extract user info from request attributes (set by AuthorizationInterceptor)
         @SuppressWarnings("unchecked")
         Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        log.info("PKSI Search - User Roles: {}, Department: {}", userRoles, userDepartment);
         
         // Admin and Pengembang can see all PKSI, SKPA role only sees matching department
         boolean canSeeAll = userRoles != null && userRoles.stream()
                 .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
         
-        // Get user department from JWT (we need to add it to interceptor)
-        String userDepartment = (String) httpRequest.getAttribute("department");
+        log.info("PKSI Search - canSeeAll: {}", canSeeAll);
         
         Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(
                 search, status, pageable, userDepartment, canSeeAll);
+        
+        log.info("PKSI Search - Results count: {}", pageResult.getTotalElements());
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());
