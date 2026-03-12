@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstUser;
@@ -200,8 +201,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
 
-        // If status is DISETUJUI, save approval fields
+        // Save approval fields if status is DISETUJUI (both for new approval and editing existing)
         if (newStatus == PksiDocument.DocumentStatus.DISETUJUI) {
+            // Always update approval fields when provided, regardless of previous status
             if (request.getIku() != null) {
                 document.setIku(request.getIku());
             }
@@ -243,5 +245,51 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
             throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
+    }
+
+    @Override
+    @Transactional
+    public PksiDocumentResponse updateApprovalFields(UUID id, UpdateApprovalRequest request) {
+        log.info("Updating PKSI document approval fields");
+
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Only allow updating approval fields for approved documents
+        if (document.getStatus() != PksiDocument.DocumentStatus.DISETUJUI) {
+            throw new BadRequestException("Cannot update approval fields for non-approved documents");
+        }
+
+        // Update approval fields when provided
+        if (request.getIku() != null) {
+            document.setIku(request.getIku());
+        }
+        if (request.getInhouseOutsource() != null) {
+            document.setInhouseOutsource(request.getInhouseOutsource());
+        }
+        if (request.getPicApproval() != null) {
+            document.setPicApproval(request.getPicApproval());
+        }
+        if (request.getPicApprovalName() != null) {
+            document.setPicApprovalName(request.getPicApprovalName());
+        }
+        if (request.getAnggotaTim() != null) {
+            document.setAnggotaTim(request.getAnggotaTim());
+        }
+        if (request.getAnggotaTimNames() != null) {
+            document.setAnggotaTimNames(request.getAnggotaTimNames());
+        }
+        if (request.getProgress() != null) {
+            document.setProgress(request.getProgress());
+        }
+
+        pksiDocumentRepository.save(document);
+        log.info("PKSI document approval fields updated successfully");
+
+        // Re-fetch with user to avoid lazy loading issues
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        return mapper.mapToResponse(updated);
     }
 }
