@@ -25,6 +25,12 @@ public abstract class ApprovalFields {
     @JsonProperty("pic_approval")
     protected String picApproval;
 
+    @JsonProperty("pic_approval_name")
+    protected String picApprovalName;
+
     @JsonProperty("anggota_tim")
     protected String anggotaTim;
+
+    @JsonProperty("anggota_tim_names")
+    protected String anggotaTimNames;
 }

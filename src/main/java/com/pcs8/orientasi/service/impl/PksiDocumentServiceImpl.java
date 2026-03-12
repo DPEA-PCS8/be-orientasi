@@ -211,8 +211,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             if (request.getPicApproval() != null) {
                 document.setPicApproval(request.getPicApproval());
             }
+            if (request.getPicApprovalName() != null) {
+                document.setPicApprovalName(request.getPicApprovalName());
+            }
             if (request.getAnggotaTim() != null) {
                 document.setAnggotaTim(request.getAnggotaTim());
+            }
+            if (request.getAnggotaTimNames() != null) {
+                document.setAnggotaTimNames(request.getAnggotaTimNames());
             }
         }
 
