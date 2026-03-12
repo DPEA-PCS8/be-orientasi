@@ -29,7 +29,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/pksi")
 @RequiredArgsConstructor
-@RequiresRole({"Admin", "Pengembang", "Satker"})
+@RequiresRole({"Admin", "Pengembang", "SKPA"})
 public class PksiDocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
