@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,7 +54,15 @@ public class UserProfileServiceImpl implements UserProfileService {
     public List<UserSimpleResponse> getUsersByRole(String roleName) {
         logger.info("Fetching users by role");
         
-        List<MstUser> users = mstUserRepository.findByRoleName(roleName);
+        // Support comma-separated role names (e.g., "Admin,Pengembang")
+        List<String> roleNames = Arrays.asList(roleName.split(","));
+        List<MstUser> users;
+        
+        if (roleNames.size() > 1) {
+            users = mstUserRepository.findByRoleNames(roleNames);
+        } else {
+            users = mstUserRepository.findByRoleName(roleName);
+        }
         
         return users.stream()
                 .map(user -> UserSimpleResponse.builder()
