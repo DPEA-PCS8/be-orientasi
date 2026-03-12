@@ -31,7 +31,7 @@ public class UserProfileController {
 
     @GetMapping("/by-role/{roleName}")
     public ResponseEntity<BaseResponse> getUsersByRole(@PathVariable String roleName) {
-        logger.info("GET /api/users/by-role/{}", roleName);
+        logger.info("GET /api/users/by-role - fetching users by role");
         
         List<UserSimpleResponse> users = userProfileService.getUsersByRole(roleName);
         return ResponseEntity.ok(new BaseResponse(200, "Success", users));

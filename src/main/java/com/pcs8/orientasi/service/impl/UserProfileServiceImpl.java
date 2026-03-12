@@ -51,7 +51,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Override
     @Transactional(readOnly = true)
     public List<UserSimpleResponse> getUsersByRole(String roleName) {
-        logger.info("Fetching users with role: {}", roleName);
+        logger.info("Fetching users by role");
         
         List<MstUser> users = mstUserRepository.findByRoleName(roleName);
         
