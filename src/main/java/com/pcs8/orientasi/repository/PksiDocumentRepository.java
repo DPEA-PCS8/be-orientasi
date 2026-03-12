@@ -43,13 +43,25 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
     @Query("SELECT COUNT(p) FROM PksiDocument p WHERE p.status = :status")
     long countByStatus(@Param("status") PksiDocument.DocumentStatus status);
 
+    /**
+     * Search PKSI documents filtered by user department.
+     * Matches documents where:
+     * 1. aplikasi.skpa.kodeSkpa matches userDepartment, OR
+     * 2. picSatker field contains SKPA ID whose kodeSkpa matches userDepartment
+     * 
+     * Note: CONCAT is used with internal database UUID values (skpa.id), not user input,
+     * so this is safe from SQL injection.
+     */
+    @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
-           "AND (:userDepartment IS NULL OR :userDepartment = '' OR UPPER(s.kodeSkpa) = UPPER(:userDepartment))")
+           "AND (:userDepartment IS NULL OR :userDepartment = '' OR " +
+           "UPPER(s.kodeSkpa) = UPPER(:userDepartment) OR " +
+           "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))")
     Page<PksiDocument> searchDocumentsByDepartment(
             @Param("searchPattern") String searchPattern, 
             @Param("status") String status,
