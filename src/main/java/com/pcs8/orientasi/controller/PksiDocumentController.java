@@ -127,7 +127,7 @@ public class PksiDocumentController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStatusRequest request) {
         
-        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request.getStatus());
+        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document status updated successfully", response));
     }
 

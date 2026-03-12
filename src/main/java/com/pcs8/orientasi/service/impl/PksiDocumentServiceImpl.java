@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
@@ -190,14 +191,30 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateStatus(UUID id, String status) {
+    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request) {
         log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(status, id);
+        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
+
+        // If status is DISETUJUI, save approval fields
+        if (newStatus == PksiDocument.DocumentStatus.DISETUJUI) {
+            if (request.getIku() != null) {
+                document.setIku(request.getIku());
+            }
+            if (request.getInhouseOutsource() != null) {
+                document.setInhouseOutsource(request.getInhouseOutsource());
+            }
+            if (request.getPicApproval() != null) {
+                document.setPicApproval(request.getPicApproval());
+            }
+            if (request.getAnggotaTim() != null) {
+                document.setAnggotaTim(request.getAnggotaTim());
+            }
+        }
 
         pksiDocumentRepository.save(document);
         log.info("PKSI document status updated successfully");
