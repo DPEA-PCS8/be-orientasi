@@ -22,6 +22,8 @@ public interface PksiDocumentService {
     
     Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable);
     
+    Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean isAdmin);
+    
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
     PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request);
