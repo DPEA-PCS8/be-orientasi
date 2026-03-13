@@ -9,8 +9,6 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.AplikasiChangelogRepository;
 import com.pcs8.orientasi.repository.AplikasiSnapshotRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
-import com.pcs8.orientasi.repository.MstBidangRepository;
-import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.service.AplikasiHistorisService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

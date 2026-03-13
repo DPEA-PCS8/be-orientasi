@@ -872,9 +872,7 @@ public class RbsiServiceImpl implements RbsiService {
 
         for (BatchKepProgressRequest.KepProgressUpdate update : request.getUpdates()) {
             try {
-                log.info("Processing update - KEP ID: {}, Group ID: {}, Yearly Progress count: {}", 
-                    update.getKepId(), update.getGroupId(), update.getYearlyProgress().size());
-                
+                log.info("Processing update Kep Progress");
                 // Validate KEP exists and belongs to this RBSI
                 RbsiKep kep = kepRepository.findById(update.getKepId())
                         .orElseThrow(() -> new ResourceNotFoundException("KEP " + update.getKepId() + " tidak ditemukan"));
@@ -885,7 +883,7 @@ public class RbsiServiceImpl implements RbsiService {
                 }
 
                 // Get the group directly
-                log.info("Looking for InisiatifGroup with ID: {}", update.getGroupId());
+                log.info("Looking for InisiatifGroup");
                 InisiatifGroup group = inisiatifGroupRepository.findById(update.getGroupId())
                         .orElseThrow(() -> new ResourceNotFoundException("Group " + update.getGroupId() + " tidak ditemukan"));
                 
