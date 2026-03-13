@@ -49,7 +49,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
      * 1. aplikasi.skpa.kodeSkpa matches userDepartment, OR
      * 2. picSatker field contains SKPA ID whose kodeSkpa matches userDepartment
      * 
-     * Note: CONCAT is used with internal database UUID values (skpa.id), not user input,
+     * Note: userDepartment is validated at service layer to be non-null/non-empty.
+     * CONCAT is used with internal database UUID values (skpa.id), not user input,
      * so this is safe from SQL injection.
      */
     @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
@@ -59,8 +60,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(u.fullName) LIKE :searchPattern OR " +
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
-           "AND (:userDepartment IS NULL OR :userDepartment = '' OR " +
-           "UPPER(s.kodeSkpa) = UPPER(:userDepartment) OR " +
+           "AND (UPPER(s.kodeSkpa) = UPPER(:userDepartment) OR " +
            "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))")
     Page<PksiDocument> searchDocumentsByDepartment(
             @Param("searchPattern") String searchPattern, 

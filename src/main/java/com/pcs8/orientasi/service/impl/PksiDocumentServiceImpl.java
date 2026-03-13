@@ -126,7 +126,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching PKSI documents - canSeeAll: {}, userDepartment: {}", canSeeAll, userDepartment);
+        log.info("Searching PKSI documents - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
         
         // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
@@ -139,9 +139,15 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                     .map(mapper::mapToResponse);
         }
         
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering by department: {}", userDepartment);
-        return pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment, pageable)
+        log.info("User is SKPA - filtering by department: '{}'", userDepartment);
+        return pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
                 .map(mapper::mapToResponse);
     }
     
