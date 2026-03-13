@@ -60,7 +60,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(u.fullName) LIKE :searchPattern OR " +
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
-           "AND (UPPER(s.kodeSkpa) = UPPER(:userDepartment) OR " +
+           "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
            "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))")
     Page<PksiDocument> searchDocumentsByDepartment(
             @Param("searchPattern") String searchPattern, 
