@@ -17,7 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/arsitektur/skpa")
 @RequiredArgsConstructor
-@RequiresRole({"admin", "pengembang"})
+@RequiresRole({"Admin", "Pengembang", "SKPA"})
 public class SkpaController {
 
     private final SkpaService skpaService;

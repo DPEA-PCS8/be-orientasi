@@ -1,6 +1,8 @@
 package com.pcs8.orientasi.service;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,9 +22,13 @@ public interface PksiDocumentService {
     
     Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable);
     
+    Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean canSeeAll);
+    
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
-    PksiDocumentResponse updateStatus(UUID id, String status);
+    PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request);
+    
+    PksiDocumentResponse updateApprovalFields(UUID id, UpdateApprovalRequest request);
     
     void deleteDocument(UUID id);
 }

@@ -3,18 +3,21 @@ package com.pcs8.orientasi.domain.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
  * Base class containing shared PKSI document fields.
+ * Extends ApprovalFields to include approval-related data.
  * Used by both Request and Response DTOs to reduce code duplication.
  */
 @Data
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public abstract class PksiDocumentFields {
+@EqualsAndHashCode(callSuper = true)
+public abstract class PksiDocumentFields extends ApprovalFields {
 
     @JsonProperty("nama_pksi")
     protected String namaPksi;

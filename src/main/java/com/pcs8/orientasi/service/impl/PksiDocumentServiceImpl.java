@@ -1,12 +1,16 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
+import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,6 +42,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstUserRepository userRepository;
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
+    private final MstSkpaRepository skpaRepository;
 
     @Override
     @Transactional
@@ -74,7 +80,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument saved = pksiDocumentRepository.save(document);
         log.info("PKSI document created successfully");
 
-        return mapper.mapToResponse(saved);
+        return enrichWithSkpaNames(mapper.mapToResponse(saved));
     }
 
     @Override
@@ -85,7 +91,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapper.mapToResponse(document);
+        return enrichWithSkpaNames(mapper.mapToResponse(document));
     }
 
     @Override
@@ -95,6 +101,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findAllWithUser().stream()
                 .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
 
@@ -105,6 +112,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
                 .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
 
@@ -118,7 +126,51 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         String sanitizedStatus = sanitizeSearchInput(status);
         
         return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
-                .map(mapper::mapToResponse);
+                .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching PKSI documents - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Sanitize and format search input with wildcards
+        String searchPattern = formatSearchPattern(search);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            log.info("User can see all - fetching all documents");
+            return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
+                    .map(mapper::mapToResponse)
+                    .map(this::enrichWithSkpaNames);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering by department: '{}'", userDepartment);
+        
+        // Debug: Find SKPA UUID for the user's department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
+        } else {
+            log.warn("No SKPA found for department '{}' - user will see no PKSI", userDepartment);
+        }
+        
+        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
+                .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames);
+        
+        log.info("Search result: {} documents found for department '{}'", result.getTotalElements(), userDepartment);
+        
+        return result;
     }
     
     /**
@@ -172,7 +224,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated successfully");
 
-        return mapper.mapToResponse(updated);
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
     }
 
     @Override
@@ -190,14 +242,40 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateStatus(UUID id, String status) {
+    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request) {
         log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(status, id);
+        PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
+
+        // Save approval fields if status is DISETUJUI (both for new approval and editing existing)
+        if (newStatus == PksiDocument.DocumentStatus.DISETUJUI) {
+            // Always update approval fields when provided, regardless of previous status
+            if (request.getIku() != null) {
+                document.setIku(request.getIku());
+            }
+            if (request.getInhouseOutsource() != null) {
+                document.setInhouseOutsource(request.getInhouseOutsource());
+            }
+            if (request.getPicApproval() != null) {
+                document.setPicApproval(request.getPicApproval());
+            }
+            if (request.getPicApprovalName() != null) {
+                document.setPicApprovalName(request.getPicApprovalName());
+            }
+            if (request.getAnggotaTim() != null) {
+                document.setAnggotaTim(request.getAnggotaTim());
+            }
+            if (request.getAnggotaTimNames() != null) {
+                document.setAnggotaTimNames(request.getAnggotaTimNames());
+            }
+            if (request.getProgress() != null) {
+                document.setProgress(request.getProgress());
+            }
+        }
 
         pksiDocumentRepository.save(document);
         log.info("PKSI document status updated successfully");
@@ -206,7 +284,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapper.mapToResponse(updated);
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -217,5 +295,83 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             String validStatuses = Arrays.toString(PksiDocument.DocumentStatus.values());
             throw new BadRequestException("Invalid status value. Valid values are: " + validStatuses);
         }
+    }
+
+    @Override
+    @Transactional
+    public PksiDocumentResponse updateApprovalFields(UUID id, UpdateApprovalRequest request) {
+        log.info("Updating PKSI document approval fields");
+
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Only allow updating approval fields for approved documents
+        if (document.getStatus() != PksiDocument.DocumentStatus.DISETUJUI) {
+            throw new BadRequestException("Cannot update approval fields for non-approved documents");
+        }
+
+        // Update approval fields when provided
+        if (request.getIku() != null) {
+            document.setIku(request.getIku());
+        }
+        if (request.getInhouseOutsource() != null) {
+            document.setInhouseOutsource(request.getInhouseOutsource());
+        }
+        if (request.getPicApproval() != null) {
+            document.setPicApproval(request.getPicApproval());
+        }
+        if (request.getPicApprovalName() != null) {
+            document.setPicApprovalName(request.getPicApprovalName());
+        }
+        if (request.getAnggotaTim() != null) {
+            document.setAnggotaTim(request.getAnggotaTim());
+        }
+        if (request.getAnggotaTimNames() != null) {
+            document.setAnggotaTimNames(request.getAnggotaTimNames());
+        }
+        if (request.getProgress() != null) {
+            document.setProgress(request.getProgress());
+        }
+
+        pksiDocumentRepository.save(document);
+        log.info("PKSI document approval fields updated successfully");
+
+        // Re-fetch with user to avoid lazy loading issues
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
+    }
+
+    /**
+     * Resolve SKPA GUIDs in picSatker to their kode_skpa names.
+     * picSatker contains comma-separated UUIDs like "uuid1, uuid2"
+     * This method looks up each UUID and returns comma-separated kode_skpa values.
+     */
+    private PksiDocumentResponse enrichWithSkpaNames(PksiDocumentResponse response) {
+        String picSatker = response.getPicSatkerBA();
+        if (picSatker == null || picSatker.trim().isEmpty()) {
+            response.setPicSatkerNames(null);
+            return response;
+        }
+
+        String[] guids = picSatker.split(",");
+        String resolvedNames = Arrays.stream(guids)
+                .map(String::trim)
+                .filter(guid -> !guid.isEmpty())
+                .map(guid -> {
+                    try {
+                        UUID uuid = UUID.fromString(guid);
+                        Optional<MstSkpa> skpa = skpaRepository.findById(uuid);
+                        return skpa.map(MstSkpa::getKodeSkpa).orElse(null);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(name -> name != null)
+                .collect(Collectors.joining(", "));
+
+        response.setPicSatkerNames(resolvedNames.isEmpty() ? null : resolvedNames);
+        return response;
     }
 }

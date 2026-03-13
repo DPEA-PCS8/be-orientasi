@@ -6,27 +6,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
+/**
+ * Simple user response for dropdown selection
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileResponse {
+public class UserSimpleResponse {
     
     private String uuid;
-    
-    private String username;
     
     @JsonProperty("full_name")
     private String fullName;
     
-    private String departemen;
-    
-    private String title;
-    
     private String email;
     
-    @JsonProperty("pksi_list")
-    private List<Object> pksiList;
+    private String department;
 }

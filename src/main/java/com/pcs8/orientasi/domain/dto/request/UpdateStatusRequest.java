@@ -1,18 +1,25 @@
 package com.pcs8.orientasi.domain.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
+/**
+ * Request untuk update status dokumen PKSI.
+ * Extends ApprovalFields untuk field approval yang diisi saat status = DISETUJUI.
+ */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateStatusRequest {
+@EqualsAndHashCode(callSuper = true)
+public class UpdateStatusRequest extends ApprovalFields {
 
     @NotBlank(message = "Status is required")
     @Pattern(regexp = "PENDING|DISETUJUI|DITOLAK", message = "Invalid status value")

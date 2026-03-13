@@ -2,6 +2,7 @@ package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
+import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
@@ -28,7 +29,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/pksi")
 @RequiredArgsConstructor
-@RequiresRole({"Admin", "Pengembang", "Satker"})
+@RequiresRole({"Admin", "Pengembang", "SKPA"})
 public class PksiDocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
@@ -83,7 +84,8 @@ public class PksiDocumentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy, // NOSONAR - must match DEFAULT_SORT_FIELD
-            @RequestParam(defaultValue = "desc") String sortDir
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest httpRequest
     ) {
         // Validate sortBy to prevent injection - use whitelist approach
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
@@ -93,7 +95,23 @@ public class PksiDocumentController {
                 : Sort.by(safeSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(search, status, pageable);
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        log.info("PKSI Search - User Roles: {}, Department: {}", userRoles, userDepartment);
+        
+        // Admin and Pengembang can see all PKSI, SKPA role only sees matching department
+        boolean canSeeAll = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
+        
+        log.info("PKSI Search - canSeeAll: {}", canSeeAll);
+        
+        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(
+                search, status, pageable, userDepartment, canSeeAll);
+        
+        log.info("PKSI Search - Results count: {}", pageResult.getTotalElements());
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());
@@ -127,8 +145,17 @@ public class PksiDocumentController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStatusRequest request) {
         
-        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request.getStatus());
+        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document status updated successfully", response));
+    }
+
+    @PatchMapping("/{id}/approval")
+    public ResponseEntity<BaseResponse> updateApprovalFields(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateApprovalRequest request) {
+        
+        PksiDocumentResponse response = pksiDocumentService.updateApprovalFields(id, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document approval fields updated successfully", response));
     }
 
     @DeleteMapping("/{id}")
