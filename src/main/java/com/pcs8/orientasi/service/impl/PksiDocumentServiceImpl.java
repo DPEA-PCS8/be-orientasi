@@ -155,9 +155,22 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         // SKPA users only see documents where SKPA kode matches their department
         log.info("User is SKPA - filtering by department: '{}'", userDepartment);
-        return pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
+        
+        // Debug: Find SKPA UUID for the user's department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
+        } else {
+            log.warn("No SKPA found for department '{}' - user will see no PKSI", userDepartment);
+        }
+        
+        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
+        
+        log.info("Search result: {} documents found for department '{}'", result.getTotalElements(), userDepartment);
+        
+        return result;
     }
     
     /**
