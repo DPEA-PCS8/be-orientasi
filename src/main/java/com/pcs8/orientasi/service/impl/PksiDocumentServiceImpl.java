@@ -4,11 +4,13 @@ import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
+import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +42,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstUserRepository userRepository;
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
+    private final MstSkpaRepository skpaRepository;
 
     @Override
     @Transactional
@@ -76,7 +80,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument saved = pksiDocumentRepository.save(document);
         log.info("PKSI document created successfully");
 
-        return mapper.mapToResponse(saved);
+        return enrichWithSkpaNames(mapper.mapToResponse(saved));
     }
 
     @Override
@@ -87,7 +91,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapper.mapToResponse(document);
+        return enrichWithSkpaNames(mapper.mapToResponse(document));
     }
 
     @Override
@@ -97,6 +101,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findAllWithUser().stream()
                 .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
 
@@ -107,6 +112,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
                 .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
 
@@ -120,7 +126,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         String sanitizedStatus = sanitizeSearchInput(status);
         
         return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
-                .map(mapper::mapToResponse);
+                .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames);
     }
 
     @Override
@@ -136,7 +143,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (canSeeAll) {
             log.info("User can see all - fetching all documents");
             return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
-                    .map(mapper::mapToResponse);
+                    .map(mapper::mapToResponse)
+                    .map(this::enrichWithSkpaNames);
         }
         
         // SKPA users: if department is empty, return empty result (security)
@@ -148,7 +156,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         // SKPA users only see documents where SKPA kode matches their department
         log.info("User is SKPA - filtering by department: '{}'", userDepartment);
         return pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
-                .map(mapper::mapToResponse);
+                .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames);
     }
     
     /**
@@ -202,7 +211,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated successfully");
 
-        return mapper.mapToResponse(updated);
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
     }
 
     @Override
@@ -262,7 +271,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapper.mapToResponse(updated);
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -318,6 +327,38 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return mapper.mapToResponse(updated);
+        return enrichWithSkpaNames(mapper.mapToResponse(updated));
+    }
+
+    /**
+     * Resolve SKPA GUIDs in picSatker to their kode_skpa names.
+     * picSatker contains comma-separated UUIDs like "uuid1, uuid2"
+     * This method looks up each UUID and returns comma-separated kode_skpa values.
+     */
+    private PksiDocumentResponse enrichWithSkpaNames(PksiDocumentResponse response) {
+        String picSatker = response.getPicSatkerBA();
+        if (picSatker == null || picSatker.trim().isEmpty()) {
+            response.setPicSatkerNames(null);
+            return response;
+        }
+
+        String[] guids = picSatker.split(",");
+        String resolvedNames = Arrays.stream(guids)
+                .map(String::trim)
+                .filter(guid -> !guid.isEmpty())
+                .map(guid -> {
+                    try {
+                        UUID uuid = UUID.fromString(guid);
+                        Optional<MstSkpa> skpa = skpaRepository.findById(uuid);
+                        return skpa.map(MstSkpa::getKodeSkpa).orElse(null);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(name -> name != null)
+                .collect(Collectors.joining(", "));
+
+        response.setPicSatkerNames(resolvedNames.isEmpty() ? null : resolvedNames);
+        return response;
     }
 }

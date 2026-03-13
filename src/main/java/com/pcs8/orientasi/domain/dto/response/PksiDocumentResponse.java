@@ -42,6 +42,9 @@ public class PksiDocumentResponse extends PksiDocumentFields {
     @JsonProperty("pic_satker")
     private String picSatker;
 
+    @JsonProperty("pic_satker_names")
+    private String picSatkerNames;
+
     @JsonProperty("status")
     private String status;
 
