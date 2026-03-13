@@ -26,8 +26,8 @@ public class KepProgressResponse {
     @JsonProperty("nomor_kep")
     private String nomorKep;
 
-    @JsonProperty("inisiatif_id")
-    private UUID inisiatifId;
+    @JsonProperty("group_id")
+    private UUID groupId;
 
     @JsonProperty("yearly_progress")
     private List<YearlyProgressResponse> yearlyProgress;

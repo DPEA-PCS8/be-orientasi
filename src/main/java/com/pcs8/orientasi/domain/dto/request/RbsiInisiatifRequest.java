@@ -28,4 +28,7 @@ public class RbsiInisiatifRequest {
     @JsonProperty("nama_inisiatif")
     @NotBlank(message = "Nama inisiatif is required")
     private String namaInisiatif;
+
+    @JsonProperty("group_id")
+    private UUID groupId; // Optional: if provided, link to existing initiative group
 }

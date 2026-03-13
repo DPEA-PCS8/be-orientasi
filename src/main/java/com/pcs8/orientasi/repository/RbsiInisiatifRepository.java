@@ -19,4 +19,7 @@ public interface RbsiInisiatifRepository extends JpaRepository<RbsiInisiatif, UU
 
     // For soft delete cascade - get all inisiatifs (including already deleted) by program
     List<RbsiInisiatif> findByProgramIdAndIsDeletedFalse(UUID programId);
+
+    // Get all inisiatifs for multiple programs
+    List<RbsiInisiatif> findByProgramIdInAndIsDeletedFalse(List<UUID> programIds);
 }
