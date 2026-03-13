@@ -1,17 +1,23 @@
 package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.domain.dto.request.BatchKepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
+import com.pcs8.orientasi.domain.dto.request.RbsiAnalyticsRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.BatchKepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.InisiatifGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiAnalyticsResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiMonitoringResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 import com.pcs8.orientasi.service.RbsiService;
@@ -112,6 +118,12 @@ public class RbsiController {
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Inisiatif deleted", null));
     }
 
+    @GetMapping("/{rbsiId}/inisiatif-groups")
+    public ResponseEntity<BaseResponse> getInisiatifGroups(@PathVariable UUID rbsiId) {
+        List<InisiatifGroupResponse> groups = rbsiService.getInisiatifGroups(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", groups));
+    }
+
     @GetMapping("/{rbsiId}/history")
     public ResponseEntity<BaseResponse> getHistory(@PathVariable UUID rbsiId) {
         List<RbsiHistoryResponse> history = rbsiService.getHistory(rbsiId);
@@ -186,5 +198,27 @@ public class RbsiController {
             @Valid @RequestBody KepProgressRequest request) {
         KepProgressResponse response = rbsiService.updateKepProgress(rbsiId, kepId, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Progress updated successfully", response));
+    }
+
+    @PutMapping("/{rbsiId}/kep-progress/batch")
+    public ResponseEntity<BaseResponse> batchUpdateKepProgress(
+            @PathVariable UUID rbsiId,
+            @Valid @RequestBody BatchKepProgressRequest request) {
+        BatchKepProgressResponse response = rbsiService.batchUpdateKepProgress(rbsiId, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), response.getMessage(), response));
+    }
+
+    @GetMapping("/{rbsiId}/monitoring")
+    public ResponseEntity<BaseResponse> getMonitoringData(@PathVariable UUID rbsiId) {
+        RbsiMonitoringResponse response = rbsiService.getMonitoringData(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+    }
+
+    @PostMapping("/{rbsiId}/analytics")
+    public ResponseEntity<BaseResponse> getAnalytics(
+            @PathVariable UUID rbsiId,
+            @Valid @RequestBody RbsiAnalyticsRequest request) {
+        RbsiAnalyticsResponse response = rbsiService.getAnalytics(rbsiId, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
     }
 }

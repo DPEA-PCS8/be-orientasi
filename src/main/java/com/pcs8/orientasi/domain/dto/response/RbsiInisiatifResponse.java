@@ -17,6 +17,9 @@ public class RbsiInisiatifResponse {
 
     private UUID id;
 
+    @JsonProperty("group_id")
+    private UUID groupId;
+
     @JsonProperty("program_id")
     private UUID programId;
 

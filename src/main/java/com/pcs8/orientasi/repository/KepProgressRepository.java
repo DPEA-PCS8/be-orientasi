@@ -25,4 +25,13 @@ public interface KepProgressRepository extends JpaRepository<KepProgress, UUID> 
     List<KepProgress> findAllByRbsiId(@Param("rbsiId") UUID rbsiId);
 
     void deleteByKepId(UUID kepId);
+
+    // Analytics queries - optimized for performance
+    @Query("SELECT kp FROM KepProgress kp WHERE kp.kep.id IN :kepIds ORDER BY kp.kep.id, kp.inisiatifGroup.id, kp.tahun")
+    List<KepProgress> findByKepIdIn(@Param("kepIds") List<UUID> kepIds);
+
+    @Query("SELECT kp.kep.id, kp.tahun, COUNT(kp) FROM KepProgress kp " +
+           "WHERE kp.kep.id IN :kepIds AND kp.status != 'none' " +
+           "GROUP BY kp.kep.id, kp.tahun")
+    List<Object[]> countRealizedByKepIdAndYear(@Param("kepIds") List<UUID> kepIds);
 }
