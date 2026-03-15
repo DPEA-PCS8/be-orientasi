@@ -68,4 +68,21 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("pelaksanaan") String pelaksanaan,
             Pageable pageable
     );
+
+    // Overloaded method using filter object to comply with max 7 parameters rule
+    default Page<Fs2Document> searchApprovedFs2Documents(
+            com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
+            Pageable pageable
+    ) {
+        return searchApprovedFs2Documents(
+                filter.getSearch(),
+                filter.getBidangId(),
+                filter.getSkpaId(),
+                filter.getProgres(),
+                filter.getFasePengajuan(),
+                filter.getMekanisme(),
+                filter.getPelaksanaan(),
+                pageable
+        );
+    }
 }

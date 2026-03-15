@@ -2,6 +2,7 @@ package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.constant.ConstantVariable;
+import com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter;
 import com.pcs8.orientasi.domain.dto.request.Fs2DocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
@@ -78,9 +79,16 @@ public class Fs2Controller {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(
-                search, bidangId, skpaId, progres, fasePengajuan, mekanisme, pelaksanaan, pageable
-        );
+        Fs2ApprovedSearchFilter filter = Fs2ApprovedSearchFilter.builder()
+                .search(search)
+                .bidangId(bidangId)
+                .skpaId(skpaId)
+                .progres(progres)
+                .fasePengajuan(fasePengajuan)
+                .mekanisme(mekanisme)
+                .pelaksanaan(pelaksanaan)
+                .build();
+        Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(filter, pageable);
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());

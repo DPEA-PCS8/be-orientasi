@@ -21,9 +21,7 @@ public interface Fs2Service {
     List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status);
 
     Page<Fs2DocumentResponse> searchApproved(
-            String search, UUID bidangId, UUID skpaId, 
-            String progres, String fasePengajuan, 
-            String mekanisme, String pelaksanaan, 
+            com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
             Pageable pageable
     );
 

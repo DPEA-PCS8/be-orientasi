@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +34,7 @@ public class Fs2ServiceImpl implements Fs2Service {
 
     private static final Logger log = LoggerFactory.getLogger(Fs2ServiceImpl.class);
     private static final String ENTITY_NAME = "Fs2Document";
+    private static final String NOT_FOUND_WITH_ID = " not found with id: ";
 
     private final Fs2DocumentRepository fs2Repository;
     private final MstAplikasiRepository aplikasiRepository;
@@ -61,10 +61,10 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .alasanPengubahan(request.getAlasanPengubahan())
                 .statusTahapan(request.getStatusTahapan())
                 .urgensi(request.getUrgensi())
-                .kriteria1(request.getKriteria1() != null ? request.getKriteria1() : false)
-                .kriteria2(request.getKriteria2() != null ? request.getKriteria2() : false)
-                .kriteria3(request.getKriteria3() != null ? request.getKriteria3() : false)
-                .kriteria4(request.getKriteria4() != null ? request.getKriteria4() : false)
+                .kriteria1(Boolean.TRUE.equals(request.getKriteria1()))
+                .kriteria2(Boolean.TRUE.equals(request.getKriteria2()))
+                .kriteria3(Boolean.TRUE.equals(request.getKriteria3()))
+                .kriteria4(Boolean.TRUE.equals(request.getKriteria4()))
                 .aspekSistemAda(request.getAspekSistemAda())
                 .aspekSistemTerkait(request.getAspekSistemTerkait())
                 .aspekAlurKerja(request.getAspekAlurKerja())
@@ -82,8 +82,8 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .targetPengujian(request.getTargetPengujian())
                 .targetDeployment(request.getTargetDeployment())
                 .targetGoLive(request.getTargetGoLive())
-                .pernyataan1(request.getPernyataan1() != null ? request.getPernyataan1() : false)
-                .pernyataan2(request.getPernyataan2() != null ? request.getPernyataan2() : false)
+                .pernyataan1(Boolean.TRUE.equals(request.getPernyataan1()))
+                .pernyataan2(Boolean.TRUE.equals(request.getPernyataan2()))
                 // F.S.2 Disetujui fields
                 .progres(request.getProgres())
                 .fasePengajuan(request.getFasePengajuan())
@@ -99,25 +99,25 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Set relations
         if (request.getAplikasiId() != null) {
             MstAplikasi aplikasi = aplikasiRepository.findById(request.getAplikasiId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi not found with id: " + request.getAplikasiId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi" + NOT_FOUND_WITH_ID + request.getAplikasiId()));
             document.setAplikasi(aplikasi);
         }
 
         if (request.getBidangId() != null) {
             MstBidang bidang = bidangRepository.findById(request.getBidangId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Bidang not found with id: " + request.getBidangId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Bidang" + NOT_FOUND_WITH_ID + request.getBidangId()));
             document.setBidang(bidang);
         }
 
         if (request.getSkpaId() != null) {
             MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("SKPA not found with id: " + request.getSkpaId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("SKPA" + NOT_FOUND_WITH_ID + request.getSkpaId()));
             document.setSkpa(skpa);
         }
 
         if (request.getPicId() != null) {
             MstUser pic = userRepository.findById(request.getPicId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getPicId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
             document.setPicId(pic.getUuid());
             document.setPicName(pic.getFullName());
         }
@@ -134,7 +134,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     @Override
     public Fs2DocumentResponse getById(UUID id) {
         Fs2Document document = fs2Repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + " not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
         return mapToResponse(document);
     }
 
@@ -143,7 +143,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         return fs2Repository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -157,17 +157,14 @@ public class Fs2ServiceImpl implements Fs2Service {
         return fs2Repository.searchFs2DocumentsList(search, bidangId, skpaId, status)
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public Page<Fs2DocumentResponse> searchApproved(
-            String search, UUID bidangId, UUID skpaId,
-            String progres, String fasePengajuan,
-            String mekanisme, String pelaksanaan,
+            com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
             Pageable pageable) {
-        return fs2Repository.searchApprovedFs2Documents(
-                search, bidangId, skpaId, progres, fasePengajuan, mekanisme, pelaksanaan, pageable
+        return fs2Repository.searchApprovedFs2Documents(filter, pageable
         ).map(this::mapToResponse);
     }
 
@@ -178,7 +175,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         String username = userContext.getCurrentUsername();
 
         Fs2Document document = fs2Repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + " not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
 
@@ -234,25 +231,25 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Update relations
         if (request.getAplikasiId() != null) {
             MstAplikasi aplikasi = aplikasiRepository.findById(request.getAplikasiId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi not found with id: " + request.getAplikasiId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi" + NOT_FOUND_WITH_ID + request.getAplikasiId()));
             document.setAplikasi(aplikasi);
         }
 
         if (request.getBidangId() != null) {
             MstBidang bidang = bidangRepository.findById(request.getBidangId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Bidang not found with id: " + request.getBidangId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Bidang" + NOT_FOUND_WITH_ID + request.getBidangId()));
             document.setBidang(bidang);
         }
 
         if (request.getSkpaId() != null) {
             MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("SKPA not found with id: " + request.getSkpaId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("SKPA" + NOT_FOUND_WITH_ID + request.getSkpaId()));
             document.setSkpa(skpa);
         }
 
         if (request.getPicId() != null) {
             MstUser pic = userRepository.findById(request.getPicId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getPicId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
             document.setPicId(pic.getUuid());
             document.setPicName(pic.getFullName());
         }
@@ -273,7 +270,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         String username = userContext.getCurrentUsername();
 
         Fs2Document document = fs2Repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + " not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
         document.setStatus(status);
@@ -294,7 +291,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         String username = userContext.getCurrentUsername();
 
         Fs2Document document = fs2Repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + " not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
         fs2Repository.delete(document);
