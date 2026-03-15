@@ -15,6 +15,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings("java:S1068") // Fields are used via reflection/JSON serialization
 public class Fs2DocumentRequest {
 
     @JsonProperty("aplikasi_id")

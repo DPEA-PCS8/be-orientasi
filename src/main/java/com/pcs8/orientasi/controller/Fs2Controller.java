@@ -29,6 +29,21 @@ public class Fs2Controller {
 
     private final Fs2Service fs2Service;
 
+    /**
+     * Build pagination response map from Page result
+     */
+    private Map<String, Object> buildPaginationResponse(Page<?> pageResult) {
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("content", pageResult.getContent());
+        responseData.put("total_elements", pageResult.getTotalElements());
+        responseData.put("total_pages", pageResult.getTotalPages());
+        responseData.put("page", pageResult.getNumber());
+        responseData.put("size", pageResult.getSize());
+        responseData.put("has_next", pageResult.hasNext());
+        responseData.put("has_previous", pageResult.hasPrevious());
+        return responseData;
+    }
+
     @PostMapping
     public ResponseEntity<BaseResponse> create(@Valid @RequestBody Fs2DocumentRequest request) {
         Fs2DocumentResponse response = fs2Service.create(request);
@@ -53,17 +68,7 @@ public class Fs2Controller {
     ) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, pageable);
-
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("content", pageResult.getContent());
-        responseData.put("total_elements", pageResult.getTotalElements());
-        responseData.put("total_pages", pageResult.getTotalPages());
-        responseData.put("page", pageResult.getNumber());
-        responseData.put("size", pageResult.getSize());
-        responseData.put("has_next", pageResult.hasNext());
-        responseData.put("has_previous", pageResult.hasPrevious());
-
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responseData));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, buildPaginationResponse(pageResult)));
     }
 
     @GetMapping("/search/approved")
@@ -89,17 +94,7 @@ public class Fs2Controller {
                 .pelaksanaan(pelaksanaan)
                 .build();
         Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(filter, pageable);
-
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("content", pageResult.getContent());
-        responseData.put("total_elements", pageResult.getTotalElements());
-        responseData.put("total_pages", pageResult.getTotalPages());
-        responseData.put("page", pageResult.getNumber());
-        responseData.put("size", pageResult.getSize());
-        responseData.put("has_next", pageResult.hasNext());
-        responseData.put("has_previous", pageResult.hasPrevious());
-
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responseData));
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, buildPaginationResponse(pageResult)));
     }
 
     @GetMapping("/list")

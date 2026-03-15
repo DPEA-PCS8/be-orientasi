@@ -96,31 +96,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .dokumenPath(request.getDokumenPath())
                 .build();
 
-        // Set relations
-        if (request.getAplikasiId() != null) {
-            MstAplikasi aplikasi = aplikasiRepository.findById(request.getAplikasiId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi" + NOT_FOUND_WITH_ID + request.getAplikasiId()));
-            document.setAplikasi(aplikasi);
-        }
-
-        if (request.getBidangId() != null) {
-            MstBidang bidang = bidangRepository.findById(request.getBidangId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Bidang" + NOT_FOUND_WITH_ID + request.getBidangId()));
-            document.setBidang(bidang);
-        }
-
-        if (request.getSkpaId() != null) {
-            MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("SKPA" + NOT_FOUND_WITH_ID + request.getSkpaId()));
-            document.setSkpa(skpa);
-        }
-
-        if (request.getPicId() != null) {
-            MstUser pic = userRepository.findById(request.getPicId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
-            document.setPicId(pic.getUuid());
-            document.setPicName(pic.getFullName());
-        }
+        setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
         log.info("F.S.2 Document created: {}", saved.getNamaFs2());
@@ -228,31 +204,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         document.setTahunSelesai(request.getTahunSelesai());
         document.setDokumenPath(request.getDokumenPath());
 
-        // Update relations
-        if (request.getAplikasiId() != null) {
-            MstAplikasi aplikasi = aplikasiRepository.findById(request.getAplikasiId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi" + NOT_FOUND_WITH_ID + request.getAplikasiId()));
-            document.setAplikasi(aplikasi);
-        }
-
-        if (request.getBidangId() != null) {
-            MstBidang bidang = bidangRepository.findById(request.getBidangId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Bidang" + NOT_FOUND_WITH_ID + request.getBidangId()));
-            document.setBidang(bidang);
-        }
-
-        if (request.getSkpaId() != null) {
-            MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("SKPA" + NOT_FOUND_WITH_ID + request.getSkpaId()));
-            document.setSkpa(skpa);
-        }
-
-        if (request.getPicId() != null) {
-            MstUser pic = userRepository.findById(request.getPicId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
-            document.setPicId(pic.getUuid());
-            document.setPicName(pic.getFullName());
-        }
+        setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
         log.info("F.S.2 Document updated: {}", saved.getNamaFs2());
@@ -297,6 +249,36 @@ public class Fs2ServiceImpl implements Fs2Service {
         log.info("F.S.2 Document deleted: {}", document.getNamaFs2());
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
+    }
+
+    /**
+     * Set document relations (Aplikasi, Bidang, SKPA, PIC) from request
+     */
+    private void setDocumentRelations(Fs2Document document, Fs2DocumentRequest request) {
+        if (request.getAplikasiId() != null) {
+            MstAplikasi aplikasi = aplikasiRepository.findById(request.getAplikasiId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Aplikasi" + NOT_FOUND_WITH_ID + request.getAplikasiId()));
+            document.setAplikasi(aplikasi);
+        }
+
+        if (request.getBidangId() != null) {
+            MstBidang bidang = bidangRepository.findById(request.getBidangId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Bidang" + NOT_FOUND_WITH_ID + request.getBidangId()));
+            document.setBidang(bidang);
+        }
+
+        if (request.getSkpaId() != null) {
+            MstSkpa skpa = skpaRepository.findById(request.getSkpaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("SKPA" + NOT_FOUND_WITH_ID + request.getSkpaId()));
+            document.setSkpa(skpa);
+        }
+
+        if (request.getPicId() != null) {
+            MstUser pic = userRepository.findById(request.getPicId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
+            document.setPicId(pic.getUuid());
+            document.setPicName(pic.getFullName());
+        }
     }
 
     private Fs2DocumentResponse mapToResponse(Fs2Document document) {
