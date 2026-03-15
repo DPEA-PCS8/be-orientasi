@@ -276,7 +276,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         document.setStatus(status);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document status updated: {} -> {}", saved.getNamaFs2(), status);
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);

@@ -48,6 +48,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     );
 
     // Search only approved documents (for F.S.2 Disetujui page)
+    @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
            "AND (:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
