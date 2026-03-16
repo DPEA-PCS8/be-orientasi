@@ -1362,18 +1362,36 @@ public class RbsiServiceImpl implements RbsiService {
                         Collectors.toMap(KepProgress::getTahun, kp -> kp.getStatus().name().toLowerCase())
                 ));
 
+        // Get all group IDs from both KEPs
+        Set<UUID> allGroupIds = new java.util.HashSet<>();
+        allGroupIds.addAll(statusByGroupAndYearKep1.keySet());
+        allGroupIds.addAll(statusByGroupAndYearKep2.keySet());
+
+        // Fetch inisiatif details by group IDs (CORRECT QUERY this time!)
+        List<RbsiInisiatif> inisiatifs = inisiatifRepository.findByGroupIdIn(new ArrayList<>(allGroupIds));
+        
+        // Group by group_id, take latest version (highest tahun)
+        Map<UUID, RbsiInisiatif> inisiatifByGroup = inisiatifs.stream()
+                .collect(Collectors.toMap(
+                        i -> i.getGroup().getId(),
+                        i -> i,
+                        (i1, i2) -> i1.getTahun() > i2.getTahun() ? i1 : i2
+                ));
+
         // Get all years from KEP2
         Set<Integer> allYears = statusByGroupAndYearKep2.values().stream()
                 .flatMap(m -> m.keySet().stream())
                 .collect(Collectors.toSet());
 
-        // Compare status per year
+        // Compare status per year - DON'T CHANGE THIS LOGIC, IT'S CORRECT!
         Map<Integer, RbsiAnalyticsResponse.YearChange> changesByYear = new java.util.HashMap<>();
         boolean hasChanges = false;
 
         for (Integer year : allYears) {
             int added = 0;
             int removed = 0;
+            List<RbsiAnalyticsResponse.InitiativeDetail> addedInitiatives = new java.util.ArrayList<>();
+            List<RbsiAnalyticsResponse.InitiativeDetail> removedInitiatives = new java.util.ArrayList<>();
 
             for (UUID groupId : statusByGroupAndYearKep2.keySet()) {
                 String statusKep1 = statusByGroupAndYearKep1.getOrDefault(groupId, Map.of()).get(year);
@@ -1387,8 +1405,28 @@ public class RbsiServiceImpl implements RbsiService {
 
                 if (!wasRealized && isRealized) {
                     added++;
+                    // Add initiative detail
+                    RbsiInisiatif inisiatif = inisiatifByGroup.get(groupId);
+                    if (inisiatif != null) {
+                        addedInitiatives.add(RbsiAnalyticsResponse.InitiativeDetail.builder()
+                                .groupId(groupId)
+                                .nomorInisiatif(inisiatif.getNomorInisiatif())
+                                .namaInisiatif(inisiatif.getNamaInisiatif())
+                                .nomorProgram(inisiatif.getProgram().getNomorProgram())
+                                .build());
+                    }
                 } else if (wasRealized && !isRealized) {
                     removed++;
+                    // Add initiative detail
+                    RbsiInisiatif inisiatif = inisiatifByGroup.get(groupId);
+                    if (inisiatif != null) {
+                        removedInitiatives.add(RbsiAnalyticsResponse.InitiativeDetail.builder()
+                                .groupId(groupId)
+                                .nomorInisiatif(inisiatif.getNomorInisiatif())
+                                .namaInisiatif(inisiatif.getNamaInisiatif())
+                                .nomorProgram(inisiatif.getProgram().getNomorProgram())
+                                .build());
+                    }
                 }
             }
 
@@ -1398,6 +1436,16 @@ public class RbsiServiceImpl implements RbsiService {
                     String statusKep1 = statusByGroupAndYearKep1.get(groupId).get(year);
                     if (statusKep1 != null && !statusKep1.equals("none")) {
                         removed++;
+                        // Add initiative detail
+                        RbsiInisiatif inisiatif = inisiatifByGroup.get(groupId);
+                        if (inisiatif != null) {
+                            removedInitiatives.add(RbsiAnalyticsResponse.InitiativeDetail.builder()
+                                    .groupId(groupId)
+                                    .nomorInisiatif(inisiatif.getNomorInisiatif())
+                                    .namaInisiatif(inisiatif.getNamaInisiatif())
+                                    .nomorProgram(inisiatif.getProgram().getNomorProgram())
+                                    .build());
+                        }
                     }
                 }
             }
@@ -1412,10 +1460,19 @@ public class RbsiServiceImpl implements RbsiService {
                     if (summary.length() > 0) summary.append(", ");
                     summary.append("-").append(removed).append(" inisiatif");
                 }
+
+                // Sort initiatives by nomor
+                addedInitiatives.sort(Comparator.comparing(RbsiAnalyticsResponse.InitiativeDetail::getNomorProgram)
+                        .thenComparing(RbsiAnalyticsResponse.InitiativeDetail::getNomorInisiatif));
+                removedInitiatives.sort(Comparator.comparing(RbsiAnalyticsResponse.InitiativeDetail::getNomorProgram)
+                        .thenComparing(RbsiAnalyticsResponse.InitiativeDetail::getNomorInisiatif));
+
                 changesByYear.put(year, RbsiAnalyticsResponse.YearChange.builder()
                         .added(added)
                         .removed(removed)
                         .summary(summary.toString())
+                        .addedInitiatives(addedInitiatives)
+                        .removedInitiatives(removedInitiatives)
                         .build());
             }
         }
