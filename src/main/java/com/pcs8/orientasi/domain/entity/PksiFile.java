@@ -11,7 +11,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.util.UUID;
 
 /**
- * Entity untuk file lampiran PKSI yang disimpan di Azure Blob Storage
+ * Entity untuk file lampiran PKSI yang disimpan di Minio Storage
  */
 @Entity
 @Table(name = "trn_pksi_file")

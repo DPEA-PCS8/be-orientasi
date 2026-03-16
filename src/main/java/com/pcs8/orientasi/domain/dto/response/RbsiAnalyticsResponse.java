@@ -77,5 +77,29 @@ public class RbsiAnalyticsResponse {
 
         @JsonProperty("summary")
         private String summary; // e.g., "+6 inisiatif, -13 inisiatif"
+
+        @JsonProperty("added_initiatives")
+        private List<InitiativeDetail> addedInitiatives;
+
+        @JsonProperty("removed_initiatives")
+        private List<InitiativeDetail> removedInitiatives;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class InitiativeDetail {
+        @JsonProperty("group_id")
+        private UUID groupId;
+
+        @JsonProperty("nomor_inisiatif")
+        private String nomorInisiatif;
+
+        @JsonProperty("nama_inisiatif")
+        private String namaInisiatif;
+
+        @JsonProperty("nomor_program")
+        private String nomorProgram;
     }
 }

@@ -41,7 +41,9 @@ public class AuthHeaderFilter implements Filter {
             "/crypto/decrypt",
             "/api/auth/login",
             "/api/crypto/encrypt",
-            "/api/crypto/decrypt"
+            "/api/crypto/decrypt",
+            "/minio/upload",
+            "/api/minio/upload"
     ));
 
     @Value("${app.api-key}")
@@ -102,8 +104,14 @@ public class AuthHeaderFilter implements Filter {
         String method = request.getMethod();
         if (method.equals("POST") || method.equals("PUT") || method.equals("PATCH")) {
             String contentType = request.getHeader("Content-Type");
-            if (contentType == null || !contentType.contains("application/json")) {
+            // Skip Content-Type validation for multipart/form-data (file uploads)
+            if (contentType == null) {
                 log.warn("Invalid or missing Content-Type header for {} request", method);
+                return false;
+            }
+            // Allow both application/json and multipart/form-data
+            if (!contentType.contains("application/json") && !contentType.contains("multipart/form-data")) {
+                log.warn("Invalid Content-Type header for {} request: {}", method, contentType);
                 return false;
             }
         }
