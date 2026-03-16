@@ -109,11 +109,11 @@
             <version>${org.mapstruct.version}</version>
         </dependency>
         
-        <!-- Azure Blob Storage -->
+        <!-- Minio Client -->
         <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob</artifactId>
-            <version>12.25.1</version>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
         </dependency>
         
         <!-- Test -->
