@@ -7,8 +7,10 @@ import com.pcs8.orientasi.domain.dto.request.Fs2DocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
 import com.pcs8.orientasi.service.Fs2Service;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,12 +21,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/fs2")
 @RequiredArgsConstructor
-@RequiresRole({"admin", "pengembang"})
+@Slf4j
+@RequiresRole({"admin", "pengembang", "skpa"})
 public class Fs2Controller {
 
     private final Fs2Service fs2Service;
@@ -64,10 +68,28 @@ public class Fs2Controller {
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest httpRequest
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, pageable);
+        
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        log.info("F.S.2 Search - User Roles: {}, Department: {}", userRoles, userDepartment);
+        
+        // Admin and Pengembang can see all F.S.2, SKPA role only sees matching department
+        boolean canSeeAll = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
+        
+        log.info("F.S.2 Search - canSeeAll: {}", canSeeAll);
+        
+        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, pageable, userDepartment, canSeeAll);
+        
+        log.info("F.S.2 Search - Results count: {}", pageResult.getTotalElements());
+        
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, buildPaginationResponse(pageResult)));
     }
 
@@ -81,9 +103,20 @@ public class Fs2Controller {
             @RequestParam(required = false) String mekanisme,
             @RequestParam(required = false) String pelaksanaan,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest httpRequest
     ) {
         Pageable pageable = PageRequest.of(page, size);
+        
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        // Admin and Pengembang can see all F.S.2, SKPA role only sees matching department
+        boolean canSeeAll = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
+        
         Fs2ApprovedSearchFilter filter = Fs2ApprovedSearchFilter.builder()
                 .search(search)
                 .bidangId(bidangId)
@@ -93,7 +126,7 @@ public class Fs2Controller {
                 .mekanisme(mekanisme)
                 .pelaksanaan(pelaksanaan)
                 .build();
-        Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(filter, pageable);
+        Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(filter, pageable, userDepartment, canSeeAll);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, buildPaginationResponse(pageResult)));
     }
 
@@ -102,9 +135,19 @@ public class Fs2Controller {
             @RequestParam(required = false) String search,
             @RequestParam(name = "bidang_id", required = false) UUID bidangId,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            HttpServletRequest httpRequest
     ) {
-        List<Fs2DocumentResponse> responses = fs2Service.searchList(search, bidangId, skpaId, status);
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        // Admin and Pengembang can see all F.S.2, SKPA role only sees matching department
+        boolean canSeeAll = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
+        
+        List<Fs2DocumentResponse> responses = fs2Service.searchList(search, bidangId, skpaId, status, userDepartment, canSeeAll);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
