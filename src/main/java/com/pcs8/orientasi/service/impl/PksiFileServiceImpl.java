@@ -1,23 +1,22 @@
 package com.pcs8.orientasi.service.impl;
 
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
 import com.pcs8.orientasi.domain.dto.response.PksiFileResponse;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.domain.entity.PksiFile;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.repository.PksiFileRepository;
+import com.pcs8.orientasi.service.MinioService;
 import com.pcs8.orientasi.service.PksiFileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,31 +41,22 @@ public class PksiFileServiceImpl implements PksiFileService {
             "image/gif"
     );
 
-    private final BlobContainerClient blobContainerClient;
+    private final MinioService minioService;
     private final PksiFileRepository pksiFileRepository;
     private final PksiDocumentRepository pksiDocumentRepository;
 
-    @Autowired
     public PksiFileServiceImpl(
-            @Autowired(required = false) BlobContainerClient blobContainerClient,
+            MinioService minioService,
             PksiFileRepository pksiFileRepository,
             PksiDocumentRepository pksiDocumentRepository) {
-        this.blobContainerClient = blobContainerClient;
+        this.minioService = minioService;
         this.pksiFileRepository = pksiFileRepository;
         this.pksiDocumentRepository = pksiDocumentRepository;
-        
-        if (blobContainerClient == null) {
-            log.warn("Azure Blob Storage is not configured. File upload feature will be disabled.");
-        }
     }
 
     @Override
     @Transactional
     public List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files) {
-        if (blobContainerClient == null) {
-            throw new IllegalStateException("Azure Blob Storage is not configured");
-        }
-
         PksiDocument pksiDocument = pksiDocumentRepository.findById(pksiId)
                 .orElseThrow(() -> new ResourceNotFoundException("PKSI Document not found with id: " + pksiId));
 
@@ -90,10 +80,6 @@ public class PksiFileServiceImpl implements PksiFileService {
     @Override
     @Transactional
     public List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files) {
-        if (blobContainerClient == null) {
-            throw new IllegalStateException("Azure Blob Storage is not configured");
-        }
-
         List<PksiFileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
@@ -125,13 +111,8 @@ public class PksiFileServiceImpl implements PksiFileService {
                 System.currentTimeMillis(),
                 extension);
 
-        // Upload to Azure Blob Storage with try-with-resources
-        BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
-        try (var inputStream = file.getInputStream()) {
-            blobClient.upload(inputStream, file.getSize(), true);
-        }
-
-        String blobUrl = blobClient.getBlobUrl();
+        // Upload to Minio
+        String fileUrl = minioService.uploadFile(file, TEMP_PREFIX + sessionId);
 
         // Save metadata to database (without PKSI association)
         PksiFile pksiFile = PksiFile.builder()
@@ -140,7 +121,7 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .originalName(originalName)
                 .contentType(file.getContentType())
                 .fileSize(file.getSize())
-                .blobUrl(blobUrl)
+                .blobUrl(fileUrl)
                 .blobName(blobName)
                 .sessionId(sessionId) // Store session ID for later association
                 .build();
@@ -155,10 +136,6 @@ public class PksiFileServiceImpl implements PksiFileService {
     @Override
     @Transactional
     public List<PksiFileResponse> moveTempFilesToPermanent(UUID pksiId, String sessionId) {
-        if (blobContainerClient == null) {
-            throw new IllegalStateException("Azure Blob Storage is not configured");
-        }
-
         PksiDocument pksiDocument = pksiDocumentRepository.findById(pksiId)
                 .orElseThrow(() -> new ResourceNotFoundException("PKSI Document not found with id: " + pksiId));
 
@@ -178,22 +155,27 @@ public class PksiFileServiceImpl implements PksiFileService {
                         System.currentTimeMillis(),
                         extension);
 
-                BlobClient sourceBlob = blobContainerClient.getBlobClient(oldBlobName);
-                BlobClient destBlob = blobContainerClient.getBlobClient(newBlobName);
-
-                // Copy blob to new location
-                destBlob.copyFromUrl(sourceBlob.getBlobUrl());
+                // Download from old location
+                InputStream inputStream = minioService.downloadFile(oldBlobName);
+                
+                // Upload to new location
+                String newFileUrl = minioService.uploadFile(
+                    inputStream,
+                    newBlobName,
+                    tempFile.getContentType(),
+                    tempFile.getFileSize()
+                );
 
                 // Delete old blob
-                if (Boolean.TRUE.equals(sourceBlob.exists())) {
-                    sourceBlob.delete();
+                if (minioService.fileExists(oldBlobName)) {
+                    minioService.deleteFile(oldBlobName);
                 }
 
                 // Update database record
                 tempFile.setPksiDocument(pksiDocument);
                 tempFile.setBlobName(newBlobName);
                 tempFile.setFileName(newBlobName);
-                tempFile.setBlobUrl(destBlob.getBlobUrl());
+                tempFile.setBlobUrl(newFileUrl);
                 tempFile.setSessionId(null); // Clear session ID
                 tempFile = pksiFileRepository.save(tempFile);
 
@@ -215,11 +197,8 @@ public class PksiFileServiceImpl implements PksiFileService {
         List<PksiFile> tempFiles = pksiFileRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
 
         for (PksiFile file : tempFiles) {
-            if (blobContainerClient != null && file.getBlobName() != null) {
-                BlobClient blobClient = blobContainerClient.getBlobClient(file.getBlobName());
-                if (Boolean.TRUE.equals(blobClient.exists())) {
-                    blobClient.delete();
-                }
+            if (file.getBlobName() != null && minioService.fileExists(file.getBlobName())) {
+                minioService.deleteFile(file.getBlobName());
             }
             pksiFileRepository.delete(file);
         }
@@ -241,13 +220,8 @@ public class PksiFileServiceImpl implements PksiFileService {
                 System.currentTimeMillis(),
                 extension);
 
-        // Upload to Azure Blob Storage with try-with-resources
-        BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
-        try (var inputStream = file.getInputStream()) {
-            blobClient.upload(inputStream, file.getSize(), true);
-        }
-
-        String blobUrl = blobClient.getBlobUrl();
+        // Upload to Minio
+        String fileUrl = minioService.uploadFile(file, PKSI_PREFIX + pksiDocument.getId());
 
         // Save metadata to database
         PksiFile pksiFile = PksiFile.builder()
@@ -256,7 +230,7 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .originalName(originalName)
                 .contentType(file.getContentType())
                 .fileSize(file.getSize())
-                .blobUrl(blobUrl)
+                .blobUrl(fileUrl)
                 .blobName(blobName)
                 .build();
 
@@ -298,12 +272,9 @@ public class PksiFileServiceImpl implements PksiFileService {
         PksiFile pksiFile = pksiFileRepository.findById(fileId)
                 .orElseThrow(() -> new ResourceNotFoundException(FILE_NOT_FOUND_MSG + fileId));
 
-        // Delete from Azure Blob Storage
-        if (blobContainerClient != null && pksiFile.getBlobName() != null) {
-            BlobClient blobClient = blobContainerClient.getBlobClient(pksiFile.getBlobName());
-            if (Boolean.TRUE.equals(blobClient.exists())) {
-                blobClient.delete();
-            }
+        // Delete from Minio
+        if (pksiFile.getBlobName() != null && minioService.fileExists(pksiFile.getBlobName())) {
+            minioService.deleteFile(pksiFile.getBlobName());
         }
 
         // Delete from database
@@ -317,11 +288,8 @@ public class PksiFileServiceImpl implements PksiFileService {
         List<PksiFile> files = pksiFileRepository.findByPksiDocumentId(pksiId);
         
         for (PksiFile file : files) {
-            if (blobContainerClient != null && file.getBlobName() != null) {
-                BlobClient blobClient = blobContainerClient.getBlobClient(file.getBlobName());
-                if (Boolean.TRUE.equals(blobClient.exists())) {
-                    blobClient.delete();
-                }
+            if (file.getBlobName() != null && minioService.fileExists(file.getBlobName())) {
+                minioService.deleteFile(file.getBlobName());
             }
         }
 
@@ -338,17 +306,16 @@ public class PksiFileServiceImpl implements PksiFileService {
 
     @Override
     public byte[] downloadFile(UUID fileId) {
-        if (blobContainerClient == null) {
-            throw new IllegalStateException("Azure Blob Storage is not configured");
-        }
-
         PksiFile pksiFile = pksiFileRepository.findById(fileId)
                 .orElseThrow(() -> new ResourceNotFoundException(FILE_NOT_FOUND_MSG + fileId));
 
-        BlobClient blobClient = blobContainerClient.getBlobClient(pksiFile.getBlobName());
-        
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            blobClient.downloadStream(outputStream);
+        try (InputStream inputStream = minioService.downloadFile(pksiFile.getBlobName());
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
             return outputStream.toByteArray();
         } catch (IOException e) {
             log.error("Failed to download file. Error: {}", e.getMessage(), e);
