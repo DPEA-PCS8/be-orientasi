@@ -44,7 +44,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
             
-            log.info("File uploaded successfully to path: {}", objectName);
+            log.info("File uploaded successfully");
             return getFileUrl(objectName);
             
         } catch (Exception e) {
@@ -88,7 +88,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
             
-            log.info("Generated presigned URL for path: {}", path);
+            log.info("Generated presigned URL");
             return url;
             
         } catch (Exception e) {
@@ -107,7 +107,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
             
-            log.info("File downloaded successfully from path: {}", path);
+            log.info("File downloaded successfully");
             return stream;
             
         } catch (Exception e) {
@@ -126,7 +126,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
             
-            log.info("File deleted successfully from path: {}", path);
+            log.info("File deleted successfully");
             
         } catch (Exception e) {
             log.error("Failed to delete file: {}", e.getMessage());
