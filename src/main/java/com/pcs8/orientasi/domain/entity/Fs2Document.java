@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "fs2_document")
+@Table(name = "mst_fs2_document")
 public class Fs2Document extends BaseEntity {
 
     @Id
@@ -32,9 +32,6 @@ public class Fs2Document extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aplikasi_id")
     private MstAplikasi aplikasi;
-
-    @Column(name = "nama_fs2", nullable = false, length = 255)
-    private String namaFs2;
 
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;

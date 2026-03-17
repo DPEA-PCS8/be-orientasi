@@ -36,9 +36,6 @@ public class Fs2DocumentResponse extends Fs2FormFieldsBase {
     @JsonProperty("kode_aplikasi")
     private String kodeAplikasi;
 
-    @JsonProperty("nama_fs2")
-    private String namaFs2;
-
     @JsonProperty("tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
 

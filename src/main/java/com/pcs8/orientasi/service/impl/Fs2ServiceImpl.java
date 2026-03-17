@@ -25,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -53,7 +55,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = Fs2Document.builder()
                 .userId(userId)
                 .userName(username)
-                .namaFs2(request.getNamaFs2().trim())
                 .tanggalPengajuan(request.getTanggalPengajuan() != null ? request.getTanggalPengajuan() : LocalDate.now())
                 .status(request.getStatus() != null ? request.getStatus() : "PENDING")
                 // New form fields
@@ -99,7 +100,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document created: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document created: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
@@ -123,25 +124,95 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable) {
-        return fs2Repository.searchFs2Documents(search, bidangId, skpaId, status, pageable)
-                .map(this::mapToResponse);
+    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            log.info("User can see all - fetching all F.S.2 documents");
+            return fs2Repository.searchFs2Documents(search, bidangId, skpaId, status, pageable)
+                    .map(this::mapToResponse);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering F.S.2 by department: '{}'", userDepartment);
+        
+        // Find SKPA UUID for the user's department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
+            return fs2Repository.searchFs2DocumentsByDepartment(search, bidangId, status, userDepartment.trim(), pageable)
+                    .map(this::mapToResponse);
+        } else {
+            log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
+            return Page.empty(pageable);
+        }
     }
 
     @Override
-    public List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status) {
-        return fs2Repository.searchFs2DocumentsList(search, bidangId, skpaId, status)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 list - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            return fs2Repository.searchFs2DocumentsList(search, bidangId, skpaId, status)
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty list for security");
+            return Collections.emptyList();
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            return fs2Repository.searchFs2DocumentsListByDepartment(search, bidangId, status, userDepartment.trim())
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public Page<Fs2DocumentResponse> searchApproved(
             com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
-            Pageable pageable) {
-        return fs2Repository.searchApprovedFs2Documents(filter, pageable
-        ).map(this::mapToResponse);
+            Pageable pageable,
+            String userDepartment,
+            boolean canSeeAll) {
+        log.info("Searching approved F.S.2 - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            return fs2Repository.searchApprovedFs2Documents(filter, pageable)
+                    .map(this::mapToResponse);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty approved list for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see approved documents where SKPA kode matches their department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            return fs2Repository.searchApprovedFs2DocumentsByDepartment(filter, userDepartment.trim(), pageable)
+                    .map(this::mapToResponse);
+        } else {
+            return Page.empty(pageable);
+        }
     }
 
     @Override
@@ -156,7 +227,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2DocumentResponse oldValue = mapToResponse(document);
 
         // Update fields
-        document.setNamaFs2(request.getNamaFs2().trim());
         if (request.getTanggalPengajuan() != null) {
             document.setTanggalPengajuan(request.getTanggalPengajuan());
         }
@@ -207,7 +277,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document updated: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document updated: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);
@@ -246,7 +316,7 @@ public class Fs2ServiceImpl implements Fs2Service {
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
         fs2Repository.delete(document);
-        log.info("F.S.2 Document deleted: {}", document.getNamaFs2());
+        log.info("F.S.2 Document deleted: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
@@ -286,7 +356,6 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .id(document.getId())
                 .userId(document.getUserId())
                 .userName(document.getUserName())
-                .namaFs2(document.getNamaFs2())
                 .tanggalPengajuan(document.getTanggalPengajuan())
                 .status(document.getStatus())
                 // New form fields

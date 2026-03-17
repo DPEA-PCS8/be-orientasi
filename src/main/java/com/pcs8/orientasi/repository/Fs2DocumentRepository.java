@@ -19,8 +19,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     List<Fs2Document> findByStatusOrderByCreatedAtDesc(String status);
 
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -34,8 +33,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     );
 
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -50,8 +48,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     // Search only approved documents (for F.S.2 Disetujui page)
     @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
-           "AND (:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
@@ -83,6 +80,75 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
                 filter.getFasePengajuan(),
                 filter.getMekanisme(),
                 filter.getPelaksanaan(),
+                pageable
+        );
+    }
+
+    // Search F.S.2 documents filtered by SKPA department (kode_skpa)
+    @Query("SELECT f FROM Fs2Document f WHERE " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
+           "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
+           "AND (:status IS NULL OR f.status = :status) " +
+           "ORDER BY f.createdAt DESC")
+    Page<Fs2Document> searchFs2DocumentsByDepartment(
+            @Param("search") String search,
+            @Param("bidangId") UUID bidangId,
+            @Param("status") String status,
+            @Param("userDepartment") String userDepartment,
+            Pageable pageable
+    );
+
+    // Search F.S.2 documents list filtered by SKPA department (kode_skpa)
+    @Query("SELECT f FROM Fs2Document f WHERE " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
+           "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
+           "AND (:status IS NULL OR f.status = :status) " +
+           "ORDER BY f.createdAt DESC")
+    List<Fs2Document> searchFs2DocumentsListByDepartment(
+            @Param("search") String search,
+            @Param("bidangId") UUID bidangId,
+            @Param("status") String status,
+            @Param("userDepartment") String userDepartment
+    );
+
+    // Search approved F.S.2 documents filtered by SKPA department
+    @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
+    @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
+           "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
+           "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
+           "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
+           "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
+           "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
+           "ORDER BY f.createdAt DESC")
+    Page<Fs2Document> searchApprovedFs2DocumentsByDepartment(
+            @Param("search") String search,
+            @Param("bidangId") UUID bidangId,
+            @Param("progres") String progres,
+            @Param("fasePengajuan") String fasePengajuan,
+            @Param("mekanisme") String mekanisme,
+            @Param("pelaksanaan") String pelaksanaan,
+            @Param("userDepartment") String userDepartment,
+            Pageable pageable
+    );
+
+    // Overloaded method using filter object for approved documents by department
+    default Page<Fs2Document> searchApprovedFs2DocumentsByDepartment(
+            com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
+            String userDepartment,
+            Pageable pageable
+    ) {
+        return searchApprovedFs2DocumentsByDepartment(
+                filter.getSearch(),
+                filter.getBidangId(),
+                filter.getProgres(),
+                filter.getFasePengajuan(),
+                filter.getMekanisme(),
+                filter.getPelaksanaan(),
+                userDepartment,
                 pageable
         );
     }
