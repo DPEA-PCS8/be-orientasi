@@ -11,7 +11,8 @@ import org.hibernate.annotations.UuidGenerator;
 import java.util.UUID;
 
 /**
- * Entity untuk file lampiran F.S.2 yang disimpan di Minio Storage
+ * Entity untuk file lampiran F.S.2 yang disimpan di Minio Storage.
+ * Extends BaseFileEntity untuk menghindari duplikasi kode dengan PksiFile.
  */
 @Entity
 @Table(name = "trn_fs2_file")
@@ -20,7 +21,7 @@ import java.util.UUID;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Fs2File extends BaseEntity {
+public class Fs2File extends BaseFileEntity {
 
     @Id
     @UuidGenerator
@@ -28,27 +29,6 @@ public class Fs2File extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fs2_id", nullable = true) // Nullable for temp files
+    @JoinColumn(name = "fs2_id", nullable = true)
     private Fs2Document fs2Document;
-
-    @Column(name = "file_name", nullable = false, length = 255)
-    private String fileName;
-
-    @Column(name = "original_name", nullable = false, length = 255)
-    private String originalName;
-
-    @Column(name = "content_type", length = 100)
-    private String contentType;
-
-    @Column(name = "file_size")
-    private Long fileSize;
-
-    @Column(name = "blob_url", length = 500)
-    private String blobUrl;
-
-    @Column(name = "blob_name", length = 500)
-    private String blobName;
-
-    @Column(name = "session_id", length = 100)
-    private String sessionId; // For temporary files before F.S.2 association
 }
