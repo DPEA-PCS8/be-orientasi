@@ -55,7 +55,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = Fs2Document.builder()
                 .userId(userId)
                 .userName(username)
-                .namaFs2(request.getNamaFs2().trim())
                 .tanggalPengajuan(request.getTanggalPengajuan() != null ? request.getTanggalPengajuan() : LocalDate.now())
                 .status(request.getStatus() != null ? request.getStatus() : "PENDING")
                 // New form fields
@@ -101,7 +100,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document created: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document created: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
@@ -228,7 +227,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2DocumentResponse oldValue = mapToResponse(document);
 
         // Update fields
-        document.setNamaFs2(request.getNamaFs2().trim());
         if (request.getTanggalPengajuan() != null) {
             document.setTanggalPengajuan(request.getTanggalPengajuan());
         }
@@ -279,7 +277,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document updated: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document updated: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);
@@ -318,7 +316,7 @@ public class Fs2ServiceImpl implements Fs2Service {
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
         fs2Repository.delete(document);
-        log.info("F.S.2 Document deleted: {}", document.getNamaFs2());
+        log.info("F.S.2 Document deleted: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
@@ -358,7 +356,6 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .id(document.getId())
                 .userId(document.getUserId())
                 .userName(document.getUserName())
-                .namaFs2(document.getNamaFs2())
                 .tanggalPengajuan(document.getTanggalPengajuan())
                 .status(document.getStatus())
                 // New form fields

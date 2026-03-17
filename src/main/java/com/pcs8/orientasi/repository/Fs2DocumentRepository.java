@@ -19,8 +19,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     List<Fs2Document> findByStatusOrderByCreatedAtDesc(String status);
 
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -34,8 +33,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     );
 
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -50,8 +48,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     // Search only approved documents (for F.S.2 Disetujui page)
     @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
-           "AND (:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
@@ -89,8 +86,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
 
     // Search F.S.2 documents filtered by SKPA department (kode_skpa)
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -105,8 +101,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
 
     // Search F.S.2 documents list filtered by SKPA department (kode_skpa)
     @Query("SELECT f FROM Fs2Document f WHERE " +
-           "(:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:status IS NULL OR f.status = :status) " +
@@ -121,8 +116,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
     // Search approved F.S.2 documents filtered by SKPA department
     @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
-           "AND (:search IS NULL OR LOWER(f.namaFs2) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
