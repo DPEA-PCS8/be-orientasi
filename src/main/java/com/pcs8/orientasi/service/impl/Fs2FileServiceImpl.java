@@ -63,7 +63,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         List<Fs2FileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            validateFile(file);
+            checkFs2FileValidity(file);
             
             try {
                 Fs2FileResponse response = uploadSingleFile(fs2Document, file);
@@ -83,7 +83,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         List<Fs2FileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            validateFile(file);
+            checkFs2FileValidity(file);
             
             try {
                 Fs2FileResponse response = uploadSingleTempFile(sessionId, file);
@@ -103,7 +103,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             throw new IllegalArgumentException("File name is required");
         }
         
-        String extension = getFileExtension(originalName);
+        String extension = extractExtension(originalName);
         // Generate unique filename to avoid collisions
         String uniqueFileName = String.format("%s_%s%s", 
                 UUID.randomUUID(), 
@@ -156,7 +156,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             try {
                 // Move blob from temp to permanent location
                 String oldBlobName = tempFile.getBlobName();
-                String extension = getFileExtension(tempFile.getOriginalName());
+                String extension = extractExtension(tempFile.getOriginalName());
                 // Use FS2 ID for file naming
                 String newBlobName = String.format("%s%s%s",
                         FS2_PREFIX,
@@ -220,7 +220,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             throw new IllegalArgumentException("File name is required");
         }
         
-        String extension = getFileExtension(originalName);
+        String extension = extractExtension(originalName);
         // Use FS2 ID for file naming
         String blobName = String.format("%s%s%s", 
                 FS2_PREFIX,
@@ -253,23 +253,25 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         return mapToResponse(fs2File);
     }
 
-    private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+    private void checkFs2FileValidity(MultipartFile uploadedFile) {
+        boolean isEmptyFile = uploadedFile.isEmpty();
+        boolean exceedsMaxSize = uploadedFile.getSize() > MAX_FILE_SIZE;
+        boolean isInvalidContentType = !ALLOWED_CONTENT_TYPES.contains(uploadedFile.getContentType());
+        
+        if (isEmptyFile) {
+            throw new IllegalArgumentException("Uploaded file cannot be empty");
         }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of 20MB");
+        if (exceedsMaxSize) {
+            throw new IllegalArgumentException("Uploaded file exceeds the 20MB size limit");
         }
-        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("File type not allowed");
+        if (isInvalidContentType) {
+            throw new IllegalArgumentException("Uploaded file type is not supported");
         }
     }
 
-    private String getFileExtension(String fileName) {
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
-        }
-        return fileName.substring(fileName.lastIndexOf("."));
+    private String extractExtension(String name) {
+        int lastDotIndex = name != null ? name.lastIndexOf(".") : -1;
+        return lastDotIndex > 0 ? name.substring(lastDotIndex) : "";
     }
 
     @Override
