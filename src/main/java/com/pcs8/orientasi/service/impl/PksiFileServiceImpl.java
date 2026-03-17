@@ -26,7 +26,7 @@ import java.util.UUID;
 public class PksiFileServiceImpl implements PksiFileService {
 
     private static final Logger log = LoggerFactory.getLogger(PksiFileServiceImpl.class);
-    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10MB
+    private static final long MAX_FILE_SIZE = 20L * 1024 * 1024; // 20MB
     private static final String FILE_NOT_FOUND_MSG = "File not found with id: ";
     private static final String TEMP_PREFIX = "temp/";
     private static final String PKSI_PREFIX = "pksi/";
@@ -246,7 +246,7 @@ public class PksiFileServiceImpl implements PksiFileService {
             throw new IllegalArgumentException("File is empty");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
+            throw new IllegalArgumentException("File size exceeds maximum limit of 20MB");
         }
         if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("File type not allowed");
