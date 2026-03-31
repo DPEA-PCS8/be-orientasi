@@ -67,7 +67,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
             
-            log.info("File uploaded successfully to path: {}", objectName);
+            log.info("File uploaded successfully");
             return getFileUrl(objectName);
             
         } catch (Exception e) {
