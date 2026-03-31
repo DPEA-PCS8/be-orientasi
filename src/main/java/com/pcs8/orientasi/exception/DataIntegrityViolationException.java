@@ -2,11 +2,13 @@ package com.pcs8.orientasi.exception;
 
 public class DataIntegrityViolationException extends RuntimeException {
 
-    private String relatedEntity;
-    private int count;
+    private final String relatedEntity;
+    private final int count;
 
     public DataIntegrityViolationException(String message) {
         super(message);
+        this.relatedEntity = null;
+        this.count = 0;
     }
 
     public DataIntegrityViolationException(String message, String relatedEntity, int count) {
