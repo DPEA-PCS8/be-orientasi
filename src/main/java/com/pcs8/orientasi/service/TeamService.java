@@ -56,7 +56,7 @@ public class TeamService {
      */
     @Transactional
     public TeamResponse createTeam(TeamRequest request) {
-        logger.info("Creating new team");
+        logger.info("Creating new team: {}", request.getName());
 
         // Validate team name uniqueness
         if (teamRepository.existsByNameIgnoreCase(request.getName())) {
@@ -125,7 +125,15 @@ public class TeamService {
 
         // Update members if provided
         if (request.getMemberUuids() != null) {
+            // Clear existing members and flush to avoid unique constraint violation
             team.clearMembers();
+            teamRepository.saveAndFlush(team);
+            
+            // Re-fetch team to ensure clean state after flush
+            team = teamRepository.findByIdWithDetails(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + id));
+            
+            // Add new members
             for (String memberUuid : request.getMemberUuids()) {
                 MstUser member = findUserByUuid(memberUuid);
                 team.addMember(member);
