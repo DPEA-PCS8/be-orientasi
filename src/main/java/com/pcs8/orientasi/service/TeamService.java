@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +37,7 @@ public class TeamService {
         List<MstTeam> teams = teamRepository.findAllWithDetails();
         return teams.stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -57,7 +56,7 @@ public class TeamService {
      */
     @Transactional
     public TeamResponse createTeam(TeamRequest request) {
-        logger.info("Creating new team: {}", request.getName());
+        logger.info("Creating new team");
 
         // Validate team name uniqueness
         if (teamRepository.existsByNameIgnoreCase(request.getName())) {
@@ -162,7 +161,7 @@ public class TeamService {
         List<MstUser> users = userRepository.findAll();
         return users.stream()
                 .map(this::mapToMemberResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -189,7 +188,7 @@ public class TeamService {
         if (team.getTeamMembers() != null) {
             members = team.getTeamMembers().stream()
                     .map(tm -> mapToMemberResponse(tm.getUser()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         return TeamResponse.builder()
