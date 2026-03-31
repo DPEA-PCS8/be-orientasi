@@ -41,7 +41,7 @@ public class TeamController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse> getTeamById(@PathVariable String id) {
-        logger.info("GET /api/teams/{} - fetching team details", id);
+        logger.info("GET /api/teams - fetching team details");
         TeamResponse team = teamService.getTeamById(UUID.fromString(id));
         return ResponseEntity.ok(new BaseResponse(200, SUCCESS, team));
     }
@@ -51,7 +51,7 @@ public class TeamController {
      */
     @PostMapping
     public ResponseEntity<BaseResponse> createTeam(@Valid @RequestBody TeamRequest request) {
-        logger.info("POST /api/teams - creating new team: {}", request.getName());
+        logger.info("POST /api/teams - creating new team");
         TeamResponse team = teamService.createTeam(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(201, "Team created successfully", team));
@@ -64,7 +64,7 @@ public class TeamController {
     public ResponseEntity<BaseResponse> updateTeam(
             @PathVariable String id,
             @Valid @RequestBody TeamRequest request) {
-        logger.info("PUT /api/teams/{} - updating team", id);
+        logger.info("PUT /api/teams - updating team");
         TeamResponse team = teamService.updateTeam(UUID.fromString(id), request);
         return ResponseEntity.ok(new BaseResponse(200, "Team updated successfully", team));
     }
@@ -74,7 +74,7 @@ public class TeamController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<BaseResponse> deleteTeam(@PathVariable String id) {
-        logger.info("DELETE /api/teams/{} - deleting team", id);
+        logger.info("DELETE /api/teams - deleting team");
         teamService.deleteTeam(UUID.fromString(id));
         return ResponseEntity.ok(new BaseResponse(200, "Team deleted successfully", null));
     }

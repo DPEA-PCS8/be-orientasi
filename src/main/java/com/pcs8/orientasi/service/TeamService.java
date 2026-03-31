@@ -56,7 +56,7 @@ public class TeamService {
      */
     @Transactional
     public TeamResponse createTeam(TeamRequest request) {
-        logger.info("Creating new team: {}", request.getName());
+        logger.info("Creating new team");
 
         // Validate team name uniqueness
         if (teamRepository.existsByNameIgnoreCase(request.getName())) {
