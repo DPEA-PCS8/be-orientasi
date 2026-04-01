@@ -133,4 +133,55 @@ public abstract class Fs2FormFieldsBase {
 
     @JsonProperty("dokumen_path")
     private String dokumenPath;
+
+    // === New Monitoring Fields ===
+    
+    // Dokumen Pengajuan F.S.2
+    @JsonProperty("nomor_nd")
+    private String nomorNd;
+
+    @JsonProperty("tanggal_nd")
+    private LocalDate tanggalNd;
+
+    @JsonProperty("berkas_nd")
+    private String berkasNd;
+
+    @JsonProperty("berkas_fs2")
+    private String berkasFs2;
+
+    // CD Prinsip
+    @JsonProperty("nomor_cd")
+    private String nomorCd;
+
+    @JsonProperty("tanggal_cd")
+    private LocalDate tanggalCd;
+
+    @JsonProperty("berkas_cd")
+    private String berkasCd;
+
+    @JsonProperty("berkas_fs2a")
+    private String berkasFs2a;
+
+    @JsonProperty("berkas_fs2b")
+    private String berkasFs2b;
+
+    // Pengujian
+    @JsonProperty("realisasi_pengujian")
+    private LocalDate realisasiPengujian;
+
+    @JsonProperty("berkas_f45")
+    private String berkasF45;
+
+    @JsonProperty("berkas_f46")
+    private String berkasF46;
+
+    // Deployment
+    @JsonProperty("realisasi_deployment")
+    private LocalDate realisasiDeployment;
+
+    @JsonProperty("berkas_nd_ba_deployment")
+    private String berkasNdBaDeployment;
+
+    // Keterangan
+    private String keterangan;
 }
