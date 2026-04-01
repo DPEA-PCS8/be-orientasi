@@ -26,20 +26,17 @@ import java.util.UUID;
 public class Fs2FileServiceImpl implements Fs2FileService {
 
     private static final Logger log = LoggerFactory.getLogger(Fs2FileServiceImpl.class);
-    private static final long MAX_FILE_SIZE = 20L * 1024 * 1024; // 20MB
+    private static final long MAX_FILE_SIZE = 8L * 1024 * 1024; // 8MB
     private static final String FILE_NOT_FOUND_MSG = "File not found with id: ";
     private static final String TEMP_PREFIX = "temp/";
     private static final String FS2_PREFIX = "FS2/";
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "application/pdf",
+            "application/x-pdf",
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "image/jpeg",
-            "image/png",
-            "image/gif"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
+    private static final List<String> ALLOWED_EXTENSIONS = List.of(".pdf", ".doc", ".docx");
 
     private final MinioService minioService;
     private final Fs2FileRepository fs2FileRepository;
@@ -256,16 +253,25 @@ public class Fs2FileServiceImpl implements Fs2FileService {
     private void checkFs2FileValidity(MultipartFile uploadedFile) {
         boolean isEmptyFile = uploadedFile.isEmpty();
         boolean exceedsMaxSize = uploadedFile.getSize() > MAX_FILE_SIZE;
-        boolean isInvalidContentType = !ALLOWED_CONTENT_TYPES.contains(uploadedFile.getContentType());
+        
+        // Check content type OR file extension (more flexible validation)
+        String contentType = uploadedFile.getContentType();
+        String originalName = uploadedFile.getOriginalFilename();
+        String extension = extractExtension(originalName).toLowerCase();
+        
+        boolean isValidContentType = contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType);
+        boolean isValidExtension = ALLOWED_EXTENSIONS.contains(extension);
+        boolean isInvalidFileType = !isValidContentType && !isValidExtension;
         
         if (isEmptyFile) {
             throw new IllegalArgumentException("Uploaded file cannot be empty");
         }
         if (exceedsMaxSize) {
-            throw new IllegalArgumentException("Uploaded file exceeds the 20MB size limit");
+            throw new IllegalArgumentException("Uploaded file exceeds the 8MB size limit");
         }
-        if (isInvalidContentType) {
-            throw new IllegalArgumentException("Uploaded file type is not supported");
+        if (isInvalidFileType) {
+            log.warn("Invalid file type uploaded. Content-Type: {}, Extension: {}", contentType, extension);
+            throw new IllegalArgumentException("Uploaded file type is not supported. Only PDF and Word files are allowed.");
         }
     }
 
