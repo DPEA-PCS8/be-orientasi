@@ -294,195 +294,103 @@ public class RbsiExcelExportServiceImpl implements RbsiExcelExportService {
         }
     }
 
-    private CellStyle createHeaderStyle(Workbook workbook) {
+    // Base method to create cell style with common properties
+    private CellStyle createBaseStyle(Workbook workbook, short fontSize, boolean bold, 
+                                      IndexedColors bgColor, HorizontalAlignment hAlign, 
+                                      VerticalAlignment vAlign, boolean wrapText, 
+                                      IndexedColors fontColor, boolean italic) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 11);
+        font.setFontHeightInPoints(fontSize);
+        font.setBold(bold);
+        if (fontColor != null) {
+            font.setColor(fontColor.getIndex());
+        }
+        if (italic) {
+            font.setItalic(true);
+        }
         style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        
+        if (bgColor != null) {
+            style.setFillForegroundColor(bgColor.getIndex());
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        }
+        
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderTop(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
+        if (hAlign != null) {
+            style.setAlignment(hAlign);
+        }
+        if (vAlign != null) {
+            style.setVerticalAlignment(vAlign);
+        }
+        if (wrapText) {
+            style.setWrapText(true);
+        }
+        
         return style;
+    }
+
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        return createBaseStyle(workbook, (short) 11, true, IndexedColors.GREY_25_PERCENT, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createProgressHeaderStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 10);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 10, true, IndexedColors.LIGHT_GREEN, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createSubHeaderStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 9, true, IndexedColors.GREY_25_PERCENT, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createYearHeaderStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 9, true, IndexedColors.LIGHT_GREEN, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createProgramStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 10);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setWrapText(true);
-        return style;
+        return createBaseStyle(workbook, (short) 10, true, IndexedColors.LIGHT_CORNFLOWER_BLUE, 
+            null, VerticalAlignment.CENTER, true, null, false);
     }
 
     private CellStyle createProgramCenterStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, IndexedColors.LIGHT_CORNFLOWER_BLUE, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createInitiativeStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setWrapText(true);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, null, 
+            null, VerticalAlignment.CENTER, true, null, false);
     }
 
     private CellStyle createInitiativeNewStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setWrapText(true);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, IndexedColors.LIGHT_GREEN, 
+            null, VerticalAlignment.CENTER, true, null, false);
     }
 
     private CellStyle createInitiativeModStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setWrapText(true);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, IndexedColors.LIGHT_YELLOW, 
+            null, VerticalAlignment.CENTER, true, null, false);
     }
 
     private CellStyle createInitiativeDelStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.CORAL.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setWrapText(true);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, IndexedColors.CORAL, 
+            null, VerticalAlignment.CENTER, true, null, false);
     }
 
     private CellStyle createCheckStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 12);
-        style.setFont(font);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 12, false, null, 
+            HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false, null, false);
     }
 
     private CellStyle createNoDataStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 9);
-        font.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
-        font.setItalic(true);
-        style.setFont(font);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        return style;
+        return createBaseStyle(workbook, (short) 9, false, null, 
+            null, VerticalAlignment.CENTER, false, IndexedColors.GREY_50_PERCENT, true);
     }
 }
