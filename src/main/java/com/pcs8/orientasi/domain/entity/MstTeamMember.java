@@ -16,13 +16,11 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class MstTeamMember {
 
     @Id
     @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,5 +37,28 @@ public class MstTeamMember {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MstTeamMember that = (MstTeamMember) o;
+        // Use team and user for equality when id is null (new entity)
+        if (id != null && that.id != null) {
+            return id.equals(that.id);
+        }
+        return team != null && user != null 
+            && team.getId() != null && that.team != null && that.team.getId() != null
+            && user.getUuid() != null && that.user != null && that.user.getUuid() != null
+            && team.getId().equals(that.team.getId()) 
+            && user.getUuid().equals(that.user.getUuid());
+    }
+
+    @Override
+    public int hashCode() {
+        // Use a constant hashCode to ensure new entities can be added to HashSet
+        // This is a common pattern for JPA entities with generated IDs
+        return getClass().hashCode();
     }
 }
