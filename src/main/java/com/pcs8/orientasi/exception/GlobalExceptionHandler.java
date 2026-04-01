@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +34,28 @@ public class GlobalExceptionHandler {
         log.warn("Bad request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BaseResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<BaseResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new BaseResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<BaseResponse> handleIllegalState(IllegalStateException ex) {
+        log.error("Illegal state: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new BaseResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<BaseResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        log.warn("File upload size exceeded: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new BaseResponse(HttpStatus.PAYLOAD_TOO_LARGE.value(), 
+                        "Ukuran file melebihi batas maksimal 8MB. Silakan pilih file yang lebih kecil.", null));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
