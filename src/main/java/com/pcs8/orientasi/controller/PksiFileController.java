@@ -133,6 +133,26 @@ public class PksiFileController {
     }
 
     /**
+     * Preview a file inline (for PDF, images, etc.)
+     */
+    @GetMapping("/preview/{fileId}")
+    public ResponseEntity<byte[]> previewFile(@PathVariable UUID fileId) {
+        log.info("Previewing file");
+        
+        byte[] content = pksiFileService.downloadFile(fileId);
+        PksiFileResponse fileInfo = pksiFileService.getFileById(fileId);
+        
+        String contentType = fileInfo.getContentType() != null ? fileInfo.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline");
+        headers.setContentLength(content.length);
+
+        return new ResponseEntity<>(content, headers, HttpStatus.OK);
+    }
+
+    /**
      * Delete a specific file
      */
     @DeleteMapping("/{fileId}")
