@@ -24,6 +24,7 @@ import java.util.UUID;
 public class TeamService {
 
     private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
+    private static final String TEAM_NOT_FOUND_MESSAGE = "Team not found with ID: ";
 
     private final TeamRepository teamRepository;
     private final MstUserRepository userRepository;
@@ -47,7 +48,7 @@ public class TeamService {
     public TeamResponse getTeamById(UUID id) {
         logger.info("Fetching team with ID: {}", id);
         MstTeam team = teamRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(TEAM_NOT_FOUND_MESSAGE + id));
         return mapToResponse(team);
     }
 
@@ -98,7 +99,7 @@ public class TeamService {
         logger.info("Updating team with ID: {}", id);
 
         MstTeam team = teamRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(TEAM_NOT_FOUND_MESSAGE + id));
 
         // Validate team name uniqueness (excluding current team)
         if (request.getName() != null && !request.getName().equals(team.getName())) {
@@ -131,7 +132,7 @@ public class TeamService {
             
             // Re-fetch team to ensure clean state after flush
             team = teamRepository.findByIdWithDetails(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + id));
+                    .orElseThrow(() -> new ResourceNotFoundException(TEAM_NOT_FOUND_MESSAGE + id));
             
             // Add new members
             for (String memberUuid : request.getMemberUuids()) {
@@ -153,7 +154,7 @@ public class TeamService {
         logger.info("Deleting team with ID: {}", id);
         
         if (!teamRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Team not found with ID: " + id);
+            throw new ResourceNotFoundException(TEAM_NOT_FOUND_MESSAGE + id);
         }
         
         teamRepository.deleteById(id);
