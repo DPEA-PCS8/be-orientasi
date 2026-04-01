@@ -104,15 +104,24 @@ public class PksiFileServiceImpl implements PksiFileService {
         }
         
         String extension = getFileExtension(originalName);
-        String blobName = String.format("%s%s/%s_%s%s", 
-                TEMP_PREFIX,
-                sessionId, 
+        // Generate unique filename to avoid collisions
+        String uniqueFileName = String.format("%s_%s%s", 
                 UUID.randomUUID(), 
                 System.currentTimeMillis(),
                 extension);
+        // The actual path that will be stored in Minio
+        String blobName = String.format("%s%s/%s", 
+                TEMP_PREFIX,
+                sessionId, 
+                uniqueFileName);
 
-        // Upload to Minio
-        String fileUrl = minioService.uploadFile(file, TEMP_PREFIX + sessionId);
+        // Upload to Minio using InputStream with exact blobName
+        String fileUrl = minioService.uploadFile(
+                file.getInputStream(),
+                blobName,
+                file.getContentType(),
+                file.getSize()
+        );
 
         // Save metadata to database (without PKSI association)
         PksiFile pksiFile = PksiFile.builder()
@@ -213,15 +222,24 @@ public class PksiFileServiceImpl implements PksiFileService {
         }
         
         String extension = getFileExtension(originalName);
-        String blobName = String.format("%s%s/%s_%s%s", 
-                PKSI_PREFIX,
-                pksiDocument.getId(), 
+        // Generate unique filename to avoid collisions
+        String uniqueFileName = String.format("%s_%s%s", 
                 UUID.randomUUID(), 
                 System.currentTimeMillis(),
                 extension);
+        // The actual path that will be stored in Minio
+        String blobName = String.format("%s%s/%s", 
+                PKSI_PREFIX,
+                pksiDocument.getId(), 
+                uniqueFileName);
 
-        // Upload to Minio
-        String fileUrl = minioService.uploadFile(file, PKSI_PREFIX + pksiDocument.getId());
+        // Upload to Minio using InputStream with exact blobName
+        String fileUrl = minioService.uploadFile(
+                file.getInputStream(),
+                blobName,
+                file.getContentType(),
+                file.getSize()
+        );
 
         // Save metadata to database
         PksiFile pksiFile = PksiFile.builder()
@@ -236,7 +254,8 @@ public class PksiFileServiceImpl implements PksiFileService {
 
         pksiFile = pksiFileRepository.save(pksiFile);
 
-        log.info("Uploaded file successfully");
+        log.info("Uploaded file successfully - id: {}, originalName: {}, fileSize: {}, contentType: {}", 
+                pksiFile.getId(), pksiFile.getOriginalName(), pksiFile.getFileSize(), pksiFile.getContentType());
 
         return mapToResponse(pksiFile);
     }
@@ -331,6 +350,8 @@ public class PksiFileServiceImpl implements PksiFileService {
     }
 
     private PksiFileResponse mapToResponse(PksiFile file) {
+        log.info("Mapping PksiFile to response - id: {}, originalName: {}, fileSize: {}", 
+                file.getId(), file.getOriginalName(), file.getFileSize());
         return PksiFileResponse.builder()
                 .id(file.getId())
                 .pksiId(file.getPksiDocument() != null ? file.getPksiDocument().getId() : null)
