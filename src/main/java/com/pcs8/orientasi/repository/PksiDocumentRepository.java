@@ -59,11 +59,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
     Page<PksiDocument> searchDocumentsWithYear(
             @Param("searchPattern") String searchPattern, 
@@ -146,11 +142,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     Page<PksiDocument> searchDocumentsWithFilters(
@@ -172,11 +164,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '') " +
            "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
@@ -197,11 +185,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "(:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     long countByStatusYearAndNoInisiatif(
