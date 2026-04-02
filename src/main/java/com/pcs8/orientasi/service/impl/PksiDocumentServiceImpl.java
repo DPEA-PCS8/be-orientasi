@@ -176,8 +176,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, boolean noInisiatif, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching PKSI documents with filters - year: {}, noInisiatif: {}, canSeeAll: {}, userDepartment: '{}'", 
-                 year, noInisiatif, canSeeAll, userDepartment);
+        log.info("Searching PKSI documents with filters - year: {}, noInisiatif: {}, canSeeAll: {}", 
+                 year, noInisiatif, canSeeAll);
         
         // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
@@ -198,7 +198,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering by department: '{}' with year: {} and noInisiatif: {}", userDepartment, year, noInisiatif);
+        log.info("User is SKPA - filtering by department with year: {} and noInisiatif: {}", year, noInisiatif);
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
                 searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)
@@ -213,7 +213,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public long countDocuments(String status, Integer year, boolean noInisiatif) {
-        log.info("Counting PKSI documents - status: {}, year: {}, noInisiatif: {}", status, year, noInisiatif);
+        log.info("Counting PKSI documents - year: {}, noInisiatif: {}", year, noInisiatif);
         String sanitizedStatus = sanitizeSearchInput(status);
         return pksiDocumentRepository.countByStatusYearAndNoInisiatif(sanitizedStatus, year, noInisiatif);
     }
