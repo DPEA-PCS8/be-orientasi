@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
@@ -52,7 +53,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
         log.info("Creating PKSI document");
 
-// userId is optional - used for audit/tracking only
+        // userId is optional - used for audit/tracking only
         // Authentication is enforced at controller level via @RequiresRole
         MstUser user = null;
         if (userId != null) {
@@ -67,33 +68,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .status(PksiDocument.DocumentStatus.PENDING)
                 .build();
 
-        // Set aplikasi if provided
-        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
-            try {
-                UUID aplikasiId = UUID.fromString(request.getAplikasiId());
-                aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
-            }
-        }
-
-        // Set inisiatif if provided (and derive group from it)
-        if (request.getInisiatifId() != null && !request.getInisiatifId().isEmpty()) {
-            try {
-                UUID inisiatifId = UUID.fromString(request.getInisiatifId());
-                rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
-                    document.setInisiatif(inisiatif);
-                    // Also set the group for dashboard/analytics purposes
-                    if (inisiatif.getGroup() != null) {
-                        document.setInisiatifGroup(inisiatif.getGroup());
-                    }
-                });
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
-            }
-        }
-
-        // Use mapper to set all fields from request
+        setAplikasiFromRequest(document, request);
+        setInisiatifFromRequest(document, request, false);
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument saved = pksiDocumentRepository.save(document);
@@ -267,37 +243,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        // Update aplikasi if provided
-        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
-            try {
-                UUID aplikasiId = UUID.fromString(request.getAplikasiId());
-                aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
-            }
-        }
-
-        // Update inisiatif if provided (and derive group from it)
-        if (request.getInisiatifId() != null && !request.getInisiatifId().isEmpty()) {
-            try {
-                UUID inisiatifId = UUID.fromString(request.getInisiatifId());
-                rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
-                    document.setInisiatif(inisiatif);
-                    // Also set the group for dashboard/analytics purposes
-                    if (inisiatif.getGroup() != null) {
-                        document.setInisiatifGroup(inisiatif.getGroup());
-                    }
-                });
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
-            }
-        } else if (request.getInisiatifId() != null && request.getInisiatifId().isEmpty()) {
-            // Clear the inisiatif if explicitly set to empty string
-            document.setInisiatif(null);
-            document.setInisiatifGroup(null);
-        }
-
-        // Use mapper to update all fields from request
+        setAplikasiFromRequest(document, request);
+        setInisiatifFromRequest(document, request, true);
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
@@ -332,38 +279,11 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         // Save approval fields if status is DISETUJUI (both for new approval and editing existing)
         if (newStatus == PksiDocument.DocumentStatus.DISETUJUI) {
-            // Always update approval fields when provided, regardless of previous status
-            if (request.getIku() != null) {
-                document.setIku(request.getIku());
-            }
-            if (request.getInhouseOutsource() != null) {
-                document.setInhouseOutsource(request.getInhouseOutsource());
-            }
-            if (request.getPicApproval() != null) {
-                document.setPicApproval(request.getPicApproval());
-            }
-            if (request.getPicApprovalName() != null) {
-                document.setPicApprovalName(request.getPicApprovalName());
-            }
-            if (request.getAnggotaTim() != null) {
-                document.setAnggotaTim(request.getAnggotaTim());
-            }
-            if (request.getAnggotaTimNames() != null) {
-                document.setAnggotaTimNames(request.getAnggotaTimNames());
-            }
-            if (request.getProgress() != null) {
-                document.setProgress(request.getProgress());
-            }
+            applyApprovalFields(document, request);
         }
 
-        pksiDocumentRepository.save(document);
         log.info("PKSI document status updated successfully");
-
-        // Re-fetch with user to avoid lazy loading issues
-        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
-                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
-
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
+        return saveAndRefresh(id);
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -389,7 +309,55 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             throw new BadRequestException("Cannot update approval fields for non-approved documents");
         }
 
-        // Update approval fields when provided
+        applyApprovalFields(document, request);
+        log.info("PKSI document approval fields updated successfully");
+        return saveAndRefresh(id);
+    }
+
+    /**
+     * Set aplikasi from request if provided.
+     */
+    private void setAplikasiFromRequest(PksiDocument document, PksiDocumentRequest request) {
+        if (request.getAplikasiId() != null && !request.getAplikasiId().isEmpty()) {
+            try {
+                UUID aplikasiId = UUID.fromString(request.getAplikasiId());
+                aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
+    }
+
+    /**
+     * Set inisiatif from request if provided (and derive group from it).
+     * @param allowClear if true, allows clearing inisiatif when empty string is provided
+     */
+    private void setInisiatifFromRequest(PksiDocument document, PksiDocumentRequest request, boolean allowClear) {
+        if (request.getInisiatifId() != null && !request.getInisiatifId().isEmpty()) {
+            try {
+                UUID inisiatifId = UUID.fromString(request.getInisiatifId());
+                rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
+                    document.setInisiatif(inisiatif);
+                    // Also set the group for dashboard/analytics purposes
+                    if (inisiatif.getGroup() != null) {
+                        document.setInisiatifGroup(inisiatif.getGroup());
+                    }
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
+            }
+        } else if (allowClear && request.getInisiatifId() != null && request.getInisiatifId().isEmpty()) {
+            // Clear the inisiatif if explicitly set to empty string
+            document.setInisiatif(null);
+            document.setInisiatifGroup(null);
+        }
+    }
+
+    /**
+     * Apply approval fields from request to document.
+     * Works with any request that extends ApprovalFields.
+     */
+    private void applyApprovalFields(PksiDocument document, ApprovalFields request) {
         if (request.getIku() != null) {
             document.setIku(request.getIku());
         }
@@ -411,14 +379,19 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (request.getProgress() != null) {
             document.setProgress(request.getProgress());
         }
+    }
 
+    /**
+     * Save document and re-fetch with initialized lazy relations.
+     * Common pattern used after update operations.
+     */
+    private PksiDocumentResponse saveAndRefresh(UUID id) {
+        PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
         pksiDocumentRepository.save(document);
-        log.info("PKSI document approval fields updated successfully");
-
-        // Re-fetch with user to avoid lazy loading issues
+        // Re-fetch to ensure all lazy relations are loaded
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
-
         return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
 
