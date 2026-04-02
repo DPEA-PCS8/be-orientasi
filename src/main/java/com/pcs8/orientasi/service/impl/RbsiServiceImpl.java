@@ -36,6 +36,7 @@ import com.pcs8.orientasi.repository.RbsiProgramRepository;
 import com.pcs8.orientasi.repository.RbsiRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.RbsiService;
+import com.pcs8.orientasi.util.NomorComparator;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1067,46 +1068,6 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
     }
 
-    /**
-     * Natural sort comparator for version numbers like "3.1", "3.11", "3.2"
-     * Splits on dots and compares each segment numerically
-     */
-    private int compareNomorProgram(String a, String b) {
-        if (a == null || b == null) {
-            return (a == null) ? (b == null ? 0 : -1) : 1;
-        }
-        
-        String[] aParts = a.split("\\.");
-        String[] bParts = b.split("\\.");
-        int maxLength = Math.max(aParts.length, bParts.length);
-        
-        for (int i = 0; i < maxLength; i++) {
-            // If one string runs out of parts, it's considered smaller
-            if (i >= aParts.length) return -1;
-            if (i >= bParts.length) return 1;
-            
-            String aPart = aParts[i];
-            String bPart = bParts[i];
-            
-            // Try to parse as integers for numerical comparison
-            try {
-                int aNum = Integer.parseInt(aPart);
-                int bNum = Integer.parseInt(bPart);
-                if (aNum != bNum) {
-                    return Integer.compare(aNum, bNum);
-                }
-            } catch (NumberFormatException e) {
-                // If not integers, compare as strings
-                int strCompare = aPart.compareTo(bPart);
-                if (strCompare != 0) {
-                    return strCompare;
-                }
-            }
-        }
-        
-        return 0;
-    }
-
     @Override
     @Transactional(readOnly = true)
     public RbsiMonitoringResponse getMonitoringData(UUID rbsiId) {
@@ -1250,7 +1211,7 @@ public class RbsiServiceImpl implements RbsiService {
                         }
                         return "";
                     },
-                    this::compareNomorProgram
+                    NomorComparator::compare
             ));
 
             programMonitoringList.add(RbsiMonitoringResponse.ProgramMonitoring.builder()
@@ -1263,7 +1224,7 @@ public class RbsiServiceImpl implements RbsiService {
         // Sort programs using natural sort for version numbers (3.1, 3.2, 3.11 instead of 3.1, 3.11, 3.2)
         programMonitoringList.sort(Comparator.comparing(
                 RbsiMonitoringResponse.ProgramMonitoring::getNomorProgram,
-                this::compareNomorProgram
+                NomorComparator::compare
         ));
 
         return RbsiMonitoringResponse.builder()
