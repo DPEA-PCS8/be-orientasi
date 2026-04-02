@@ -45,7 +45,7 @@ public class AplikasiRequest {
     private LocalDate tanggalImplementasi;
 
     @JsonProperty("akses")
-    private String akses; // INTERNET, INTRANET, BOTH
+    private String akses; // Comma-separated: INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, OTHER:custom_text
 
     @JsonProperty("proses_data_pribadi")
     @NotNull(message = "Proses data pribadi is required")
