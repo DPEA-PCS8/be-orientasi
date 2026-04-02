@@ -51,4 +51,7 @@ public class PksiFile extends BaseEntity {
 
     @Column(name = "session_id", length = 100)
     private String sessionId; // For temporary files before PKSI association
+
+    @Column(name = "file_type", length = 20)
+    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
 }

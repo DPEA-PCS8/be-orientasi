@@ -46,6 +46,31 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
             @Param("status") String status, 
             Pageable pageable);
 
+    /**
+     * Search PKSI documents with year filter based on timeline.
+     * Year filter matches documents where the given year falls within
+     * any of the timeline date ranges (tahap1 through tahap7).
+     */
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
+           "AND (:year IS NULL OR " +
+           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
+           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
+           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
+           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
+           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
+           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
+           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
+    Page<PksiDocument> searchDocumentsWithYear(
+            @Param("searchPattern") String searchPattern, 
+            @Param("status") String status,
+            @Param("year") Integer year,
+            Pageable pageable);
+
     @Query("SELECT COUNT(p) FROM PksiDocument p WHERE p.status = :status")
     long countByStatus(@Param("status") PksiDocument.DocumentStatus status);
 
@@ -107,4 +132,33 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
     List<Object[]> countByInisiatifGroupIdInAndStatus(
             @Param("groupIds") List<UUID> groupIds, 
             @Param("status") String status);
+
+    /**
+     * Search PKSI documents filtered by user department with year filter.
+     * Year filter matches documents where the given year falls within
+     * any of the timeline date ranges (tahap1 through tahap7).
+     */
+    @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
+           "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
+           "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%'))) " +
+           "AND (:year IS NULL OR " +
+           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
+           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
+           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
+           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
+           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
+           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
+           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
+    Page<PksiDocument> searchDocumentsByDepartmentWithYear(
+            @Param("searchPattern") String searchPattern, 
+            @Param("status") String status,
+            @Param("userDepartment") String userDepartment,
+            @Param("year") Integer year,
+            Pageable pageable);
 }

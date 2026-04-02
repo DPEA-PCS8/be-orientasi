@@ -196,6 +196,41 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return result;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching PKSI documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+        
+        // Sanitize and format search input with wildcards
+        String searchPattern = formatSearchPattern(search);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            log.info("User can see all - fetching all documents with year filter: {}", year);
+            return pksiDocumentRepository.searchDocumentsWithYear(searchPattern, sanitizedStatus, year, pageable)
+                    .map(mapper::mapToResponse)
+                    .map(this::enrichWithSkpaNames);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering by department: '{}' and year: {}", userDepartment, year);
+        
+        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithYear(searchPattern, sanitizedStatus, userDepartment.trim(), year, pageable)
+                .map(mapper::mapToResponse)
+                .map(this::enrichWithSkpaNames);
+        
+        log.info("Search result: {} documents found for department '{}' and year {}", result.getTotalElements(), userDepartment, year);
+        
+        return result;
+    }
     
     /**
      * Format search input as LIKE pattern with wildcards.

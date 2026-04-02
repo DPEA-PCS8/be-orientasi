@@ -23,5 +23,6 @@ public class PksiFileResponse {
     private String contentType;
     private Long fileSize;
     private String blobUrl;
+    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
     private LocalDateTime createdAt;
 }
