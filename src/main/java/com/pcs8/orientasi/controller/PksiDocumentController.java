@@ -103,7 +103,6 @@ public class PksiDocumentController {
         Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
         String userDepartment = (String) httpRequest.getAttribute("department");
         
-        log.info("PKSI Search - User Roles: {}, Department: {}, Year: {}, NoInisiatif: {}", userRoles, sanitizeForLog(userDepartment), year, noInisiatif);
         
         // Admin and Pengembang can see all PKSI, SKPA role only sees matching department
         boolean canSeeAll = userRoles != null && userRoles.stream()
