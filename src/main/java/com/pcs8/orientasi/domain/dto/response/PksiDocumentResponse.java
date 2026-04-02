@@ -33,6 +33,15 @@ public class PksiDocumentResponse extends PksiDocumentFields {
     @JsonProperty("nama_aplikasi")
     private String namaAplikasi;
 
+    @JsonProperty("inisiatif_group_id")
+    private String inisiatifGroupId;
+
+    @JsonProperty("inisiatif_nomor")
+    private String inisiatifNomor;
+
+    @JsonProperty("inisiatif_nama")
+    private String inisiatifNama;
+
     @JsonProperty("tujuan_pengajuan")
     private String tujuanPengajuan;
 

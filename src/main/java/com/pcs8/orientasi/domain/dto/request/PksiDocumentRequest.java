@@ -24,6 +24,9 @@ public class PksiDocumentRequest extends PksiDocumentFields {
     @JsonProperty("aplikasi_id")
     private String aplikasiId;
 
+    @JsonProperty("inisiatif_group_id")
+    private String inisiatifGroupId;
+
     @JsonProperty("tujuan_pengajuan")
     private String tujuanPengajuan;
 

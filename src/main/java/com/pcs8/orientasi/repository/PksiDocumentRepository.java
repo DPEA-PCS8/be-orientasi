@@ -67,4 +67,30 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
             @Param("status") String status,
             @Param("userDepartment") String userDepartment,
             Pageable pageable);
+
+    /**
+     * Find PKSI documents by inisiatif group IDs
+     */
+    @Query("SELECT p FROM PksiDocument p WHERE p.inisiatifGroup.id IN :groupIds")
+    List<PksiDocument> findByInisiatifGroupIdIn(@Param("groupIds") List<UUID> groupIds);
+
+    /**
+     * Find PKSI documents by inisiatif group IDs with status filter
+     */
+    @Query("SELECT p FROM PksiDocument p WHERE p.inisiatifGroup.id IN :groupIds " +
+           "AND (:status IS NULL OR CAST(p.status AS string) = :status)")
+    List<PksiDocument> findByInisiatifGroupIdInAndStatus(
+            @Param("groupIds") List<UUID> groupIds, 
+            @Param("status") String status);
+
+    /**
+     * Count PKSI documents by inisiatif group with status filter
+     */
+    @Query("SELECT p.inisiatifGroup.id, COUNT(p) FROM PksiDocument p " +
+           "WHERE p.inisiatifGroup.id IN :groupIds " +
+           "AND (:status IS NULL OR CAST(p.status AS string) = :status) " +
+           "GROUP BY p.inisiatifGroup.id")
+    List<Object[]> countByInisiatifGroupIdInAndStatus(
+            @Param("groupIds") List<UUID> groupIds, 
+            @Param("status") String status);
 }

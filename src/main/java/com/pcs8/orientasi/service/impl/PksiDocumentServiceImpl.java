@@ -9,6 +9,7 @@ import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
+import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
@@ -43,6 +44,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
+    private final InisiatifGroupRepository inisiatifGroupRepository;
 
     @Override
     @Transactional
@@ -71,6 +73,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 aplikasiRepository.findById(aplikasiId).ifPresent(document::setAplikasi);
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
+            }
+        }
+
+        // Set inisiatif group if provided
+        if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+            try {
+                UUID inisiatifGroupId = UUID.fromString(request.getInisiatifGroupId());
+                inisiatifGroupRepository.findById(inisiatifGroupId).ifPresent(document::setInisiatifGroup);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid inisiatif group ID format: {}", request.getInisiatifGroupId());
             }
         }
 
@@ -216,6 +228,19 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid aplikasi ID format: {}", request.getAplikasiId());
             }
+        }
+
+        // Update inisiatif group if provided
+        if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+            try {
+                UUID inisiatifGroupId = UUID.fromString(request.getInisiatifGroupId());
+                inisiatifGroupRepository.findById(inisiatifGroupId).ifPresent(document::setInisiatifGroup);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid inisiatif group ID format: {}", request.getInisiatifGroupId());
+            }
+        } else if (request.getInisiatifGroupId() != null && request.getInisiatifGroupId().isEmpty()) {
+            // Clear the inisiatif group if explicitly set to empty string
+            document.setInisiatifGroup(null);
         }
 
         // Use mapper to update all fields from request
