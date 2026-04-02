@@ -82,6 +82,7 @@ public class PksiDocumentController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year,
+            @RequestParam(required = false, defaultValue = "false") boolean noInisiatif,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy, // NOSONAR - must match DEFAULT_SORT_FIELD
@@ -101,7 +102,7 @@ public class PksiDocumentController {
         Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
         String userDepartment = (String) httpRequest.getAttribute("department");
         
-        log.info("PKSI Search - User Roles: {}, Department: {}, Year: {}", userRoles, userDepartment, year);
+        log.info("PKSI Search - User Roles: {}, Department: {}, Year: {}, NoInisiatif: {}", userRoles, userDepartment, year, noInisiatif);
         
         // Admin and Pengembang can see all PKSI, SKPA role only sees matching department
         boolean canSeeAll = userRoles != null && userRoles.stream()
@@ -109,10 +110,14 @@ public class PksiDocumentController {
         
         log.info("PKSI Search - canSeeAll: {}", canSeeAll);
         
+        // Use new method with year and noInisiatif filters
         Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocuments(
-                search, status, year, pageable, userDepartment, canSeeAll);
+                search, status, year, noInisiatif, pageable, userDepartment, canSeeAll);
         
-        log.info("PKSI Search - Results count: {}", pageResult.getTotalElements());
+        // Get total count for the specified status, year, and noInisiatif filter
+        long totalCount = pksiDocumentService.countDocuments(status, year, noInisiatif);
+        
+        log.info("PKSI Search - Results count: {}, Total count: {}", pageResult.getTotalElements(), totalCount);
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());
@@ -122,6 +127,7 @@ public class PksiDocumentController {
         responseData.put("size", pageResult.getSize());
         responseData.put("has_next", pageResult.hasNext());
         responseData.put("has_previous", pageResult.hasPrevious());
+        responseData.put("total_count", totalCount); // Total count filtered by year (if provided)
         
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responseData));
     }

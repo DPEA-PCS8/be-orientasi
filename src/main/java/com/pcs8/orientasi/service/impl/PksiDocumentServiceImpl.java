@@ -175,8 +175,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching PKSI documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+    public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, boolean noInisiatif, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching PKSI documents with filters - year: {}, noInisiatif: {}, canSeeAll: {}, userDepartment: '{}'", 
+                 year, noInisiatif, canSeeAll, userDepartment);
         
         // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
@@ -184,8 +185,8 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all documents with year filter: {}", year);
-            return pksiDocumentRepository.searchDocumentsWithYear(searchPattern, sanitizedStatus, year, pageable)
+            log.info("User can see all - fetching all documents with filters");
+            return pksiDocumentRepository.searchDocumentsWithFilters(searchPattern, sanitizedStatus, year, noInisiatif, pageable)
                     .map(mapper::mapToResponse)
                     .map(this::enrichWithSkpaNames);
         }
@@ -197,15 +198,24 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering by department: '{}' and year: {}", userDepartment, year);
+        log.info("User is SKPA - filtering by department: '{}' with year: {} and noInisiatif: {}", userDepartment, year, noInisiatif);
         
-        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithYear(searchPattern, sanitizedStatus, userDepartment.trim(), year, pageable)
+        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
+                searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
         
-        log.info("Search result: {} documents found for department '{}' and year {}", result.getTotalElements(), userDepartment, year);
+        log.info("Search result with filters: {} documents found", result.getTotalElements());
         
         return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countDocuments(String status, Integer year, boolean noInisiatif) {
+        log.info("Counting PKSI documents - status: {}, year: {}, noInisiatif: {}", status, year, noInisiatif);
+        String sanitizedStatus = sanitizeSearchInput(status);
+        return pksiDocumentRepository.countByStatusYearAndNoInisiatif(sanitizedStatus, year, noInisiatif);
     }
     
     /**
