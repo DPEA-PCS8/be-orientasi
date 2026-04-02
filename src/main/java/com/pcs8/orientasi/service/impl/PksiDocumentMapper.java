@@ -38,8 +38,10 @@ public interface PksiDocumentMapper {
     @Mapping(target = "aplikasiId", expression = "java(extractAplikasiId(document))")
     @Mapping(target = "namaAplikasi", expression = "java(extractNamaAplikasi(document))")
     @Mapping(target = "inisiatifGroupId", expression = "java(extractInisiatifGroupId(document))")
+    @Mapping(target = "inisiatifId", expression = "java(extractInisiatifId(document))")
     @Mapping(target = "inisiatifNomor", expression = "java(extractInisiatifNomor(document))")
     @Mapping(target = "inisiatifNama", expression = "java(extractInisiatifNama(document))")
+    @Mapping(target = "inisiatifTahun", expression = "java(extractInisiatifTahun(document))")
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
     @Mapping(target = "kapanHarusDiselesaikan", source = "kapanDiselesaikan")
     @Mapping(target = "picSatkerBA", source = "picSatker")
@@ -112,23 +114,41 @@ public interface PksiDocumentMapper {
     }
 
     default String extractInisiatifGroupId(PksiDocument document) {
+        // Derive from inisiatif if available
+        if (document.getInisiatif() != null && document.getInisiatif().getGroup() != null) {
+            return document.getInisiatif().getGroup().getId().toString();
+        }
+        // Fallback to stored group id
         if (document.getInisiatifGroup() != null && document.getInisiatifGroup().getId() != null) {
             return document.getInisiatifGroup().getId().toString();
         }
         return null;
     }
 
+    default String extractInisiatifId(PksiDocument document) {
+        if (document.getInisiatif() != null && document.getInisiatif().getId() != null) {
+            return document.getInisiatif().getId().toString();
+        }
+        return null;
+    }
+
     default String extractInisiatifNomor(PksiDocument document) {
-        if (document.getInisiatifGroup() != null && !document.getInisiatifGroup().getInisiatifs().isEmpty()) {
-            // Get nomor from first inisiatif in the group
-            return document.getInisiatifGroup().getInisiatifs().get(0).getNomorInisiatif();
+        if (document.getInisiatif() != null) {
+            return document.getInisiatif().getNomorInisiatif();
         }
         return null;
     }
 
     default String extractInisiatifNama(PksiDocument document) {
-        if (document.getInisiatifGroup() != null) {
-            return document.getInisiatifGroup().getNamaInisiatif();
+        if (document.getInisiatif() != null) {
+            return document.getInisiatif().getNamaInisiatif();
+        }
+        return null;
+    }
+
+    default Integer extractInisiatifTahun(PksiDocument document) {
+        if (document.getInisiatif() != null) {
+            return document.getInisiatif().getTahun();
         }
         return null;
     }

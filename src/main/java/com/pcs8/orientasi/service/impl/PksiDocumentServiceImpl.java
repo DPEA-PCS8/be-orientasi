@@ -9,13 +9,14 @@ import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
-import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
+import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -44,7 +45,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
-    private final InisiatifGroupRepository inisiatifGroupRepository;
+    private final RbsiInisiatifRepository rbsiInisiatifRepository;
 
     @Override
     @Transactional
@@ -76,13 +77,19 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             }
         }
 
-        // Set inisiatif group if provided
-        if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+        // Set inisiatif if provided (and derive group from it)
+        if (request.getInisiatifId() != null && !request.getInisiatifId().isEmpty()) {
             try {
-                UUID inisiatifGroupId = UUID.fromString(request.getInisiatifGroupId());
-                inisiatifGroupRepository.findById(inisiatifGroupId).ifPresent(document::setInisiatifGroup);
+                UUID inisiatifId = UUID.fromString(request.getInisiatifId());
+                rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
+                    document.setInisiatif(inisiatif);
+                    // Also set the group for dashboard/analytics purposes
+                    if (inisiatif.getGroup() != null) {
+                        document.setInisiatifGroup(inisiatif.getGroup());
+                    }
+                });
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid inisiatif group ID format: {}", request.getInisiatifGroupId());
+                log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
             }
         }
 
@@ -92,7 +99,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument saved = pksiDocumentRepository.save(document);
         log.info("PKSI document created successfully");
 
-        return enrichWithSkpaNames(mapper.mapToResponse(saved));
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(saved)));
     }
 
     @Override
@@ -103,7 +110,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return enrichWithSkpaNames(mapper.mapToResponse(document));
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(document)));
     }
 
     @Override
@@ -112,6 +119,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching all PKSI documents");
         
         return pksiDocumentRepository.findAllWithUser().stream()
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
@@ -123,6 +131,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("Fetching PKSI documents for user");
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
@@ -138,6 +147,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         String sanitizedStatus = sanitizeSearchInput(status);
         
         return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
     }
@@ -155,6 +165,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (canSeeAll) {
             log.info("User can see all - fetching all documents");
             return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
+                    .map(this::initializeLazyRelations)
                     .map(mapper::mapToResponse)
                     .map(this::enrichWithSkpaNames);
         }
@@ -177,6 +188,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
         
@@ -230,16 +242,23 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             }
         }
 
-        // Update inisiatif group if provided
-        if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+        // Update inisiatif if provided (and derive group from it)
+        if (request.getInisiatifId() != null && !request.getInisiatifId().isEmpty()) {
             try {
-                UUID inisiatifGroupId = UUID.fromString(request.getInisiatifGroupId());
-                inisiatifGroupRepository.findById(inisiatifGroupId).ifPresent(document::setInisiatifGroup);
+                UUID inisiatifId = UUID.fromString(request.getInisiatifId());
+                rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
+                    document.setInisiatif(inisiatif);
+                    // Also set the group for dashboard/analytics purposes
+                    if (inisiatif.getGroup() != null) {
+                        document.setInisiatifGroup(inisiatif.getGroup());
+                    }
+                });
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid inisiatif group ID format: {}", request.getInisiatifGroupId());
+                log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
             }
-        } else if (request.getInisiatifGroupId() != null && request.getInisiatifGroupId().isEmpty()) {
-            // Clear the inisiatif group if explicitly set to empty string
+        } else if (request.getInisiatifId() != null && request.getInisiatifId().isEmpty()) {
+            // Clear the inisiatif if explicitly set to empty string
+            document.setInisiatif(null);
             document.setInisiatifGroup(null);
         }
 
@@ -249,7 +268,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated successfully");
 
-        return enrichWithSkpaNames(mapper.mapToResponse(updated));
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
 
     @Override
@@ -309,7 +328,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return enrichWithSkpaNames(mapper.mapToResponse(updated));
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -365,7 +384,24 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return enrichWithSkpaNames(mapper.mapToResponse(updated));
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
+    }
+
+    /**
+     * Initialize lazy-loaded relationships to avoid LazyInitializationException.
+     * Forces Hibernate to load inisiatif and inisiatifGroup before the entity is detached.
+     */
+    private PksiDocument initializeLazyRelations(PksiDocument document) {
+        if (document.getInisiatif() != null) {
+            Hibernate.initialize(document.getInisiatif());
+            if (document.getInisiatif().getGroup() != null) {
+                Hibernate.initialize(document.getInisiatif().getGroup());
+            }
+        }
+        if (document.getInisiatifGroup() != null) {
+            Hibernate.initialize(document.getInisiatifGroup());
+        }
+        return document;
     }
 
     /**

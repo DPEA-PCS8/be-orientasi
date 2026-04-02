@@ -41,6 +41,10 @@ public class PksiDocument extends BaseEntity {
     @JoinColumn(name = "inisiatif_group_id")
     private InisiatifGroup inisiatifGroup;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inisiatif_id")
+    private RbsiInisiatif inisiatif;
+
     // ==================== HEADER ====================
     @Column(name = "nama_pksi", nullable = false, length = 255)
     private String namaPksi;

@@ -15,21 +15,27 @@ import java.util.UUID;
 @Repository
 public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID> {
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.user.uuid = :userUuid")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.user.uuid = :userUuid")
     List<PksiDocument> findByUserUuid(@Param("userUuid") UUID userUuid);
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.user.uuid = :userUuid")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.user.uuid = :userUuid")
     List<PksiDocument> findByUserUuidWithAplikasi(@Param("userUuid") UUID userUuid);
     
     List<PksiDocument> findByStatus(PksiDocument.DocumentStatus status);
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup")
     List<PksiDocument> findAllWithUser();
     
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.id = :id")
+    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.id = :id")
     Optional<PksiDocument> findByIdWithUser(@Param("id") UUID id);
 
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
+    @Query(value = "SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status)",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM PksiDocument p LEFT JOIN p.user u WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
@@ -54,7 +60,15 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
      * so this is safe from SQL injection.
      */
     @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+    @Query(value = "SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
+           "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
+           "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM PksiDocument p LEFT JOIN p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
