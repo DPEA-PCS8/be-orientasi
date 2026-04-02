@@ -54,7 +54,7 @@ public class MstAplikasi extends BaseEntity {
     private LocalDate tanggalImplementasi;
 
     @Column(name = "akses", length = 255)
-    private String akses; // Comma-separated: INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, OTHER:custom_text
+    private String akses; // Comma-separated: INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, or custom text
 
     @Column(name = "proses_data_pribadi", nullable = false, columnDefinition = "BIT DEFAULT 0")
     @Builder.Default

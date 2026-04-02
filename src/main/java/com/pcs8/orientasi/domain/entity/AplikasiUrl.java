@@ -30,7 +30,7 @@ public class AplikasiUrl extends BaseEntity {
     private String url;
 
     @Column(name = "tipe_akses", length = 255)
-    private String tipeAkses; // INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, OTHER
+    private String tipeAkses; // INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, or custom text
 
     @Column(name = "keterangan", length = 255)
     private String keterangan;
