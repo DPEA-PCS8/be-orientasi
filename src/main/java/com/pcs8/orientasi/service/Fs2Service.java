@@ -16,7 +16,7 @@ public interface Fs2Service {
 
     List<Fs2DocumentResponse> getAll();
 
-    Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable, String userDepartment, boolean canSeeAll);
+    Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll);
 
     List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status, String userDepartment, boolean canSeeAll);
 
