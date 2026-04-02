@@ -37,7 +37,7 @@ public class PksiFileController {
             @RequestParam("files") MultipartFile[] files,
             @RequestParam(value = "fileType", required = false, defaultValue = "T01") String fileType) {
         
-        log.info("Uploading files for PKSI document with type: {}", fileType);
+        log.info("Uploading files for PKSI document");
         
         List<PksiFileResponse> responses = pksiFileService.uploadFiles(pksiId, files, fileType);
         
@@ -54,7 +54,7 @@ public class PksiFileController {
             @RequestParam("files") MultipartFile[] files,
             @RequestParam(value = "fileType", required = false, defaultValue = "T01") String fileType) {
         
-        log.info("Uploading temp files with type: {}", fileType);
+        log.info("Uploading temp files for session");
         
         List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files, fileType);
         
