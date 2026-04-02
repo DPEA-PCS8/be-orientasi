@@ -56,7 +56,7 @@ public class PksiFileServiceImpl implements PksiFileService {
 
     @Override
     @Transactional
-    public List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files) {
+    public List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files, String fileType) {
         PksiDocument pksiDocument = pksiDocumentRepository.findById(pksiId)
                 .orElseThrow(() -> new ResourceNotFoundException("PKSI Document not found with id: " + pksiId));
 
@@ -66,7 +66,7 @@ public class PksiFileServiceImpl implements PksiFileService {
             validateFile(file);
             
             try {
-                PksiFileResponse response = uploadSingleFile(pksiDocument, file);
+                PksiFileResponse response = uploadSingleFile(pksiDocument, file, fileType);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload file. Error: {}", e.getMessage(), e);
@@ -79,14 +79,14 @@ public class PksiFileServiceImpl implements PksiFileService {
 
     @Override
     @Transactional
-    public List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files) {
+    public List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType) {
         List<PksiFileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
             validateFile(file);
             
             try {
-                PksiFileResponse response = uploadSingleTempFile(sessionId, file);
+                PksiFileResponse response = uploadSingleTempFile(sessionId, file, fileType);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload temp file. Error: {}", e.getMessage(), e);
@@ -97,7 +97,7 @@ public class PksiFileServiceImpl implements PksiFileService {
         return responses;
     }
 
-    private PksiFileResponse uploadSingleTempFile(String sessionId, MultipartFile file) throws IOException {
+    private PksiFileResponse uploadSingleTempFile(String sessionId, MultipartFile file, String fileType) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
@@ -133,6 +133,7 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .blobUrl(fileUrl)
                 .blobName(blobName)
                 .sessionId(sessionId) // Store session ID for later association
+                .fileType(fileType) // T01 or T11
                 .build();
 
         pksiFile = pksiFileRepository.save(pksiFile);
@@ -215,7 +216,7 @@ public class PksiFileServiceImpl implements PksiFileService {
         log.info("Deleted temp files successfully");
     }
 
-    private PksiFileResponse uploadSingleFile(PksiDocument pksiDocument, MultipartFile file) throws IOException {
+    private PksiFileResponse uploadSingleFile(PksiDocument pksiDocument, MultipartFile file, String fileType) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
@@ -250,6 +251,7 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .fileSize(file.getSize())
                 .blobUrl(fileUrl)
                 .blobName(blobName)
+                .fileType(fileType) // T01 or T11
                 .build();
 
         pksiFile = pksiFileRepository.save(pksiFile);
@@ -360,6 +362,7 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .contentType(file.getContentType())
                 .fileSize(file.getFileSize())
                 .blobUrl(file.getBlobUrl())
+                .fileType(file.getFileType())
                 .createdAt(file.getCreatedAt() != null ? file.getCreatedAt() : LocalDateTime.now())
                 .build();
     }
