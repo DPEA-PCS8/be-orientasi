@@ -197,7 +197,6 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering by department with year: {} and noInisiatif: {}", year, noInisiatif);
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
                 searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)

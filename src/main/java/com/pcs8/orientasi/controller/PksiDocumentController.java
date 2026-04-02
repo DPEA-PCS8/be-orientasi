@@ -34,7 +34,6 @@ public class PksiDocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(PksiDocumentController.class);
     private static final String SUCCESS_MESSAGE = "Success";
-    private static final int MAX_LOG_LENGTH = 50;
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "createdAt", "updatedAt", "namaPksi", "status", "tanggalPengajuan"
     );
@@ -183,21 +182,5 @@ public class PksiDocumentController {
             log.warn("Invalid UUID format received");
             return null;
         }
-    }
-
-    /**
-     * Sanitize user-controlled data before logging to prevent log injection attacks.
-     * Removes newlines, control characters, and truncates to max length.
-     */
-    private String sanitizeForLog(String input) {
-        if (input == null) {
-            return "[null]";
-        }
-        String sanitized = input.replaceAll("[\\r\\n\\t]", "_")
-                                .replaceAll("[^a-zA-Z0-9_\\-]", "");
-        if (sanitized.length() > MAX_LOG_LENGTH) {
-            return sanitized.substring(0, MAX_LOG_LENGTH) + "...";
-        }
-        return sanitized;
     }
 }
