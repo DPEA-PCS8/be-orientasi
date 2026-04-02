@@ -15,21 +15,27 @@ import java.util.UUID;
 @Repository
 public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID> {
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.user.uuid = :userUuid")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.user.uuid = :userUuid")
     List<PksiDocument> findByUserUuid(@Param("userUuid") UUID userUuid);
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.user.uuid = :userUuid")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.user.uuid = :userUuid")
     List<PksiDocument> findByUserUuidWithAplikasi(@Param("userUuid") UUID userUuid);
     
     List<PksiDocument> findByStatus(PksiDocument.DocumentStatus status);
     
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user")
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup")
     List<PksiDocument> findAllWithUser();
     
-    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.id = :id")
+    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.inisiatif ini LEFT JOIN FETCH ini.group LEFT JOIN FETCH p.inisiatifGroup WHERE p.id = :id")
     Optional<PksiDocument> findByIdWithUser(@Param("id") UUID id);
 
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
+    @Query(value = "SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status)",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM PksiDocument p LEFT JOIN p.user u WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
@@ -53,11 +59,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
     Page<PksiDocument> searchDocumentsWithYear(
             @Param("searchPattern") String searchPattern, 
@@ -79,7 +81,15 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
      * so this is safe from SQL injection.
      */
     @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
-    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+    @Query(value = "SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
+           "(:searchPattern IS NULL OR :searchPattern = '' OR " +
+           "LOWER(p.namaPksi) LIKE :searchPattern OR " +
+           "LOWER(u.fullName) LIKE :searchPattern OR " +
+           "LOWER(p.picSatker) LIKE :searchPattern) " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
+           "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
+           "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))",
+           countQuery = "SELECT COUNT(DISTINCT p) FROM PksiDocument p LEFT JOIN p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
            "LOWER(p.namaPksi) LIKE :searchPattern OR " +
            "LOWER(u.fullName) LIKE :searchPattern OR " +
@@ -92,6 +102,32 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
             @Param("status") String status,
             @Param("userDepartment") String userDepartment,
             Pageable pageable);
+
+    /**
+     * Find PKSI documents by inisiatif group IDs
+     */
+    @Query("SELECT p FROM PksiDocument p WHERE p.inisiatifGroup.id IN :groupIds")
+    List<PksiDocument> findByInisiatifGroupIdIn(@Param("groupIds") List<UUID> groupIds);
+
+    /**
+     * Find PKSI documents by inisiatif group IDs with status filter
+     */
+    @Query("SELECT p FROM PksiDocument p WHERE p.inisiatifGroup.id IN :groupIds " +
+           "AND (:status IS NULL OR CAST(p.status AS string) = :status)")
+    List<PksiDocument> findByInisiatifGroupIdInAndStatus(
+            @Param("groupIds") List<UUID> groupIds, 
+            @Param("status") String status);
+
+    /**
+     * Count PKSI documents by inisiatif group with status filter
+     */
+    @Query("SELECT p.inisiatifGroup.id, COUNT(p) FROM PksiDocument p " +
+           "WHERE p.inisiatifGroup.id IN :groupIds " +
+           "AND (:status IS NULL OR CAST(p.status AS string) = :status) " +
+           "GROUP BY p.inisiatifGroup.id")
+    List<Object[]> countByInisiatifGroupIdInAndStatus(
+            @Param("groupIds") List<UUID> groupIds, 
+            @Param("status") String status);
 
     /**
      * Search PKSI documents filtered by user department with year filter.
@@ -109,11 +145,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%'))) " +
            "AND (:year IS NULL OR " +
            "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap2Awal) = :year OR YEAR(p.tahap2Akhir) = :year OR " +
-           "YEAR(p.tahap3Awal) = :year OR YEAR(p.tahap3Akhir) = :year OR " +
-           "YEAR(p.tahap4Awal) = :year OR YEAR(p.tahap4Akhir) = :year OR " +
            "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap6Awal) = :year OR YEAR(p.tahap6Akhir) = :year OR " +
            "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
     Page<PksiDocument> searchDocumentsByDepartmentWithYear(
             @Param("searchPattern") String searchPattern, 
