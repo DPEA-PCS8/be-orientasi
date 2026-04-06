@@ -16,13 +16,15 @@ public interface Fs2Service {
 
     List<Fs2DocumentResponse> getAll();
 
-    Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable);
+    Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll);
 
-    List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status);
+    List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status, String userDepartment, boolean canSeeAll);
 
     Page<Fs2DocumentResponse> searchApproved(
             com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
-            Pageable pageable
+            Pageable pageable,
+            String userDepartment,
+            boolean canSeeAll
     );
 
     Fs2DocumentResponse update(UUID id, Fs2DocumentRequest request);

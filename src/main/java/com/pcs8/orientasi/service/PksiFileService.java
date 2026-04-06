@@ -11,12 +11,12 @@ public interface PksiFileService {
     /**
      * Upload multiple files for a PKSI document
      */
-    List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files);
+    List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files, String fileType);
     
     /**
      * Upload files to temporary storage (before PKSI is created)
      */
-    List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files);
+    List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType);
     
     /**
      * Move temporary files to permanent storage after PKSI is created

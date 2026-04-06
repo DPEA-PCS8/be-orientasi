@@ -4,6 +4,7 @@ import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.BatchKepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiAnalyticsRequest;
+import com.pcs8.orientasi.domain.dto.request.RbsiDashboardRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
@@ -14,19 +15,27 @@ import com.pcs8.orientasi.domain.dto.response.InisiatifGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiAnalyticsResponse;
+import com.pcs8.orientasi.domain.dto.response.RbsiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiKepResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiMonitoringResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
+import com.pcs8.orientasi.service.RbsiDashboardService;
+import com.pcs8.orientasi.service.RbsiExcelExportService;
 import com.pcs8.orientasi.service.RbsiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +47,8 @@ import java.util.UUID;
 public class RbsiController {
 
     private final RbsiService rbsiService;
+    private final RbsiDashboardService rbsiDashboardService;
+    private final RbsiExcelExportService excelExportService;
 
     @PostMapping
     public ResponseEntity<BaseResponse> createRbsi(@Valid @RequestBody RbsiRequest request) {
@@ -220,5 +231,48 @@ public class RbsiController {
             @Valid @RequestBody RbsiAnalyticsRequest request) {
         RbsiAnalyticsResponse response = rbsiService.getAnalytics(rbsiId, request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+    }
+
+    // ==================== Dashboard Endpoint ====================
+
+    @PostMapping("/{rbsiId}/dashboard")
+    public ResponseEntity<BaseResponse> getDashboard(
+            @PathVariable UUID rbsiId,
+            @Valid @RequestBody RbsiDashboardRequest request) {
+        request.setRbsiId(rbsiId);
+        RbsiDashboardResponse response = rbsiDashboardService.getDashboardData(rbsiId, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+    }
+
+    @GetMapping("/{rbsiId}/dashboard")
+    public ResponseEntity<BaseResponse> getDashboardSimple(
+            @PathVariable UUID rbsiId,
+            @RequestParam(required = false) Integer tahun,
+            @RequestParam(required = false, name = "pksi_status") String pksiStatus,
+            @RequestParam(required = false, name = "comparison_year") Integer comparisonYear,
+            @RequestParam(required = false, name = "kep_id") UUID kepId) {
+        RbsiDashboardRequest request = RbsiDashboardRequest.builder()
+                .rbsiId(rbsiId)
+                .tahun(tahun)
+                .pksiStatus(pksiStatus)
+                .comparisonYear(comparisonYear)
+                .kepId(kepId)
+                .build();
+        RbsiDashboardResponse response = rbsiDashboardService.getDashboardData(rbsiId, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", response));
+    }
+
+    @GetMapping("/{rbsiId}/monitoring/export")
+    public ResponseEntity<byte[]> exportMonitoringToExcel(@PathVariable UUID rbsiId) {
+        ByteArrayOutputStream outputStream = excelExportService.exportMonitoringToExcel(rbsiId);
+        
+        String filename = "RBSI_Monitoring_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+        
+        return new ResponseEntity<>(outputStream.toByteArray(), headers, HttpStatus.OK);
     }
 }

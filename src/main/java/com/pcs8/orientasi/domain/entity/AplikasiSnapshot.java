@@ -74,7 +74,7 @@ public class AplikasiSnapshot extends BaseEntity {
     @Column(name = TANGGAL_IMPLEMENTASI)
     private LocalDate tanggalImplementasi;
 
-    @Column(name = AKSES, length = 20)
+    @Column(name = AKSES, length = 255)
     private String akses;
 
     @Column(name = PROSES_DATA_PRIBADI, nullable = false)

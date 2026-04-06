@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "fs2_document")
+@Table(name = "mst_fs2_document")
 public class Fs2Document extends BaseEntity {
 
     @Id
@@ -32,9 +32,6 @@ public class Fs2Document extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aplikasi_id")
     private MstAplikasi aplikasi;
-
-    @Column(name = "nama_fs2", nullable = false, length = 255)
-    private String namaFs2;
 
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
@@ -200,4 +197,56 @@ public class Fs2Document extends BaseEntity {
     // Dokumen Pengajuan F.S.2 reference (file ID or path)
     @Column(name = "dokumen_path", length = 500)
     private String dokumenPath;
+
+    // === New Monitoring Fields ===
+    
+    // Dokumen Pengajuan F.S.2
+    @Column(name = "nomor_nd", length = 100)
+    private String nomorNd;
+
+    @Column(name = "tanggal_nd")
+    private LocalDate tanggalNd;
+
+    @Column(name = "berkas_nd", length = 500)
+    private String berkasNd;
+
+    @Column(name = "berkas_fs2", length = 500)
+    private String berkasFs2;
+
+    // CD Prinsip
+    @Column(name = "nomor_cd", length = 100)
+    private String nomorCd;
+
+    @Column(name = "tanggal_cd")
+    private LocalDate tanggalCd;
+
+    @Column(name = "berkas_cd", length = 500)
+    private String berkasCd;
+
+    @Column(name = "berkas_fs2a", length = 500)
+    private String berkasFs2a;
+
+    @Column(name = "berkas_fs2b", length = 500)
+    private String berkasFs2b;
+
+    // Pengujian
+    @Column(name = "realisasi_pengujian")
+    private LocalDate realisasiPengujian;
+
+    @Column(name = "berkas_f45", length = 500)
+    private String berkasF45;
+
+    @Column(name = "berkas_f46", length = 500)
+    private String berkasF46;
+
+    // Deployment
+    @Column(name = "realisasi_deployment")
+    private LocalDate realisasiDeployment;
+
+    @Column(name = "berkas_nd_ba_deployment", length = 500)
+    private String berkasNdBaDeployment;
+
+    // Keterangan
+    @Column(name = "keterangan", columnDefinition = "TEXT")
+    private String keterangan;
 }

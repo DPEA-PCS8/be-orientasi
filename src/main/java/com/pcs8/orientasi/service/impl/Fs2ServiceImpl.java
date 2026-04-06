@@ -25,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -53,7 +55,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = Fs2Document.builder()
                 .userId(userId)
                 .userName(username)
-                .namaFs2(request.getNamaFs2().trim())
                 .tanggalPengajuan(request.getTanggalPengajuan() != null ? request.getTanggalPengajuan() : LocalDate.now())
                 .status(request.getStatus() != null ? request.getStatus() : "PENDING")
                 // New form fields
@@ -99,7 +100,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document created: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document created: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logCreate(ENTITY_NAME, saved.getId(), response, userId, username);
@@ -123,25 +124,95 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable) {
-        return fs2Repository.searchFs2Documents(search, bidangId, skpaId, status, pageable)
-                .map(this::mapToResponse);
+    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            log.info("User can see all - fetching all F.S.2 documents with year filter: {}", year);
+            return fs2Repository.searchFs2DocumentsWithYear(search, bidangId, skpaId, status, year, pageable)
+                    .map(this::mapToResponse);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}", userDepartment, year);
+        
+        // Find SKPA UUID for the user's department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYear(search, bidangId, status, userDepartment.trim(), year, pageable)
+                    .map(this::mapToResponse);
+        } else {
+            log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
+            return Page.empty(pageable);
+        }
     }
 
     @Override
-    public List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status) {
-        return fs2Repository.searchFs2DocumentsList(search, bidangId, skpaId, status)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public List<Fs2DocumentResponse> searchList(String search, UUID bidangId, UUID skpaId, String status, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 list - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            return fs2Repository.searchFs2DocumentsList(search, bidangId, skpaId, status)
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty list for security");
+            return Collections.emptyList();
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            return fs2Repository.searchFs2DocumentsListByDepartment(search, bidangId, status, userDepartment.trim())
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public Page<Fs2DocumentResponse> searchApproved(
             com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter filter,
-            Pageable pageable) {
-        return fs2Repository.searchApprovedFs2Documents(filter, pageable
-        ).map(this::mapToResponse);
+            Pageable pageable,
+            String userDepartment,
+            boolean canSeeAll) {
+        log.info("Searching approved F.S.2 - canSeeAll: {}, userDepartment: '{}'", canSeeAll, userDepartment);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            return fs2Repository.searchApprovedFs2Documents(filter, pageable)
+                    .map(this::mapToResponse);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty approved list for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see approved documents where SKPA kode matches their department
+        Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
+        if (userSkpa.isPresent()) {
+            return fs2Repository.searchApprovedFs2DocumentsByDepartment(filter, userDepartment.trim(), pageable)
+                    .map(this::mapToResponse);
+        } else {
+            return Page.empty(pageable);
+        }
     }
 
     @Override
@@ -156,7 +227,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2DocumentResponse oldValue = mapToResponse(document);
 
         // Update fields
-        document.setNamaFs2(request.getNamaFs2().trim());
         if (request.getTanggalPengajuan() != null) {
             document.setTanggalPengajuan(request.getTanggalPengajuan());
         }
@@ -164,50 +234,75 @@ public class Fs2ServiceImpl implements Fs2Service {
             document.setStatus(request.getStatus());
         }
         
-        // Update new form fields
-        document.setDeskripsiPengubahan(request.getDeskripsiPengubahan());
-        document.setAlasanPengubahan(request.getAlasanPengubahan());
-        document.setStatusTahapan(request.getStatusTahapan());
-        document.setUrgensi(request.getUrgensi());
+        // Update form fields - only update if not null to prevent data loss
+        if (request.getDeskripsiPengubahan() != null) document.setDeskripsiPengubahan(request.getDeskripsiPengubahan());
+        if (request.getAlasanPengubahan() != null) document.setAlasanPengubahan(request.getAlasanPengubahan());
+        if (request.getStatusTahapan() != null) document.setStatusTahapan(request.getStatusTahapan());
+        if (request.getUrgensi() != null) document.setUrgensi(request.getUrgensi());
         if (request.getKriteria1() != null) document.setKriteria1(request.getKriteria1());
         if (request.getKriteria2() != null) document.setKriteria2(request.getKriteria2());
         if (request.getKriteria3() != null) document.setKriteria3(request.getKriteria3());
         if (request.getKriteria4() != null) document.setKriteria4(request.getKriteria4());
-        document.setAspekSistemAda(request.getAspekSistemAda());
-        document.setAspekSistemTerkait(request.getAspekSistemTerkait());
-        document.setAspekAlurKerja(request.getAspekAlurKerja());
-        document.setAspekStrukturOrganisasi(request.getAspekStrukturOrganisasi());
-        document.setDokT01Sebelum(request.getDokT01Sebelum());
-        document.setDokT01Sesudah(request.getDokT01Sesudah());
-        document.setDokT11Sebelum(request.getDokT11Sebelum());
-        document.setDokT11Sesudah(request.getDokT11Sesudah());
-        document.setPenggunaSebelum(request.getPenggunaSebelum());
-        document.setPenggunaSesudah(request.getPenggunaSesudah());
-        document.setAksesBersamaanSebelum(request.getAksesBersamaanSebelum());
-        document.setAksesBersamaanSesudah(request.getAksesBersamaanSesudah());
-        document.setPertumbuhanDataSebelum(request.getPertumbuhanDataSebelum());
-        document.setPertumbuhanDataSesudah(request.getPertumbuhanDataSesudah());
-        document.setTargetPengujian(request.getTargetPengujian());
-        document.setTargetDeployment(request.getTargetDeployment());
-        document.setTargetGoLive(request.getTargetGoLive());
+        if (request.getAspekSistemAda() != null) document.setAspekSistemAda(request.getAspekSistemAda());
+        if (request.getAspekSistemTerkait() != null) document.setAspekSistemTerkait(request.getAspekSistemTerkait());
+        if (request.getAspekAlurKerja() != null) document.setAspekAlurKerja(request.getAspekAlurKerja());
+        if (request.getAspekStrukturOrganisasi() != null) document.setAspekStrukturOrganisasi(request.getAspekStrukturOrganisasi());
+        if (request.getDokT01Sebelum() != null) document.setDokT01Sebelum(request.getDokT01Sebelum());
+        if (request.getDokT01Sesudah() != null) document.setDokT01Sesudah(request.getDokT01Sesudah());
+        if (request.getDokT11Sebelum() != null) document.setDokT11Sebelum(request.getDokT11Sebelum());
+        if (request.getDokT11Sesudah() != null) document.setDokT11Sesudah(request.getDokT11Sesudah());
+        if (request.getPenggunaSebelum() != null) document.setPenggunaSebelum(request.getPenggunaSebelum());
+        if (request.getPenggunaSesudah() != null) document.setPenggunaSesudah(request.getPenggunaSesudah());
+        if (request.getAksesBersamaanSebelum() != null) document.setAksesBersamaanSebelum(request.getAksesBersamaanSebelum());
+        if (request.getAksesBersamaanSesudah() != null) document.setAksesBersamaanSesudah(request.getAksesBersamaanSesudah());
+        if (request.getPertumbuhanDataSebelum() != null) document.setPertumbuhanDataSebelum(request.getPertumbuhanDataSebelum());
+        if (request.getPertumbuhanDataSesudah() != null) document.setPertumbuhanDataSesudah(request.getPertumbuhanDataSesudah());
+        if (request.getTargetPengujian() != null) document.setTargetPengujian(request.getTargetPengujian());
+        if (request.getTargetDeployment() != null) document.setTargetDeployment(request.getTargetDeployment());
+        if (request.getTargetGoLive() != null) document.setTargetGoLive(request.getTargetGoLive());
         if (request.getPernyataan1() != null) document.setPernyataan1(request.getPernyataan1());
         if (request.getPernyataan2() != null) document.setPernyataan2(request.getPernyataan2());
         
-        // F.S.2 Disetujui fields
-        document.setProgres(request.getProgres());
-        document.setFasePengajuan(request.getFasePengajuan());
-        document.setIku(request.getIku());
-        document.setMekanisme(request.getMekanisme());
-        document.setPelaksanaan(request.getPelaksanaan());
-        document.setTahun(request.getTahun());
-        document.setTahunMulai(request.getTahunMulai());
-        document.setTahunSelesai(request.getTahunSelesai());
-        document.setDokumenPath(request.getDokumenPath());
+        // F.S.2 Disetujui fields - only update if not null
+        if (request.getProgres() != null) document.setProgres(request.getProgres());
+        if (request.getFasePengajuan() != null) document.setFasePengajuan(request.getFasePengajuan());
+        if (request.getIku() != null) document.setIku(request.getIku());
+        if (request.getMekanisme() != null) document.setMekanisme(request.getMekanisme());
+        if (request.getPelaksanaan() != null) document.setPelaksanaan(request.getPelaksanaan());
+        if (request.getTahun() != null) document.setTahun(request.getTahun());
+        if (request.getTahunMulai() != null) document.setTahunMulai(request.getTahunMulai());
+        if (request.getTahunSelesai() != null) document.setTahunSelesai(request.getTahunSelesai());
+        if (request.getDokumenPath() != null) document.setDokumenPath(request.getDokumenPath());
+
+        // Monitoring Fields - Dokumen Pengajuan F.S.2 - only update if not null
+        if (request.getNomorNd() != null) document.setNomorNd(request.getNomorNd());
+        if (request.getTanggalNd() != null) document.setTanggalNd(request.getTanggalNd());
+        if (request.getBerkasNd() != null) document.setBerkasNd(request.getBerkasNd());
+        if (request.getBerkasFs2() != null) document.setBerkasFs2(request.getBerkasFs2());
+
+        // Monitoring Fields - CD Prinsip - only update if not null
+        if (request.getNomorCd() != null) document.setNomorCd(request.getNomorCd());
+        if (request.getTanggalCd() != null) document.setTanggalCd(request.getTanggalCd());
+        if (request.getBerkasCd() != null) document.setBerkasCd(request.getBerkasCd());
+        if (request.getBerkasFs2a() != null) document.setBerkasFs2a(request.getBerkasFs2a());
+        if (request.getBerkasFs2b() != null) document.setBerkasFs2b(request.getBerkasFs2b());
+
+        // Monitoring Fields - Pengujian - only update if not null
+        if (request.getRealisasiPengujian() != null) document.setRealisasiPengujian(request.getRealisasiPengujian());
+        if (request.getBerkasF45() != null) document.setBerkasF45(request.getBerkasF45());
+        if (request.getBerkasF46() != null) document.setBerkasF46(request.getBerkasF46());
+
+        // Monitoring Fields - Deployment - only update if not null
+        if (request.getRealisasiDeployment() != null) document.setRealisasiDeployment(request.getRealisasiDeployment());
+        if (request.getBerkasNdBaDeployment() != null) document.setBerkasNdBaDeployment(request.getBerkasNdBaDeployment());
+
+        // Monitoring Fields - Keterangan - only update if not null
+        if (request.getKeterangan() != null) document.setKeterangan(request.getKeterangan());
 
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
-        log.info("F.S.2 Document updated: {}", saved.getNamaFs2());
+        log.info("F.S.2 Document updated: {}", saved.getId());
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);
@@ -246,7 +341,7 @@ public class Fs2ServiceImpl implements Fs2Service {
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
         fs2Repository.delete(document);
-        log.info("F.S.2 Document deleted: {}", document.getNamaFs2());
+        log.info("F.S.2 Document deleted: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
@@ -286,7 +381,6 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .id(document.getId())
                 .userId(document.getUserId())
                 .userName(document.getUserName())
-                .namaFs2(document.getNamaFs2())
                 .tanggalPengajuan(document.getTanggalPengajuan())
                 .status(document.getStatus())
                 // New form fields
@@ -329,6 +423,26 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .picId(document.getPicId())
                 .picName(document.getPicName())
                 .dokumenPath(document.getDokumenPath())
+                // Monitoring Fields - Dokumen Pengajuan F.S.2
+                .nomorNd(document.getNomorNd())
+                .tanggalNd(document.getTanggalNd())
+                .berkasNd(document.getBerkasNd())
+                .berkasFs2(document.getBerkasFs2())
+                // Monitoring Fields - CD Prinsip
+                .nomorCd(document.getNomorCd())
+                .tanggalCd(document.getTanggalCd())
+                .berkasCd(document.getBerkasCd())
+                .berkasFs2a(document.getBerkasFs2a())
+                .berkasFs2b(document.getBerkasFs2b())
+                // Monitoring Fields - Pengujian
+                .realisasiPengujian(document.getRealisasiPengujian())
+                .berkasF45(document.getBerkasF45())
+                .berkasF46(document.getBerkasF46())
+                // Monitoring Fields - Deployment
+                .realisasiDeployment(document.getRealisasiDeployment())
+                .berkasNdBaDeployment(document.getBerkasNdBaDeployment())
+                // Monitoring Fields - Keterangan
+                .keterangan(document.getKeterangan())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt());
 

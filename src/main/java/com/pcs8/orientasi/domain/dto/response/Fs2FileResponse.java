@@ -15,14 +15,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class PksiFileResponse {
+public class Fs2FileResponse {
     private UUID id;
-    private UUID pksiId;
+    private UUID fs2Id;
     private String fileName;
     private String originalName;
     private String contentType;
     private Long fileSize;
     private String blobUrl;
-    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
     private LocalDateTime createdAt;
 }

@@ -24,6 +24,16 @@ public interface PksiDocumentService {
     
     Page<PksiDocumentResponse> searchDocuments(String search, String status, Pageable pageable, String userDepartment, boolean canSeeAll);
     
+    /**
+     * Search documents with year and noInisiatif filters
+     */
+    Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, boolean noInisiatif, Pageable pageable, String userDepartment, boolean canSeeAll);
+    
+    /**
+     * Count documents by status, optional year filter, and noInisiatif filter
+     */
+    long countDocuments(String status, Integer year, boolean noInisiatif);
+    
     PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
     
     PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request);

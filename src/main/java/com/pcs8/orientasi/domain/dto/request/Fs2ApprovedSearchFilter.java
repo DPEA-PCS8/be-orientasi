@@ -34,4 +34,6 @@ public class Fs2ApprovedSearchFilter {
     private String mekanisme;
 
     private String pelaksanaan;
+
+    private Integer year;
 }

@@ -34,11 +34,12 @@ public class PksiFileController {
     @PostMapping("/upload/{pksiId}")
     public ResponseEntity<BaseResponse> uploadFiles(
             @PathVariable UUID pksiId,
-            @RequestParam("files") MultipartFile[] files) {
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "fileType", required = false, defaultValue = "T01") String fileType) {
         
         log.info("Uploading files for PKSI document");
         
-        List<PksiFileResponse> responses = pksiFileService.uploadFiles(pksiId, files);
+        List<PksiFileResponse> responses = pksiFileService.uploadFiles(pksiId, files, fileType);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Files uploaded successfully", responses));
@@ -50,11 +51,12 @@ public class PksiFileController {
     @PostMapping("/temp/upload/{sessionId}")
     public ResponseEntity<BaseResponse> uploadTempFiles(
             @PathVariable String sessionId,
-            @RequestParam("files") MultipartFile[] files) {
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "fileType", required = false, defaultValue = "T01") String fileType) {
         
-        log.info("Uploading temp files");
+        log.info("Uploading temp files for session");
         
-        List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files);
+        List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files, fileType);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));
@@ -127,6 +129,26 @@ public class PksiFileController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentLength(content.length);
+
+        return new ResponseEntity<>(content, headers, HttpStatus.OK);
+    }
+
+    /**
+     * Preview a file inline (for PDF, images, etc.)
+     */
+    @GetMapping("/preview/{fileId}")
+    public ResponseEntity<byte[]> previewFile(@PathVariable UUID fileId) {
+        log.info("Previewing file");
+        
+        byte[] content = pksiFileService.downloadFile(fileId);
+        PksiFileResponse fileInfo = pksiFileService.getFileById(fileId);
+        
+        String contentType = fileInfo.getContentType() != null ? fileInfo.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline");
         headers.setContentLength(content.length);
 
         return new ResponseEntity<>(content, headers, HttpStatus.OK);

@@ -11,16 +11,16 @@ import org.hibernate.annotations.UuidGenerator;
 import java.util.UUID;
 
 /**
- * Entity untuk file lampiran PKSI yang disimpan di Minio Storage
+ * Entity untuk file lampiran F.S.2 yang disimpan di Minio Storage.
  */
 @Entity
-@Table(name = "trn_pksi_file")
+@Table(name = "trn_fs2_file")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PksiFile extends BaseEntity {
+public class Fs2File extends BaseEntity {
 
     @Id
     @UuidGenerator
@@ -28,30 +28,28 @@ public class PksiFile extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pksi_id", nullable = true) // Nullable for temp files
-    private PksiDocument pksiDocument;
+    @JoinColumn(name = "fs2_id", nullable = true)
+    private Fs2Document fs2Document;
 
-    @Column(name = "file_name", nullable = false, length = 255)
+    // File metadata fields for FS2 attachments stored in MinIO
+    @Column(name = "file_name", nullable = false, length = 256)
     private String fileName;
 
-    @Column(name = "original_name", nullable = false, length = 255)
+    @Column(name = "original_name", nullable = false, length = 256)
     private String originalName;
 
-    @Column(name = "content_type", length = 100)
+    @Column(name = "content_type", length = 128)
     private String contentType;
 
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "blob_url", length = 500)
+    @Column(name = "blob_url", length = 512)
     private String blobUrl;
 
-    @Column(name = "blob_name", length = 500)
+    @Column(name = "blob_name", length = 512)
     private String blobName;
 
-    @Column(name = "session_id", length = 100)
-    private String sessionId; // For temporary files before PKSI association
-
-    @Column(name = "file_type", length = 20)
-    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
+    @Column(name = "session_id", length = 128)
+    private String sessionId;
 }

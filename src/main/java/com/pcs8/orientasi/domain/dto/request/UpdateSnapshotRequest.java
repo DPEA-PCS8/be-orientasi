@@ -40,7 +40,7 @@ public class UpdateSnapshotRequest {
     private LocalDate tanggalImplementasi;
 
     @JsonProperty(AKSES)
-    private String akses; // INTERNET, INTRANET, BOTH
+    private String akses; // Comma-separated: INTERNET, INTRANET, EXTRANET, DESKTOP_APP, MOBILE_APP, or custom text
 
     @JsonProperty(PROSES_DATA_PRIBADI)
     private Boolean prosesDataPribadi;
