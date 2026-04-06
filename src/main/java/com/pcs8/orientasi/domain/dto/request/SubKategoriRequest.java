@@ -26,4 +26,9 @@ public class SubKategoriRequest {
     @NotBlank(message = "Category code is required")
     @Size(max = 10, message = "Category code max 10 characters")
     private String categoryCode;
+
+    @JsonProperty("category_name")
+    @NotBlank(message = "Category name is required")
+    @Size(max = 100, message = "Category name max 100 characters")
+    private String categoryName;
 }

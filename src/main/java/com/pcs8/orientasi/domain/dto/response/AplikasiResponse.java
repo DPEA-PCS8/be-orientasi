@@ -42,6 +42,9 @@ public class AplikasiResponse {
     @JsonProperty("skpa")
     private SkpaInfo skpa;
 
+    @JsonProperty("sub_kategori")
+    private SubKategoriInfo subKategori;
+
     @JsonProperty("tanggal_implementasi")
     private LocalDate tanggalImplementasi;
 

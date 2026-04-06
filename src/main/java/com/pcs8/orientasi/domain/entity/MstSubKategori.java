@@ -31,4 +31,7 @@ public class MstSubKategori extends BaseEntity {
 
     @Column(name = "category_code", nullable = false, length = 10)
     private String categoryCode;
+
+    @Column(name = "category_name", nullable = false, length = 100)
+    private String categoryName;
 }

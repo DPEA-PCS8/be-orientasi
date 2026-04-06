@@ -9,6 +9,7 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
+import com.pcs8.orientasi.repository.MstSubKategoriRepository;
 import com.pcs8.orientasi.repository.MstVariableRepository;
 import com.pcs8.orientasi.service.AplikasiHistorisService;
 import com.pcs8.orientasi.service.AplikasiService;
@@ -36,6 +37,7 @@ public class AplikasiServiceImpl implements AplikasiService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
+    private final MstSubKategoriRepository subKategoriRepository;
     private final MstVariableRepository variableRepository;
     private final AuditService auditService;
     private final UserContext userContext;
@@ -45,6 +47,7 @@ public class AplikasiServiceImpl implements AplikasiService {
             MstAplikasiRepository aplikasiRepository,
             MstBidangRepository bidangRepository,
             MstSkpaRepository skpaRepository,
+            MstSubKategoriRepository subKategoriRepository,
             MstVariableRepository variableRepository,
             AuditService auditService,
             UserContext userContext,
@@ -53,6 +56,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         this.aplikasiRepository = aplikasiRepository;
         this.bidangRepository = bidangRepository;
         this.skpaRepository = skpaRepository;
+        this.subKategoriRepository = subKategoriRepository;
         this.variableRepository = variableRepository;
         this.auditService = auditService;
         this.userContext = userContext;
@@ -136,6 +140,14 @@ public class AplikasiServiceImpl implements AplikasiService {
             aplikasi.setSkpa(skpa);
         } else {
             aplikasi.setSkpa(null);
+        }
+        // SubKategori
+        if (request.getSubKategoriId() != null) {
+            MstSubKategori subKategori = subKategoriRepository.findById(request.getSubKategoriId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Sub Kategori tidak ditemukan"));
+            aplikasi.setSubKategori(subKategori);
+        } else {
+            aplikasi.setSubKategori(null);
         }
     }
 
@@ -457,6 +469,17 @@ public class AplikasiServiceImpl implements AplikasiService {
                     .id(entity.getSkpa().getId())
                     .kodeSkpa(entity.getSkpa().getKodeSkpa())
                     .namaSkpa(entity.getSkpa().getNamaSkpa())
+                    .build());
+        }
+
+        // Map subKategori
+        if (entity.getSubKategori() != null) {
+            builder.subKategori(SubKategoriInfo.builder()
+                    .id(entity.getSubKategori().getId())
+                    .kode(entity.getSubKategori().getKode())
+                    .nama(entity.getSubKategori().getNama())
+                    .categoryCode(entity.getSubKategori().getCategoryCode())
+                    .categoryName(entity.getSubKategori().getCategoryName())
                     .build());
         }
 
