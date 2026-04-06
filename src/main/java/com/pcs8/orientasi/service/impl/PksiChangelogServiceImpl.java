@@ -1,9 +1,11 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
+import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiChangelog;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.PksiChangelogRepository;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
     private static final Logger log = LoggerFactory.getLogger(PksiChangelogServiceImpl.class);
 
     private final PksiChangelogRepository pksiChangelogRepository;
+    private final MstSkpaRepository skpaRepository;
 
     // Field label mapping for human-readable names
     private static final Map<String, String> FIELD_LABELS = createFieldLabels();
@@ -78,13 +81,11 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         // Status
         labels.put("status", "Status");
         
-        // Approval fields
+        // Approval fields - use friendly names
         labels.put("iku", "IKU");
         labels.put("inhouseOutsource", "Inhouse/Outsource");
-        labels.put("picApproval", "PIC Approval");
-        labels.put("picApprovalName", "Nama PIC Approval");
-        labels.put("anggotaTim", "Anggota Tim");
-        labels.put("anggotaTimNames", "Nama Anggota Tim");
+        labels.put("picApprovalName", "PIC Approval");
+        labels.put("anggotaTimNames", "Anggota Tim");
         labels.put("progress", "Progress");
         
         return Collections.unmodifiableMap(labels);
@@ -124,8 +125,10 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
                 oldDocument.getMengapaPksiDiperlukan(), pksiDocument.getMengapaPksiDiperlukan(), updatedBy, updatedByName);
         trackStringChange(changes, pksiDocument, oldDocument, "kapanDiselesaikan",
                 oldDocument.getKapanDiselesaikan(), pksiDocument.getKapanDiselesaikan(), updatedBy, updatedByName);
+        // Resolve picSatker UUIDs to names
         trackStringChange(changes, pksiDocument, oldDocument, "picSatker",
-                oldDocument.getPicSatker(), pksiDocument.getPicSatker(), updatedBy, updatedByName);
+                resolveSkpaUuidsToNames(oldDocument.getPicSatker()), 
+                resolveSkpaUuidsToNames(pksiDocument.getPicSatker()), updatedBy, updatedByName);
         
         // Section 2
         trackStringChange(changes, pksiDocument, oldDocument, "kegunaanPksi",
@@ -191,17 +194,15 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         trackEnumChange(changes, pksiDocument, oldDocument, "status",
                 oldDocument.getStatus(), pksiDocument.getStatus(), updatedBy, updatedByName);
         
-        // Approval fields
+        // Approval fields - Track Names instead of UUIDs
         trackStringChange(changes, pksiDocument, oldDocument, "iku",
                 oldDocument.getIku(), pksiDocument.getIku(), updatedBy, updatedByName);
         trackStringChange(changes, pksiDocument, oldDocument, "inhouseOutsource",
                 oldDocument.getInhouseOutsource(), pksiDocument.getInhouseOutsource(), updatedBy, updatedByName);
-        trackStringChange(changes, pksiDocument, oldDocument, "picApproval",
-                oldDocument.getPicApproval(), pksiDocument.getPicApproval(), updatedBy, updatedByName);
+        // Track picApprovalName instead of picApproval (UUID)
         trackStringChange(changes, pksiDocument, oldDocument, "picApprovalName",
                 oldDocument.getPicApprovalName(), pksiDocument.getPicApprovalName(), updatedBy, updatedByName);
-        trackStringChange(changes, pksiDocument, oldDocument, "anggotaTim",
-                oldDocument.getAnggotaTim(), pksiDocument.getAnggotaTim(), updatedBy, updatedByName);
+        // Track anggotaTimNames instead of anggotaTim (UUIDs)
         trackStringChange(changes, pksiDocument, oldDocument, "anggotaTimNames",
                 oldDocument.getAnggotaTimNames(), pksiDocument.getAnggotaTimNames(), updatedBy, updatedByName);
         trackStringChange(changes, pksiDocument, oldDocument, "progress",
@@ -281,6 +282,36 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         
         String username = user.getUsername();
         return username != null ? username : "Unknown";
+    }
+
+    /**
+     * Resolve SKPA UUIDs to human-readable kode_skpa names.
+     * Input: comma-separated UUIDs like "uuid1, uuid2"
+     * Output: comma-separated kode_skpa values like "SKPA1, SKPA2"
+     */
+    private String resolveSkpaUuidsToNames(String uuidString) {
+        if (uuidString == null || uuidString.trim().isEmpty()) {
+            return null;
+        }
+
+        String[] guids = uuidString.split(",");
+        String resolvedNames = Arrays.stream(guids)
+                .map(String::trim)
+                .filter(guid -> !guid.isEmpty())
+                .map(guid -> {
+                    try {
+                        UUID uuid = UUID.fromString(guid);
+                        Optional<MstSkpa> skpa = skpaRepository.findById(uuid);
+                        return skpa.map(MstSkpa::getKodeSkpa).orElse(null);
+                    } catch (IllegalArgumentException e) {
+                        // Not a valid UUID, return original value
+                        return guid;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+
+        return resolvedNames.isEmpty() ? null : resolvedNames;
     }
 
     private PksiChangelogResponse mapToResponse(PksiChangelog changelog) {
