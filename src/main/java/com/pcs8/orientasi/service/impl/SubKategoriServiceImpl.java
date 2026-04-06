@@ -61,6 +61,43 @@ public class SubKategoriServiceImpl implements SubKategoriService {
     }
 
     @Override
+    @Transactional
+    public List<SubKategoriResponse> bulkCreate(List<SubKategoriRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new BadRequestException("Request list tidak boleh kosong");
+        }
+
+        List<SubKategoriResponse> responses = new java.util.ArrayList<>();
+        
+        for (SubKategoriRequest request : requests) {
+            String kode = request.getKode().toUpperCase().trim();
+
+            // Skip jika kode sudah ada
+            if (subKategoriRepository.existsByKode(kode)) {
+                log.warn("SubKategori dengan kode '{}' sudah ada, dilewati", kode);
+                continue;
+            }
+
+            MstSubKategori subKategori = MstSubKategori.builder()
+                    .kode(kode)
+                    .nama(request.getNama().trim())
+                    .categoryCode(request.getCategoryCode().toUpperCase().trim())
+                    .categoryName(request.getCategoryName().trim())
+                    .build();
+
+            MstSubKategori saved = subKategoriRepository.save(subKategori);
+            
+            // Auto-create snapshot for current year
+            createSnapshot(saved, "CREATED");
+            
+            responses.add(mapToResponse(saved));
+        }
+
+        log.info("Bulk create completed: {} Sub Kategori created", responses.size());
+        return responses;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public SubKategoriResponse getById(UUID id) {
         MstSubKategori subKategori = subKategoriRepository.findById(id)
