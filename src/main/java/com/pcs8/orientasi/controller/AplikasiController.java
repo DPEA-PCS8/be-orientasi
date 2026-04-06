@@ -6,16 +6,22 @@ import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.service.AplikasiExcelExportService;
 import com.pcs8.orientasi.service.AplikasiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +34,7 @@ import java.util.UUID;
 public class AplikasiController {
 
     private final AplikasiService aplikasiService;
+    private final AplikasiExcelExportService excelExportService;
 
     @PostMapping
     public ResponseEntity<BaseResponse> create(@Valid @RequestBody AplikasiRequest request) {
@@ -116,5 +123,19 @@ public class AplikasiController {
     public ResponseEntity<BaseResponse> delete(@PathVariable UUID id) {
         aplikasiService.delete(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Aplikasi berhasil dihapus", null));
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportToExcel() {
+        ByteArrayOutputStream outputStream = excelExportService.exportAplikasiToExcel();
+        
+        String filename = "Daftar_Aplikasi_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+        
+        return new ResponseEntity<>(outputStream.toByteArray(), headers, HttpStatus.OK);
     }
 }
