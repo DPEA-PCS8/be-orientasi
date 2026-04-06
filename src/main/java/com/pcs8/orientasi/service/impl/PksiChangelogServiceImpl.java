@@ -24,8 +24,8 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
 
     private static final Logger log = LoggerFactory.getLogger(PksiChangelogServiceImpl.class);
 
-    private final PksiChangelogRepository pksiChangelogRepository;
-    private final MstSkpaRepository skpaRepository;
+        private final PksiChangelogRepository pksiChangelogRepository;
+        private final MstSkpaRepository skpaRepository;
 
     // Field label mapping for human-readable names
     private static final Map<String, String> FIELD_LABELS = createFieldLabels();
@@ -315,7 +315,6 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
 
         return resolvedNames.isEmpty() ? null : resolvedNames;
     }
-
     private PksiChangelogResponse mapToResponse(PksiChangelog changelog) {
         return PksiChangelogResponse.builder()
                 .id(changelog.getId().toString())
