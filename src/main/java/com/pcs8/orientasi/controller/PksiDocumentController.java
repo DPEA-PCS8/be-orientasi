@@ -5,7 +5,9 @@ import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -40,6 +42,7 @@ public class PksiDocumentController {
     private static final String DEFAULT_SORT_FIELD = "createdAt";
     
     private final PksiDocumentService pksiDocumentService;
+    private final PksiChangelogService pksiChangelogService;
 
     /**
      * Create a new PKSI document.
@@ -172,6 +175,24 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> deleteDocument(@PathVariable UUID id) {
         pksiDocumentService.deleteDocument(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document deleted successfully", null));
+    }
+
+    /**
+     * Get changelogs for a PKSI document
+     */
+    @GetMapping("/{pksiId}/changelogs")
+    public ResponseEntity<BaseResponse> getChangelogs(@PathVariable UUID pksiId) {
+        List<PksiChangelogResponse> changelogs = pksiChangelogService.getChangelogsByPksiId(pksiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, changelogs));
+    }
+
+    /**
+     * Get changelog count for a PKSI document
+     */
+    @GetMapping("/{pksiId}/changelogs/count")
+    public ResponseEntity<BaseResponse> getChangelogCount(@PathVariable UUID pksiId) {
+        long count = pksiChangelogService.countChangelogsByPksiId(pksiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, count));
     }
 
     private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {
