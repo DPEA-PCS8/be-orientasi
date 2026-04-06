@@ -140,18 +140,22 @@ public class PksiDocumentController {
     @PutMapping("/{id}")
     public ResponseEntity<BaseResponse> updateDocument(
             @PathVariable UUID id,
-            @Valid @RequestBody PksiDocumentRequest request) {
+            @Valid @RequestBody PksiDocumentRequest request,
+            HttpServletRequest httpRequest) {
         
-        PksiDocumentResponse response = pksiDocumentService.updateDocument(id, request);
+        UUID userId = extractUserIdFromRequest(httpRequest);
+        PksiDocumentResponse response = pksiDocumentService.updateDocument(id, request, userId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document updated successfully", response));
     }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<BaseResponse> updateStatus(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateStatusRequest request) {
+            @Valid @RequestBody UpdateStatusRequest request,
+            HttpServletRequest httpRequest) {
         
-        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request);
+        UUID userId = extractUserIdFromRequest(httpRequest);
+        PksiDocumentResponse response = pksiDocumentService.updateStatus(id, request, userId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "PKSI document status updated successfully", response));
     }
 
