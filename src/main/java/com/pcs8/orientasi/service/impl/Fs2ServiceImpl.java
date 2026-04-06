@@ -15,6 +15,7 @@ import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.service.AuditService;
+import com.pcs8.orientasi.service.Fs2ChangelogService;
 import com.pcs8.orientasi.service.Fs2Service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final MstUserRepository userRepository;
     private final AuditService auditService;
     private final UserContext userContext;
+    private final Fs2ChangelogService fs2ChangelogService;
 
     @Override
     @Transactional
@@ -224,6 +226,8 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = fs2Repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
+        // Create snapshot of old document for changelog tracking
+        Fs2Document oldDocument = createSnapshot(document);
         Fs2DocumentResponse oldValue = mapToResponse(document);
 
         // Update fields
@@ -304,6 +308,10 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document saved = fs2Repository.save(document);
         log.info("F.S.2 Document updated: {}", saved.getId());
 
+        // Track changes for changelog
+        MstUser updatedByUser = userRepository.findById(userId).orElse(null);
+        fs2ChangelogService.trackChanges(saved, oldDocument, updatedByUser);
+
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);
 
@@ -319,10 +327,16 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = fs2Repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
+        // Create snapshot for changelog
+        Fs2Document oldDocument = createSnapshot(document);
         Fs2DocumentResponse oldValue = mapToResponse(document);
         document.setStatus(status);
 
         Fs2Document saved = fs2Repository.save(document);
+
+        // Track changes for changelog
+        MstUser updatedByUser = userRepository.findById(userId).orElse(null);
+        fs2ChangelogService.trackChanges(saved, oldDocument, updatedByUser);
 
         Fs2DocumentResponse response = mapToResponse(saved);
         auditService.logUpdate(ENTITY_NAME, saved.getId(), oldValue, response, userId, username);
@@ -344,6 +358,72 @@ public class Fs2ServiceImpl implements Fs2Service {
         log.info("F.S.2 Document deleted: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
+    }
+
+    /**
+     * Create a snapshot of the document for changelog comparison
+     */
+    private Fs2Document createSnapshot(Fs2Document document) {
+        return Fs2Document.builder()
+                .id(document.getId())
+                .userId(document.getUserId())
+                .userName(document.getUserName())
+                .tanggalPengajuan(document.getTanggalPengajuan())
+                .status(document.getStatus())
+                .deskripsiPengubahan(document.getDeskripsiPengubahan())
+                .alasanPengubahan(document.getAlasanPengubahan())
+                .statusTahapan(document.getStatusTahapan())
+                .urgensi(document.getUrgensi())
+                .kriteria1(document.getKriteria1())
+                .kriteria2(document.getKriteria2())
+                .kriteria3(document.getKriteria3())
+                .kriteria4(document.getKriteria4())
+                .aspekSistemAda(document.getAspekSistemAda())
+                .aspekSistemTerkait(document.getAspekSistemTerkait())
+                .aspekAlurKerja(document.getAspekAlurKerja())
+                .aspekStrukturOrganisasi(document.getAspekStrukturOrganisasi())
+                .dokT01Sebelum(document.getDokT01Sebelum())
+                .dokT01Sesudah(document.getDokT01Sesudah())
+                .dokT11Sebelum(document.getDokT11Sebelum())
+                .dokT11Sesudah(document.getDokT11Sesudah())
+                .penggunaSebelum(document.getPenggunaSebelum())
+                .penggunaSesudah(document.getPenggunaSesudah())
+                .aksesBersamaanSebelum(document.getAksesBersamaanSebelum())
+                .aksesBersamaanSesudah(document.getAksesBersamaanSesudah())
+                .pertumbuhanDataSebelum(document.getPertumbuhanDataSebelum())
+                .pertumbuhanDataSesudah(document.getPertumbuhanDataSesudah())
+                .targetPengujian(document.getTargetPengujian())
+                .targetDeployment(document.getTargetDeployment())
+                .targetGoLive(document.getTargetGoLive())
+                .pernyataan1(document.getPernyataan1())
+                .pernyataan2(document.getPernyataan2())
+                .progres(document.getProgres())
+                .fasePengajuan(document.getFasePengajuan())
+                .iku(document.getIku())
+                .mekanisme(document.getMekanisme())
+                .pelaksanaan(document.getPelaksanaan())
+                .tahun(document.getTahun())
+                .tahunMulai(document.getTahunMulai())
+                .tahunSelesai(document.getTahunSelesai())
+                .picId(document.getPicId())
+                .picName(document.getPicName())
+                .dokumenPath(document.getDokumenPath())
+                .nomorNd(document.getNomorNd())
+                .tanggalNd(document.getTanggalNd())
+                .berkasNd(document.getBerkasNd())
+                .berkasFs2(document.getBerkasFs2())
+                .nomorCd(document.getNomorCd())
+                .tanggalCd(document.getTanggalCd())
+                .berkasCd(document.getBerkasCd())
+                .berkasFs2a(document.getBerkasFs2a())
+                .berkasFs2b(document.getBerkasFs2b())
+                .realisasiPengujian(document.getRealisasiPengujian())
+                .berkasF45(document.getBerkasF45())
+                .berkasF46(document.getBerkasF46())
+                .realisasiDeployment(document.getRealisasiDeployment())
+                .berkasNdBaDeployment(document.getBerkasNdBaDeployment())
+                .keterangan(document.getKeterangan())
+                .build();
     }
 
     /**
