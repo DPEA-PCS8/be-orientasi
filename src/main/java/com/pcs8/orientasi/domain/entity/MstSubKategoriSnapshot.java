@@ -27,7 +27,7 @@ public class MstSubKategoriSnapshot {
     private Integer snapshotYear;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sub_kategori_id", nullable = false)
+    @JoinColumn(name = "sub_kategori_id", nullable = true)
     private MstSubKategori subKategori;
 
     @Column(name = "kode", nullable = false, length = 20)

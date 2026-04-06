@@ -176,11 +176,20 @@ public class SubKategoriServiceImpl implements SubKategoriService {
         MstSubKategori subKategori = subKategoriRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sub Kategori tidak ditemukan"));
 
-        // Create snapshot before delete
-        createSnapshot(subKategori, "DELETED");
+        // Store data for snapshot before delete
+        String kode = subKategori.getKode();
+        String nama = subKategori.getNama();
+        String categoryCode = subKategori.getCategoryCode();
+        String categoryName = subKategori.getCategoryName();
 
+        // Delete the entity first
         subKategoriRepository.delete(subKategori);
-        log.info("SubKategori deleted: {}", subKategori.getKode());
+        subKategoriRepository.flush(); // Ensure delete is executed
+        
+        // Create snapshot after delete with null reference
+        createSnapshotAfterDelete(kode, nama, categoryCode, categoryName);
+        
+        log.info("SubKategori deleted: {}", kode);
     }
 
     @Override
@@ -249,7 +258,30 @@ public class SubKategoriServiceImpl implements SubKategoriService {
             snapshotRepository.save(snapshot);
             log.info("Snapshot created for SubKategori {} - {} ({})", subKategori.getKode(), subKategori.getNama(), changeType);
         } catch (Exception e) {
-            log.warn("Failed to create snapshot for SubKategori {}: {}", subKategori.getKode(), e.getMessage());
+            log.error("Failed to create snapshot for SubKategori {}: {}", subKategori.getKode(), e.getMessage());
+        }
+    }
+
+    private void createSnapshotAfterDelete(String kode, String nama, String categoryCode, String categoryName) {
+        try {
+            int currentYear = Year.now().getValue();
+            String username = userContext.getCurrentUsername();
+
+            MstSubKategoriSnapshot snapshot = MstSubKategoriSnapshot.builder()
+                    .snapshotYear(currentYear)
+                    .subKategori(null) // No reference since entity is deleted
+                    .kode(kode)
+                    .nama(nama)
+                    .categoryCode(categoryCode)
+                    .categoryName(categoryName)
+                    .snapshotDate(LocalDateTime.now())
+                    .changeType("DELETED")
+                    .createdBy(username)
+                    .build();
+            snapshotRepository.save(snapshot);
+            log.info("Snapshot created for deleted SubKategori {} - {} (DELETED)", kode, nama);
+        } catch (Exception e) {
+            log.error("Failed to create snapshot for deleted SubKategori {}: {}", kode, e.getMessage());
         }
     }
 
@@ -269,7 +301,7 @@ public class SubKategoriServiceImpl implements SubKategoriService {
         return SubKategoriSnapshotResponse.builder()
                 .id(entity.getId())
                 .snapshotYear(entity.getSnapshotYear())
-                .subKategoriId(entity.getSubKategori().getId())
+                .subKategoriId(entity.getSubKategori() != null ? entity.getSubKategori().getId() : null)
                 .kode(entity.getKode())
                 .nama(entity.getNama())
                 .categoryCode(entity.getCategoryCode())
