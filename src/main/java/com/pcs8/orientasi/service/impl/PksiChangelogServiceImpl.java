@@ -84,7 +84,9 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         // Approval fields - use friendly names
         labels.put("iku", "IKU");
         labels.put("inhouseOutsource", "Inhouse/Outsource");
+        labels.put("picApproval", "PIC Approval");
         labels.put("picApprovalName", "PIC Approval");
+        labels.put("anggotaTim", "Anggota Tim");
         labels.put("anggotaTimNames", "Anggota Tim");
         labels.put("progress", "Progress");
         
