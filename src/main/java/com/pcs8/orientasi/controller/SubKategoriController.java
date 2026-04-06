@@ -31,6 +31,14 @@ public class SubKategoriController {
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Sub Kategori berhasil dibuat", response));
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<BaseResponse> bulkCreate(@Valid @RequestBody List<SubKategoriRequest> requests) {
+        List<SubKategoriResponse> responses = subKategoriService.bulkCreate(requests);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), 
+                    responses.size() + " Sub Kategori berhasil dibuat", responses));
+    }
+
     @GetMapping
     public ResponseEntity<BaseResponse> getAll(@RequestParam(required = false) String categoryCode) {
         List<SubKategoriResponse> responses;

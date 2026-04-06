@@ -12,6 +12,12 @@ public interface SubKategoriService {
 
     SubKategoriResponse create(SubKategoriRequest request);
 
+    /**
+     * Bulk create multiple sub kategori at once
+     * Returns list of created responses
+     */
+    List<SubKategoriResponse> bulkCreate(List<SubKategoriRequest> requests);
+
     SubKategoriResponse getById(UUID id);
 
     List<SubKategoriResponse> getByCategoryCode(String categoryCode);
