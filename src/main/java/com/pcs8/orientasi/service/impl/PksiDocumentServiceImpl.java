@@ -15,6 +15,7 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
+import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
@@ -47,6 +48,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
+    private final PksiChangelogService pksiChangelogService;
 
     @Override
     @Transactional
@@ -244,11 +246,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
+    public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request, UUID userId) {
         log.info("Updating PKSI document");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Create a snapshot of the old values for change tracking
+        PksiDocument oldSnapshot = createSnapshot(document);
 
         setAplikasiFromRequest(document, request);
         setInisiatifFromRequest(document, request, true);
@@ -256,6 +261,12 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated successfully");
+
+        // Track changes
+        MstUser updatedBy = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        if (updatedBy != null) {
+            pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        }
 
         return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
@@ -275,11 +286,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request) {
+    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request, UUID userId) {
         log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Create a snapshot of the old values for change tracking
+        PksiDocument oldSnapshot = createSnapshot(document);
 
         PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
@@ -289,8 +303,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             applyApprovalFields(document, request);
         }
 
+        PksiDocument updated = pksiDocumentRepository.save(document);
+
+        // Track changes
+        MstUser updatedBy = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        if (updatedBy != null) {
+            pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        }
+
         log.info("PKSI document status updated successfully");
-        return saveAndRefresh(id);
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -386,6 +408,54 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (request.getProgress() != null) {
             document.setProgress(request.getProgress());
         }
+    }
+
+    /**
+     * Create a snapshot of the document's current state for change tracking.
+     * This captures the current values before any modifications are made.
+     */
+    private PksiDocument createSnapshot(PksiDocument document) {
+        return PksiDocument.builder()
+                .id(document.getId())
+                .namaPksi(document.getNamaPksi())
+                .tanggalPengajuan(document.getTanggalPengajuan())
+                .deskripsiPksi(document.getDeskripsiPksi())
+                .mengapaPksiDiperlukan(document.getMengapaPksiDiperlukan())
+                .kapanDiselesaikan(document.getKapanDiselesaikan())
+                .picSatker(document.getPicSatker())
+                .kegunaanPksi(document.getKegunaanPksi())
+                .tujuanPksi(document.getTujuanPksi())
+                .targetPksi(document.getTargetPksi())
+                .ruangLingkup(document.getRuangLingkup())
+                .batasanPksi(document.getBatasanPksi())
+                .hubunganSistemLain(document.getHubunganSistemLain())
+                .asumsi(document.getAsumsi())
+                .batasanDesain(document.getBatasanDesain())
+                .risikoBisnis(document.getRisikoBisnis())
+                .risikoSuksesPksi(document.getRisikoSuksesPksi())
+                .pengendalianRisiko(document.getPengendalianRisiko())
+                .pengelolaAplikasi(document.getPengelolaAplikasi())
+                .penggunaAplikasi(document.getPenggunaAplikasi())
+                .programInisiatifRbsi(document.getProgramInisiatifRbsi())
+                .fungsiAplikasi(document.getFungsiAplikasi())
+                .informasiYangDikelola(document.getInformasiYangDikelola())
+                .dasarPeraturan(document.getDasarPeraturan())
+                .tahap1Awal(document.getTahap1Awal())
+                .tahap1Akhir(document.getTahap1Akhir())
+                .tahap5Awal(document.getTahap5Awal())
+                .tahap5Akhir(document.getTahap5Akhir())
+                .tahap7Awal(document.getTahap7Awal())
+                .tahap7Akhir(document.getTahap7Akhir())
+                .rencanaPengelolaan(document.getRencanaPengelolaan())
+                .status(document.getStatus())
+                .iku(document.getIku())
+                .inhouseOutsource(document.getInhouseOutsource())
+                .picApproval(document.getPicApproval())
+                .picApprovalName(document.getPicApprovalName())
+                .anggotaTim(document.getAnggotaTim())
+                .anggotaTimNames(document.getAnggotaTimNames())
+                .progress(document.getProgress())
+                .build();
     }
 
     /**

@@ -34,9 +34,9 @@ public interface PksiDocumentService {
      */
     long countDocuments(String status, Integer year, boolean noInisiatif);
     
-    PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request);
+    PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request, UUID userId);
     
-    PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request);
+    PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request, UUID userId);
     
     PksiDocumentResponse updateApprovalFields(UUID id, UpdateApprovalRequest request);
     
