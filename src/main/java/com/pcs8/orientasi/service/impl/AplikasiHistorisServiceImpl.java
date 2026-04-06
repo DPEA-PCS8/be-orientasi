@@ -167,6 +167,15 @@ public class AplikasiHistorisServiceImpl implements AplikasiHistorisService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AplikasiSnapshotResponse> getFullSnapshotsByTahun(Integer tahun) {
+        List<AplikasiSnapshot> snapshots = snapshotRepository.findByTahunOrderByNamaAplikasi(tahun);
+        return snapshots.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Integer> getAvailableYears() {
         return snapshotRepository.findDistinctTahun();
     }
