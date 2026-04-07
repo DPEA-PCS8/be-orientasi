@@ -36,4 +36,7 @@ public abstract class ApprovalFields {
 
     @JsonProperty("progress")
     protected String progress;
+
+    @JsonProperty("team_id")
+    protected String teamId;
 }

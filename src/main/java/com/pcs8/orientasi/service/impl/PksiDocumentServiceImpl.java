@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
+import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
@@ -15,6 +16,7 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
+import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstSkpaRepository skpaRepository;
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
     private final PksiChangelogService pksiChangelogService;
+    private final TeamRepository teamRepository;
 
     @Override
     @Transactional
@@ -407,6 +410,33 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         if (request.getProgress() != null) {
             document.setProgress(request.getProgress());
+        }
+        // Handle team_id - when a team is selected, automatically populate PIC and members
+        if (request.getTeamId() != null && !request.getTeamId().isEmpty()) {
+            try {
+                UUID teamId = UUID.fromString(request.getTeamId());
+                teamRepository.findByIdWithDetails(teamId).ifPresent(team -> {
+                    document.setTeam(team);
+                    // Auto-populate PIC from team
+                    if (team.getPic() != null) {
+                        document.setPicApproval(team.getPic().getUuid().toString());
+                        document.setPicApprovalName(team.getPic().getFullName());
+                    }
+                    // Auto-populate team members
+                    if (team.getTeamMembers() != null && !team.getTeamMembers().isEmpty()) {
+                        String memberUuids = team.getTeamMembers().stream()
+                                .map(tm -> tm.getUser().getUuid().toString())
+                                .collect(Collectors.joining(", "));
+                        String memberNames = team.getTeamMembers().stream()
+                                .map(tm -> tm.getUser().getFullName())
+                                .collect(Collectors.joining(", "));
+                        document.setAnggotaTim(memberUuids);
+                        document.setAnggotaTimNames(memberNames);
+                    }
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid team ID format provided");
+            }
         }
     }
 
