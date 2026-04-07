@@ -90,6 +90,28 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         labels.put("anggotaTimNames", "Anggota Tim");
         labels.put("progress", "Progress");
         
+        // Monitoring fields - New
+        labels.put("teamName", "Tim");
+        labels.put("anggaranTotal", "Anggaran Total");
+        labels.put("anggaranTahunIni", "Anggaran Tahun Ini");
+        labels.put("anggaranTahunDepan", "Anggaran Tahun Depan");
+        labels.put("targetUsreq", "Target Usreq");
+        labels.put("targetSit", "Target SIT");
+        labels.put("targetUat", "Target UAT");
+        labels.put("targetGoLive", "Target Go Live");
+        labels.put("statusT01T02", "Status Rencana PKSI (T01/T02)");
+        labels.put("berkasT01T02", "Berkas Rencana PKSI (T01/T02)");
+        labels.put("statusT11", "Status Spesifikasi Kebutuhan (T11)");
+        labels.put("berkasT11", "Berkas Spesifikasi Kebutuhan (T11)");
+        labels.put("statusCd", "Status CD Prinsip");
+        labels.put("nomorCd", "Nomor CD Prinsip");
+        labels.put("kontrakTanggalMulai", "Kontrak - Tanggal Mulai");
+        labels.put("kontrakTanggalSelesai", "Kontrak - Tanggal Selesai");
+        labels.put("kontrakNilai", "Kontrak - Nilai");
+        labels.put("kontrakJumlahTermin", "Kontrak - Jumlah Termin");
+        labels.put("kontrakDetailPembayaran", "Kontrak - Detail Pembayaran");
+        labels.put("baDeploy", "BA Deploy");
+        
         return Collections.unmodifiableMap(labels);
     }
 
@@ -209,6 +231,58 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
                 oldDocument.getAnggotaTimNames(), pksiDocument.getAnggotaTimNames(), updatedBy, updatedByName);
         trackStringChange(changes, pksiDocument, oldDocument, "progress",
                 oldDocument.getProgress(), pksiDocument.getProgress(), updatedBy, updatedByName);
+        
+        // Monitoring fields - Anggaran
+        trackStringChange(changes, pksiDocument, oldDocument, "anggaranTotal",
+                oldDocument.getAnggaranTotal(), pksiDocument.getAnggaranTotal(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "anggaranTahunIni",
+                oldDocument.getAnggaranTahunIni(), pksiDocument.getAnggaranTahunIni(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "anggaranTahunDepan",
+                oldDocument.getAnggaranTahunDepan(), pksiDocument.getAnggaranTahunDepan(), updatedBy, updatedByName);
+        
+        // Monitoring fields - Target Timeline
+        trackStringChange(changes, pksiDocument, oldDocument, "targetUsreq",
+                oldDocument.getTargetUsreq(), pksiDocument.getTargetUsreq(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "targetSit",
+                oldDocument.getTargetSit(), pksiDocument.getTargetSit(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "targetUat",
+                oldDocument.getTargetUat(), pksiDocument.getTargetUat(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "targetGoLive",
+                oldDocument.getTargetGoLive(), pksiDocument.getTargetGoLive(), updatedBy, updatedByName);
+        
+        // Monitoring fields - T01/T02 Status
+        trackStringChange(changes, pksiDocument, oldDocument, "statusT01T02",
+                oldDocument.getStatusT01T02(), pksiDocument.getStatusT01T02(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "berkasT01T02",
+                oldDocument.getBerkasT01T02(), pksiDocument.getBerkasT01T02(), updatedBy, updatedByName);
+        
+        // Monitoring fields - T11 Status
+        trackStringChange(changes, pksiDocument, oldDocument, "statusT11",
+                oldDocument.getStatusT11(), pksiDocument.getStatusT11(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "berkasT11",
+                oldDocument.getBerkasT11(), pksiDocument.getBerkasT11(), updatedBy, updatedByName);
+        
+        // Monitoring fields - CD Prinsip
+        trackStringChange(changes, pksiDocument, oldDocument, "statusCd",
+                oldDocument.getStatusCd(), pksiDocument.getStatusCd(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "nomorCd",
+                oldDocument.getNomorCd(), pksiDocument.getNomorCd(), updatedBy, updatedByName);
+        
+        // Monitoring fields - Kontrak
+        trackStringChange(changes, pksiDocument, oldDocument, "kontrakTanggalMulai",
+                oldDocument.getKontrakTanggalMulai(), pksiDocument.getKontrakTanggalMulai(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "kontrakTanggalSelesai",
+                oldDocument.getKontrakTanggalSelesai(), pksiDocument.getKontrakTanggalSelesai(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "kontrakNilai",
+                oldDocument.getKontrakNilai(), pksiDocument.getKontrakNilai(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "kontrakJumlahTermin",
+                oldDocument.getKontrakJumlahTermin(), pksiDocument.getKontrakJumlahTermin(), updatedBy, updatedByName);
+        trackStringChange(changes, pksiDocument, oldDocument, "kontrakDetailPembayaran",
+                oldDocument.getKontrakDetailPembayaran(), pksiDocument.getKontrakDetailPembayaran(), updatedBy, updatedByName);
+        
+        // Monitoring fields - BA Deploy
+        trackStringChange(changes, pksiDocument, oldDocument, "baDeploy",
+                oldDocument.getBaDeploy(), pksiDocument.getBaDeploy(), updatedBy, updatedByName);
         
         // Save all changes
         if (!changes.isEmpty()) {

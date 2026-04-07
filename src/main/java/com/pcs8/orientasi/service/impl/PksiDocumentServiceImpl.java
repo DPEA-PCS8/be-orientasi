@@ -341,9 +341,24 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             throw new BadRequestException("Cannot update approval fields for non-approved documents");
         }
 
+        // Create snapshot for change tracking BEFORE applying changes
+        PksiDocument oldSnapshot = createSnapshot(document);
+
         applyApprovalFields(document, request);
+        
+        // Save changes
+        PksiDocumentResponse response = saveAndRefresh(id);
+        
+        // Track changes - get updated document for comparison
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+        
+        // Use the document's user as the updatedBy since we don't have request context
+        MstUser updatedBy = document.getUser();
+        pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        
         log.info("PKSI document approval fields updated successfully");
-        return saveAndRefresh(id);
+        return response;
     }
 
     /**
@@ -438,6 +453,77 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 log.warn("Invalid team ID format provided");
             }
         }
+
+        // Apply monitoring fields - Anggaran
+        if (request.getAnggaranTotal() != null) {
+            document.setAnggaranTotal(request.getAnggaranTotal());
+        }
+        if (request.getAnggaranTahunIni() != null) {
+            document.setAnggaranTahunIni(request.getAnggaranTahunIni());
+        }
+        if (request.getAnggaranTahunDepan() != null) {
+            document.setAnggaranTahunDepan(request.getAnggaranTahunDepan());
+        }
+
+        // Apply monitoring fields - Target Timeline
+        if (request.getTargetUsreq() != null) {
+            document.setTargetUsreq(request.getTargetUsreq());
+        }
+        if (request.getTargetSit() != null) {
+            document.setTargetSit(request.getTargetSit());
+        }
+        if (request.getTargetUat() != null) {
+            document.setTargetUat(request.getTargetUat());
+        }
+        if (request.getTargetGoLive() != null) {
+            document.setTargetGoLive(request.getTargetGoLive());
+        }
+
+        // Apply monitoring fields - T01/T02 Status
+        if (request.getStatusT01T02() != null) {
+            document.setStatusT01T02(request.getStatusT01T02());
+        }
+        if (request.getBerkasT01T02() != null) {
+            document.setBerkasT01T02(request.getBerkasT01T02());
+        }
+
+        // Apply monitoring fields - T11 Status
+        if (request.getStatusT11() != null) {
+            document.setStatusT11(request.getStatusT11());
+        }
+        if (request.getBerkasT11() != null) {
+            document.setBerkasT11(request.getBerkasT11());
+        }
+
+        // Apply monitoring fields - CD Prinsip
+        if (request.getStatusCd() != null) {
+            document.setStatusCd(request.getStatusCd());
+        }
+        if (request.getNomorCd() != null) {
+            document.setNomorCd(request.getNomorCd());
+        }
+
+        // Apply monitoring fields - Kontrak
+        if (request.getKontrakTanggalMulai() != null) {
+            document.setKontrakTanggalMulai(request.getKontrakTanggalMulai());
+        }
+        if (request.getKontrakTanggalSelesai() != null) {
+            document.setKontrakTanggalSelesai(request.getKontrakTanggalSelesai());
+        }
+        if (request.getKontrakNilai() != null) {
+            document.setKontrakNilai(request.getKontrakNilai());
+        }
+        if (request.getKontrakJumlahTermin() != null) {
+            document.setKontrakJumlahTermin(request.getKontrakJumlahTermin());
+        }
+        if (request.getKontrakDetailPembayaran() != null) {
+            document.setKontrakDetailPembayaran(request.getKontrakDetailPembayaran());
+        }
+
+        // Apply monitoring fields - BA Deploy
+        if (request.getBaDeploy() != null) {
+            document.setBaDeploy(request.getBaDeploy());
+        }
     }
 
     /**
@@ -485,6 +571,32 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .anggotaTim(document.getAnggotaTim())
                 .anggotaTimNames(document.getAnggotaTimNames())
                 .progress(document.getProgress())
+                // Monitoring fields - Anggaran
+                .anggaranTotal(document.getAnggaranTotal())
+                .anggaranTahunIni(document.getAnggaranTahunIni())
+                .anggaranTahunDepan(document.getAnggaranTahunDepan())
+                // Monitoring fields - Target Timeline
+                .targetUsreq(document.getTargetUsreq())
+                .targetSit(document.getTargetSit())
+                .targetUat(document.getTargetUat())
+                .targetGoLive(document.getTargetGoLive())
+                // Monitoring fields - T01/T02 Status
+                .statusT01T02(document.getStatusT01T02())
+                .berkasT01T02(document.getBerkasT01T02())
+                // Monitoring fields - T11 Status
+                .statusT11(document.getStatusT11())
+                .berkasT11(document.getBerkasT11())
+                // Monitoring fields - CD Prinsip
+                .statusCd(document.getStatusCd())
+                .nomorCd(document.getNomorCd())
+                // Monitoring fields - Kontrak
+                .kontrakTanggalMulai(document.getKontrakTanggalMulai())
+                .kontrakTanggalSelesai(document.getKontrakTanggalSelesai())
+                .kontrakNilai(document.getKontrakNilai())
+                .kontrakJumlahTermin(document.getKontrakJumlahTermin())
+                .kontrakDetailPembayaran(document.getKontrakDetailPembayaran())
+                // Monitoring fields - BA Deploy
+                .baDeploy(document.getBaDeploy())
                 .build();
     }
 
