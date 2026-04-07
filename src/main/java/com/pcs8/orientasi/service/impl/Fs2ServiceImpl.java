@@ -16,6 +16,7 @@ import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
+import com.pcs8.orientasi.service.Fs2FileService;
 import com.pcs8.orientasi.service.Fs2Service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
+    private final Fs2FileService fs2FileService;
 
     @Override
     @Transactional
@@ -350,12 +352,36 @@ public class Fs2ServiceImpl implements Fs2Service {
         UUID userId = userContext.getCurrentUserId();
         String username = userContext.getCurrentUsername();
 
+        log.info("Starting delete process for F.S.2 document: {}", id);
+
         Fs2Document document = fs2Repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
+        
+        // Delete all associated changelogs first
+        try {
+            log.info("Deleting changelogs for F.S.2 document: {}", id);
+            fs2ChangelogService.deleteByFs2DocumentId(id);
+            log.info("Successfully deleted changelogs for F.S.2 document: {}", id);
+        } catch (Exception e) {
+            log.error("Failed to delete changelogs for F.S.2 document {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete changelogs: " + e.getMessage(), e);
+        }
+        
+        // Delete all associated files (both from database and MinIO)
+        try {
+            log.info("Deleting associated files for F.S.2 document: {}", id);
+            fs2FileService.deleteFilesByFs2Id(id);
+            log.info("Successfully deleted all files associated with F.S.2 document: {}", id);
+        } catch (Exception e) {
+            log.error("Failed to delete files for F.S.2 document {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete associated files: " + e.getMessage(), e);
+        }
+        
+        log.info("Deleting F.S.2 document: {}", id);
         fs2Repository.delete(document);
-        log.info("F.S.2 Document deleted: {}", id);
+        log.info("F.S.2 Document deleted successfully: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }

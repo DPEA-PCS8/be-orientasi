@@ -52,4 +52,7 @@ public class Fs2File extends BaseEntity {
 
     @Column(name = "session_id", length = 128)
     private String sessionId;
+
+    @Column(name = "file_type", length = 20)
+    private String fileType; // ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA
 }

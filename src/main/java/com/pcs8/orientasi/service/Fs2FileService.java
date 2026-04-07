@@ -11,12 +11,12 @@ public interface Fs2FileService {
     /**
      * Upload multiple files for a F.S.2 document
      */
-    List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files);
+    List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType);
     
     /**
      * Upload files to temporary storage (before F.S.2 is created)
      */
-    List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files);
+    List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType);
     
     /**
      * Move temporary files to permanent storage after F.S.2 is created
