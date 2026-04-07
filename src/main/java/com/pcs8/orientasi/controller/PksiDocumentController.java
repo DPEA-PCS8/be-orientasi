@@ -1,13 +1,16 @@
 package com.pcs8.orientasi.controller;
 
 import com.pcs8.orientasi.config.annotation.RequiresRole;
+import com.pcs8.orientasi.domain.dto.request.PksiDashboardRequest;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.service.PksiChangelogService;
+import com.pcs8.orientasi.service.PksiDashboardService;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -43,6 +46,7 @@ public class PksiDocumentController {
     
     private final PksiDocumentService pksiDocumentService;
     private final PksiChangelogService pksiChangelogService;
+    private final PksiDashboardService pksiDashboardService;
 
     /**
      * Create a new PKSI document.
@@ -193,6 +197,25 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> getChangelogCount(@PathVariable UUID pksiId) {
         long count = pksiChangelogService.countChangelogsByPksiId(pksiId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, count));
+    }
+
+    /**
+     * Get PKSI Dashboard data with analytics and insights
+     */
+    @GetMapping("/dashboard")
+    public ResponseEntity<BaseResponse> getDashboardData(
+            @RequestParam(required = false) Integer tahun,
+            @RequestParam(required = false) Integer bulan,
+            @RequestParam(required = false) String status) {
+        
+        PksiDashboardRequest request = PksiDashboardRequest.builder()
+                .tahun(tahun)
+                .bulan(bulan)
+                .status(status)
+                .build();
+        
+        PksiDashboardResponse response = pksiDashboardService.getDashboardData(request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
     }
 
     private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {
