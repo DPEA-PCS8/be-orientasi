@@ -39,4 +39,68 @@ public abstract class ApprovalFields {
 
     @JsonProperty("team_id")
     protected String teamId;
+
+    // Monitoring fields - Anggaran
+    @JsonProperty("anggaran_total")
+    protected String anggaranTotal;
+
+    @JsonProperty("anggaran_tahun_ini")
+    protected String anggaranTahunIni;
+
+    @JsonProperty("anggaran_tahun_depan")
+    protected String anggaranTahunDepan;
+
+    // Monitoring fields - Target Timeline
+    @JsonProperty("target_usreq")
+    protected String targetUsreq;
+
+    @JsonProperty("target_sit")
+    protected String targetSit;
+
+    @JsonProperty("target_uat")
+    protected String targetUat;
+
+    @JsonProperty("target_go_live")
+    protected String targetGoLive;
+
+    // Monitoring fields - T01/T02 Status
+    @JsonProperty("status_t01_t02")
+    protected String statusT01T02;
+
+    @JsonProperty("berkas_t01_t02")
+    protected String berkasT01T02;
+
+    // Monitoring fields - T11 Status
+    @JsonProperty("status_t11")
+    protected String statusT11;
+
+    @JsonProperty("berkas_t11")
+    protected String berkasT11;
+
+    // Monitoring fields - CD Prinsip
+    @JsonProperty("status_cd")
+    protected String statusCd;
+
+    @JsonProperty("nomor_cd")
+    protected String nomorCd;
+
+    // Monitoring fields - Kontrak
+    @JsonProperty("kontrak_tanggal_mulai")
+    protected String kontrakTanggalMulai;
+
+    @JsonProperty("kontrak_tanggal_selesai")
+    protected String kontrakTanggalSelesai;
+
+    @JsonProperty("kontrak_nilai")
+    protected String kontrakNilai;
+
+    @JsonProperty("kontrak_jumlah_termin")
+    protected String kontrakJumlahTermin;
+
+    @JsonProperty("kontrak_detail_pembayaran")
+    protected String kontrakDetailPembayaran;
+
+    // Monitoring fields - BA Deploy
+    @JsonProperty("ba_deploy")
+    protected String baDeploy;
 }

@@ -173,6 +173,64 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "progress", length = 50)
     private String progress;
 
+    // ==================== MONITORING FIELDS ====================
+    @Column(name = "anggaran_total", length = 255)
+    private String anggaranTotal;
+
+    @Column(name = "anggaran_tahun_ini", length = 255)
+    private String anggaranTahunIni;
+
+    @Column(name = "anggaran_tahun_depan", length = 255)
+    private String anggaranTahunDepan;
+
+    @Column(name = "target_usreq", length = 50)
+    private String targetUsreq;
+
+    @Column(name = "target_sit", length = 50)
+    private String targetSit;
+
+    @Column(name = "target_uat", length = 50)
+    private String targetUat;
+
+    @Column(name = "target_go_live", length = 50)
+    private String targetGoLive;
+
+    @Column(name = "status_t01_t02", length = 50)
+    private String statusT01T02;
+
+    @Column(name = "berkas_t01_t02", length = 255)
+    private String berkasT01T02;
+
+    @Column(name = "status_t11", length = 50)
+    private String statusT11;
+
+    @Column(name = "berkas_t11", length = 255)
+    private String berkasT11;
+
+    @Column(name = "status_cd", length = 50)
+    private String statusCd;
+
+    @Column(name = "nomor_cd", length = 100)
+    private String nomorCd;
+
+    @Column(name = "kontrak_tanggal_mulai", length = 50)
+    private String kontrakTanggalMulai;
+
+    @Column(name = "kontrak_tanggal_selesai", length = 50)
+    private String kontrakTanggalSelesai;
+
+    @Column(name = "kontrak_nilai", length = 255)
+    private String kontrakNilai;
+
+    @Column(name = "kontrak_jumlah_termin", length = 50)
+    private String kontrakJumlahTermin;
+
+    @Column(name = "kontrak_detail_pembayaran", columnDefinition = "NVARCHAR(MAX)")
+    private String kontrakDetailPembayaran;
+
+    @Column(name = "ba_deploy", length = 255)
+    private String baDeploy;
+
     // ==================== TEAM REFERENCE ====================
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
