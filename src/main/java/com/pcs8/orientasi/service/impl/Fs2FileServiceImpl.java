@@ -28,8 +28,8 @@ public class Fs2FileServiceImpl implements Fs2FileService {
     private static final Logger log = LoggerFactory.getLogger(Fs2FileServiceImpl.class);
     private static final long MAX_FILE_SIZE = 8L * 1024 * 1024; // 8MB
     private static final String FILE_NOT_FOUND_MSG = "File not found with id: ";
-    private static final String TEMP_PREFIX = "temp/";
-    private static final String FS2_PREFIX = "FS2/";
+    private static final String TEMP_PREFIX = "kkad/temp/";
+    private static final String FS2_PREFIX = "kkad/fs2/";
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "application/pdf",
             "application/x-pdf",
@@ -53,7 +53,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
 
     @Override
     @Transactional
-    public List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files) {
+    public List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType) {
         Fs2Document fs2Document = fs2DocumentRepository.findById(fs2Id)
                 .orElseThrow(() -> new ResourceNotFoundException("F.S.2 Document not found with id: " + fs2Id));
 
@@ -63,7 +63,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             checkFs2FileValidity(file);
             
             try {
-                Fs2FileResponse response = uploadSingleFile(fs2Document, file);
+                Fs2FileResponse response = uploadSingleFile(fs2Document, file, fileType);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload file. Error: {}", e.getMessage(), e);
@@ -76,14 +76,14 @@ public class Fs2FileServiceImpl implements Fs2FileService {
 
     @Override
     @Transactional
-    public List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files) {
+    public List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType) {
         List<Fs2FileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
             checkFs2FileValidity(file);
             
             try {
-                Fs2FileResponse response = uploadSingleTempFile(sessionId, file);
+                Fs2FileResponse response = uploadSingleTempFile(sessionId, file, fileType);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload temp file. Error: {}", e.getMessage(), e);
@@ -94,7 +94,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         return responses;
     }
 
-    private Fs2FileResponse uploadSingleTempFile(String sessionId, MultipartFile file) throws IOException {
+    private Fs2FileResponse uploadSingleTempFile(String sessionId, MultipartFile file, String fileType) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
@@ -130,6 +130,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .blobUrl(fileUrl)
                 .blobName(blobName)
                 .sessionId(sessionId) // Store session ID for later association
+                .fileType(fileType) // File type (ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA)
                 .build();
 
         fs2File = fs2FileRepository.save(fs2File);
@@ -184,6 +185,9 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 tempFile.setSessionId(null); // Clear session ID
                 tempFile = fs2FileRepository.save(tempFile);
 
+                // Update berkas field in fs2_document
+                updateBerkasField(fs2Document, tempFile.getFileType());
+
                 responses.add(mapToResponse(tempFile));
                 log.info("Moved temp file to permanent location successfully");
 
@@ -211,18 +215,22 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         log.info("Deleted temp files successfully");
     }
 
-    private Fs2FileResponse uploadSingleFile(Fs2Document fs2Document, MultipartFile file) throws IOException {
+    private Fs2FileResponse uploadSingleFile(Fs2Document fs2Document, MultipartFile file, String fileType) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
         }
         
         String extension = extractExtension(originalName);
-        // Use FS2 ID for file naming
-        String blobName = String.format("%s%s%s", 
-                FS2_PREFIX,
+        // Use FS2 ID and fileType for file naming to avoid overwriting files
+        String uniqueFileName = String.format("%s_%s_%s%s", 
                 fs2Document.getId(),
+                fileType,
+                System.currentTimeMillis(),
                 extension);
+        String blobName = String.format("%s%s", 
+                FS2_PREFIX,
+                uniqueFileName);
 
         // Upload to Minio using InputStream with exact blobName
         String fileUrl = minioService.uploadFile(
@@ -241,9 +249,13 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .fileSize(file.getSize())
                 .blobUrl(fileUrl)
                 .blobName(blobName)
+                .fileType(fileType) // File type (ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA)
                 .build();
 
         fs2File = fs2FileRepository.save(fs2File);
+
+        // Update berkas field in fs2_document
+        updateBerkasField(fs2Document, fileType);
 
         log.info("Uploaded file successfully");
 
@@ -251,12 +263,15 @@ public class Fs2FileServiceImpl implements Fs2FileService {
     }
 
     private void checkFs2FileValidity(MultipartFile uploadedFile) {
+        long fileSize = uploadedFile.getSize();
+        String originalName = uploadedFile.getOriginalFilename();
+        
+        
         boolean isEmptyFile = uploadedFile.isEmpty();
-        boolean exceedsMaxSize = uploadedFile.getSize() > MAX_FILE_SIZE;
+        boolean exceedsMaxSize = fileSize > MAX_FILE_SIZE;
         
         // Check content type OR file extension (more flexible validation)
         String contentType = uploadedFile.getContentType();
-        String originalName = uploadedFile.getOriginalFilename();
         String extension = extractExtension(originalName).toLowerCase();
         
         boolean isValidContentType = contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType);
@@ -267,6 +282,11 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             throw new IllegalArgumentException("Uploaded file cannot be empty");
         }
         if (exceedsMaxSize) {
+            if (log.isErrorEnabled()) {
+                double fileSizeMB = fileSize / (1024.0 * 1024.0);
+                log.error("File size validation failed - Size: {} bytes ({} MB) exceeds limit of {} bytes (8 MB)", 
+                        fileSize, String.format("%.2f", fileSizeMB), MAX_FILE_SIZE);
+            }
             throw new IllegalArgumentException("Uploaded file exceeds the 8MB size limit");
         }
         if (isInvalidFileType) {
@@ -292,6 +312,9 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         Fs2File fs2File = fs2FileRepository.findById(fileId)
                 .orElseThrow(() -> new ResourceNotFoundException(FILE_NOT_FOUND_MSG + fileId));
 
+        String fileType = fs2File.getFileType();
+        Fs2Document fs2Document = fs2File.getFs2Document();
+
         // Delete from Minio
         if (fs2File.getBlobName() != null && minioService.fileExists(fs2File.getBlobName())) {
             minioService.deleteFile(fs2File.getBlobName());
@@ -300,6 +323,11 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         // Delete from database
         fs2FileRepository.delete(fs2File);
         log.info("Deleted file successfully");
+
+        // Update berkas field if no more files of this type exist
+        if (fs2Document != null && fileType != null) {
+            clearBerkasFieldIfNoFilesExist(fs2Document, fileType);
+        }
     }
 
     @Override
@@ -359,7 +387,90 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .contentType(file.getContentType())
                 .fileSize(file.getFileSize())
                 .blobUrl(file.getBlobUrl())
+                .fileType(file.getFileType())
                 .createdAt(file.getCreatedAt() != null ? file.getCreatedAt() : LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * Update berkas field in Fs2Document based on file type.
+     * Sets the field to "Y" to indicate that a file exists for this type.
+     */
+    private void updateBerkasField(Fs2Document fs2Document, String fileType) {
+        switch (fileType) {
+            case "ND":
+                fs2Document.setBerkasNd("Y");
+                break;
+            case "FS2":
+                fs2Document.setBerkasFs2("Y");
+                break;
+            case "CD":
+                fs2Document.setBerkasCd("Y");
+                break;
+            case "FS2A":
+                fs2Document.setBerkasFs2a("Y");
+                break;
+            case "FS2B":
+                fs2Document.setBerkasFs2b("Y");
+                break;
+            case "F45":
+                fs2Document.setBerkasF45("Y");
+                break;
+            case "F46":
+                fs2Document.setBerkasF46("Y");
+                break;
+            case "NDBA":
+                fs2Document.setBerkasNdBaDeployment("Y");
+                break;
+            default:
+                return;
+        }
+        fs2DocumentRepository.save(fs2Document);
+    }
+
+    /**
+     * Clear berkas field in Fs2Document if no files of the given type exist.
+     */
+    private void clearBerkasFieldIfNoFilesExist(Fs2Document fs2Document, String fileType) {
+        // Check if any files of this type still exist
+        List<Fs2File> remainingFiles = fs2FileRepository.findByFs2DocumentIdOrderByCreatedAtDesc(fs2Document.getId())
+                .stream()
+                .filter(f -> fileType.equals(f.getFileType()))
+                .toList();
+
+        if (remainingFiles.isEmpty()) {
+            // No more files of this type, clear the berkas field
+            switch (fileType) {
+                case "ND":
+                    fs2Document.setBerkasNd(null);
+                    break;
+                case "FS2":
+                    fs2Document.setBerkasFs2(null);
+                    break;
+                case "CD":
+                    fs2Document.setBerkasCd(null);
+                    break;
+                case "FS2A":
+                    fs2Document.setBerkasFs2a(null);
+                    break;
+                case "FS2B":
+                    fs2Document.setBerkasFs2b(null);
+                    break;
+                case "F45":
+                    fs2Document.setBerkasF45(null);
+                    break;
+                case "F46":
+                    fs2Document.setBerkasF46(null);
+                    break;
+                case "NDBA":
+                    fs2Document.setBerkasNdBaDeployment(null);
+                    break;
+                default:
+                    log.warn("Unknown file type for berkas clear: {}", fileType);
+                    return;
+            }
+            fs2DocumentRepository.save(fs2Document);
+            log.info("Cleared berkas field for file type: {} (no files remaining)", fileType);
+        }
     }
 }

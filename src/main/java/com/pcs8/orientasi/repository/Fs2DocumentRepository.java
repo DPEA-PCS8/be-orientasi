@@ -88,7 +88,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
 
     /**
      * Search only approved documents with year filter.
-     * Year filter matches by tahun, tahunMulai, or tahunSelesai fields.
+     * Year filter matches by YEAR(tanggalPengajuan) to be consistent with PKSI.
      */
     @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
@@ -99,7 +99,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
-           "AND (:year IS NULL OR f.tahun = :year OR f.tahunMulai = :year OR f.tahunSelesai = :year) " +
+           "AND (:year IS NULL OR YEAR(f.tanggalPengajuan) = :year) " +
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchApprovedFs2DocumentsWithYear(
             @Param("search") String search,
@@ -215,6 +215,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
 
     /**
      * Search approved F.S.2 documents filtered by SKPA department with year filter.
+     * Year filter matches by YEAR(tanggalPengajuan) to be consistent with PKSI.
      */
     @SuppressWarnings("java:S107") // Parameters needed for JPQL query filtering
     @Query("SELECT f FROM Fs2Document f WHERE f.status = 'DISETUJUI' " +
@@ -225,7 +226,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
-           "AND (:year IS NULL OR f.tahun = :year OR f.tahunMulai = :year OR f.tahunSelesai = :year) " +
+           "AND (:year IS NULL OR YEAR(f.tanggalPengajuan) = :year) " +
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchApprovedFs2DocumentsByDepartmentWithYear(
             @Param("search") String search,

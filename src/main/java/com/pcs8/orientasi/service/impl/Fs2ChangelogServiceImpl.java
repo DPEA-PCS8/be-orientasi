@@ -352,4 +352,12 @@ public class Fs2ChangelogServiceImpl implements Fs2ChangelogService {
                 .updatedAt(changelog.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void deleteByFs2DocumentId(UUID fs2DocumentId) {
+        log.info("Deleting all changelogs for FS2 document: {}", fs2DocumentId);
+        fs2ChangelogRepository.deleteByFs2DocumentId(fs2DocumentId);
+        log.info("Successfully deleted changelogs for FS2 document: {}", fs2DocumentId);
+    }
 }
