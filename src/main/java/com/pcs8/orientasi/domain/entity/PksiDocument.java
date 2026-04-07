@@ -173,6 +173,11 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "progress", length = 50)
     private String progress;
 
+    // ==================== TEAM REFERENCE ====================
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private MstTeam team;
+
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
     private String tujuanPengajuan;
