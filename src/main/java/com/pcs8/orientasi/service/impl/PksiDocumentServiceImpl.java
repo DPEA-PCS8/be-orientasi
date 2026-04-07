@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
@@ -52,6 +53,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
     private final PksiChangelogService pksiChangelogService;
     private final TeamRepository teamRepository;
+    private final UserContext userContext;
 
     @Override
     @Transactional
@@ -353,8 +355,11 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
         
-        // Use the document's user as the updatedBy since we don't have request context
-        MstUser updatedBy = document.getUser();
+        // Get current logged-in user from request context
+        UUID currentUserId = userContext.getCurrentUserId();
+        MstUser updatedBy = currentUserId != null 
+            ? userRepository.findById(currentUserId).orElse(document.getUser())
+            : document.getUser();
         pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
         
         log.info("PKSI document approval fields updated successfully");
