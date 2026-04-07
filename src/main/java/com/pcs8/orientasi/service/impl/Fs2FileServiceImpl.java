@@ -266,9 +266,6 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         long fileSize = uploadedFile.getSize();
         String originalName = uploadedFile.getOriginalFilename();
         
-        // Log file size for debugging
-        log.info("File validation - Name: {}, Size: {} bytes, Max allowed: {} bytes", 
-                originalName, fileSize, MAX_FILE_SIZE);
         
         boolean isEmptyFile = uploadedFile.isEmpty();
         boolean exceedsMaxSize = fileSize > MAX_FILE_SIZE;
@@ -285,9 +282,11 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             throw new IllegalArgumentException("Uploaded file cannot be empty");
         }
         if (exceedsMaxSize) {
-            double fileSizeMB = fileSize / (1024.0 * 1024.0);
-            log.error("File size validation failed - Size: {} bytes ({} MB) exceeds limit of {} bytes (8 MB)", 
-                    fileSize, String.format("%.2f", fileSizeMB), MAX_FILE_SIZE);
+            if (log.isErrorEnabled()) {
+                double fileSizeMB = fileSize / (1024.0 * 1024.0);
+                log.error("File size validation failed - Size: {} bytes ({} MB) exceeds limit of {} bytes (8 MB)", 
+                        fileSize, String.format("%.2f", fileSizeMB), MAX_FILE_SIZE);
+            }
             throw new IllegalArgumentException("Uploaded file exceeds the 8MB size limit");
         }
         if (isInvalidFileType) {
@@ -424,11 +423,9 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 fs2Document.setBerkasNdBaDeployment("Y");
                 break;
             default:
-                log.warn("Unknown file type for berkas update: {}", fileType);
                 return;
         }
         fs2DocumentRepository.save(fs2Document);
-        log.info("Updated berkas field for file type: {}", fileType);
     }
 
     /**

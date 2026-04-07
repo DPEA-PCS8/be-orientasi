@@ -37,7 +37,6 @@ public class Fs2FileController {
             @RequestParam("files") MultipartFile[] files,
             @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
         
-        log.info("Uploading files for F.S.2 document with fileType: {}", fileType);
         
         List<Fs2FileResponse> responses = fs2FileService.uploadFiles(fs2Id, files, fileType);
         
@@ -54,7 +53,6 @@ public class Fs2FileController {
             @RequestParam("files") MultipartFile[] files,
             @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
         
-        log.info("Uploading temp files for F.S.2 with fileType: {}", fileType);
         
         List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files, fileType);
         

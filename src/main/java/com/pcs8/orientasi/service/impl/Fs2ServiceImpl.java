@@ -8,6 +8,7 @@ import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
+import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
@@ -364,9 +365,10 @@ public class Fs2ServiceImpl implements Fs2Service {
             log.info("Deleting changelogs for F.S.2 document: {}", id);
             fs2ChangelogService.deleteByFs2DocumentId(id);
             log.info("Successfully deleted changelogs for F.S.2 document: {}", id);
+        } catch (DataIntegrityViolationException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to delete changelogs for F.S.2 document {}: {}", id, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete changelogs: " + e.getMessage(), e);
+            throw new DataIntegrityViolationException("Failed to delete changelogs for F.S.2 document " + id + ": " + e.getMessage());
         }
         
         // Delete all associated files (both from database and MinIO)
@@ -374,9 +376,10 @@ public class Fs2ServiceImpl implements Fs2Service {
             log.info("Deleting associated files for F.S.2 document: {}", id);
             fs2FileService.deleteFilesByFs2Id(id);
             log.info("Successfully deleted all files associated with F.S.2 document: {}", id);
+        } catch (DataIntegrityViolationException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to delete files for F.S.2 document {}: {}", id, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete associated files: " + e.getMessage(), e);
+            throw new DataIntegrityViolationException("Failed to delete associated files for F.S.2 document " + id + ": " + e.getMessage());
         }
         
         log.info("Deleting F.S.2 document: {}", id);
