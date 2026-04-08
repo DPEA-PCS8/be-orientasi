@@ -1,0 +1,20 @@
+-- Add monitoring fields to trn_pksi_document
+ALTER TABLE trn_pksi_document ADD anggaran_total NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD anggaran_tahun_ini NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD anggaran_tahun_depan NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD target_usreq NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD target_sit NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD target_uat NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD target_go_live NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD status_t01_t02 NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD berkas_t01_t02 NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD status_t11 NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD berkas_t11 NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD status_cd NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD nomor_cd NVARCHAR(100) NULL;
+ALTER TABLE trn_pksi_document ADD kontrak_tanggal_mulai NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD kontrak_tanggal_selesai NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD kontrak_nilai NVARCHAR(255) NULL;
+ALTER TABLE trn_pksi_document ADD kontrak_jumlah_termin NVARCHAR(50) NULL;
+ALTER TABLE trn_pksi_document ADD kontrak_detail_pembayaran NVARCHAR(MAX) NULL;
+ALTER TABLE trn_pksi_document ADD ba_deploy NVARCHAR(255) NULL;

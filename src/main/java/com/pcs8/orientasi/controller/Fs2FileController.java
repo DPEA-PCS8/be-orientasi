@@ -34,11 +34,11 @@ public class Fs2FileController {
     @PostMapping("/upload/{fs2Id}")
     public ResponseEntity<BaseResponse> uploadFiles(
             @PathVariable UUID fs2Id,
-            @RequestParam("files") MultipartFile[] files) {
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
         
-        log.info("Uploading files for F.S.2 document");
         
-        List<Fs2FileResponse> responses = fs2FileService.uploadFiles(fs2Id, files);
+        List<Fs2FileResponse> responses = fs2FileService.uploadFiles(fs2Id, files, fileType);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Files uploaded successfully", responses));
@@ -50,11 +50,11 @@ public class Fs2FileController {
     @PostMapping("/temp/upload/{sessionId}")
     public ResponseEntity<BaseResponse> uploadTempFiles(
             @PathVariable String sessionId,
-            @RequestParam("files") MultipartFile[] files) {
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
         
-        log.info("Uploading temp files for F.S.2");
         
-        List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files);
+        List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files, fileType);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));

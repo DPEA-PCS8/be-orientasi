@@ -41,6 +41,9 @@ public class AplikasiRequest {
     @JsonProperty("skpa_id")
     private UUID skpaId;
 
+    @JsonProperty("sub_kategori_id")
+    private UUID subKategoriId;
+
     @JsonProperty("tanggal_implementasi")
     private LocalDate tanggalImplementasi;
 

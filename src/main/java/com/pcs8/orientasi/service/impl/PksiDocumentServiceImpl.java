@@ -1,11 +1,13 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
+import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
@@ -15,6 +17,8 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
+import com.pcs8.orientasi.repository.TeamRepository;
+import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
@@ -47,6 +51,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
+    private final PksiChangelogService pksiChangelogService;
+    private final TeamRepository teamRepository;
+    private final UserContext userContext;
 
     @Override
     @Transactional
@@ -244,11 +251,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request) {
+    public PksiDocumentResponse updateDocument(UUID id, PksiDocumentRequest request, UUID userId) {
         log.info("Updating PKSI document");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Create a snapshot of the old values for change tracking
+        PksiDocument oldSnapshot = createSnapshot(document);
 
         setAplikasiFromRequest(document, request);
         setInisiatifFromRequest(document, request, true);
@@ -256,6 +266,12 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         PksiDocument updated = pksiDocumentRepository.save(document);
         log.info("PKSI document updated successfully");
+
+        // Track changes
+        MstUser updatedBy = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        if (updatedBy != null) {
+            pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        }
 
         return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
@@ -275,11 +291,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional
-    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request) {
+    public PksiDocumentResponse updateStatus(UUID id, UpdateStatusRequest request, UUID userId) {
         log.info("Updating PKSI document status");
 
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+
+        // Create a snapshot of the old values for change tracking
+        PksiDocument oldSnapshot = createSnapshot(document);
 
         PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
@@ -289,8 +308,16 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             applyApprovalFields(document, request);
         }
 
+        PksiDocument updated = pksiDocumentRepository.save(document);
+
+        // Track changes
+        MstUser updatedBy = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        if (updatedBy != null) {
+            pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        }
+
         log.info("PKSI document status updated successfully");
-        return saveAndRefresh(id);
+        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -316,9 +343,27 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             throw new BadRequestException("Cannot update approval fields for non-approved documents");
         }
 
+        // Create snapshot for change tracking BEFORE applying changes
+        PksiDocument oldSnapshot = createSnapshot(document);
+
         applyApprovalFields(document, request);
+        
+        // Save changes
+        PksiDocumentResponse response = saveAndRefresh(id);
+        
+        // Track changes - get updated document for comparison
+        PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
+        
+        // Get current logged-in user from request context
+        UUID currentUserId = userContext.getCurrentUserId();
+        MstUser updatedBy = currentUserId != null 
+            ? userRepository.findById(currentUserId).orElse(document.getUser())
+            : document.getUser();
+        pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
+        
         log.info("PKSI document approval fields updated successfully");
-        return saveAndRefresh(id);
+        return response;
     }
 
     /**
@@ -386,6 +431,178 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (request.getProgress() != null) {
             document.setProgress(request.getProgress());
         }
+        // Handle team_id - when a team is selected, automatically populate PIC and members
+        if (request.getTeamId() != null && !request.getTeamId().isEmpty()) {
+            try {
+                UUID teamId = UUID.fromString(request.getTeamId());
+                teamRepository.findByIdWithDetails(teamId).ifPresent(team -> {
+                    document.setTeam(team);
+                    // Auto-populate PIC from team
+                    if (team.getPic() != null) {
+                        document.setPicApproval(team.getPic().getUuid().toString());
+                        document.setPicApprovalName(team.getPic().getFullName());
+                    }
+                    // Auto-populate team members
+                    if (team.getTeamMembers() != null && !team.getTeamMembers().isEmpty()) {
+                        String memberUuids = team.getTeamMembers().stream()
+                                .map(tm -> tm.getUser().getUuid().toString())
+                                .collect(Collectors.joining(", "));
+                        String memberNames = team.getTeamMembers().stream()
+                                .map(tm -> tm.getUser().getFullName())
+                                .collect(Collectors.joining(", "));
+                        document.setAnggotaTim(memberUuids);
+                        document.setAnggotaTimNames(memberNames);
+                    }
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid team ID format provided");
+            }
+        }
+
+        // Apply monitoring fields - Anggaran
+        if (request.getAnggaranTotal() != null) {
+            document.setAnggaranTotal(request.getAnggaranTotal());
+        }
+        if (request.getAnggaranTahunIni() != null) {
+            document.setAnggaranTahunIni(request.getAnggaranTahunIni());
+        }
+        if (request.getAnggaranTahunDepan() != null) {
+            document.setAnggaranTahunDepan(request.getAnggaranTahunDepan());
+        }
+
+        // Apply monitoring fields - Target Timeline
+        if (request.getTargetUsreq() != null) {
+            document.setTargetUsreq(request.getTargetUsreq());
+        }
+        if (request.getTargetSit() != null) {
+            document.setTargetSit(request.getTargetSit());
+        }
+        if (request.getTargetUat() != null) {
+            document.setTargetUat(request.getTargetUat());
+        }
+        if (request.getTargetGoLive() != null) {
+            document.setTargetGoLive(request.getTargetGoLive());
+        }
+
+        // Apply monitoring fields - T01/T02 Status
+        if (request.getStatusT01T02() != null) {
+            document.setStatusT01T02(request.getStatusT01T02());
+        }
+        if (request.getBerkasT01T02() != null) {
+            document.setBerkasT01T02(request.getBerkasT01T02());
+        }
+
+        // Apply monitoring fields - T11 Status
+        if (request.getStatusT11() != null) {
+            document.setStatusT11(request.getStatusT11());
+        }
+        if (request.getBerkasT11() != null) {
+            document.setBerkasT11(request.getBerkasT11());
+        }
+
+        // Apply monitoring fields - CD Prinsip
+        if (request.getStatusCd() != null) {
+            document.setStatusCd(request.getStatusCd());
+        }
+        if (request.getNomorCd() != null) {
+            document.setNomorCd(request.getNomorCd());
+        }
+
+        // Apply monitoring fields - Kontrak
+        if (request.getKontrakTanggalMulai() != null) {
+            document.setKontrakTanggalMulai(request.getKontrakTanggalMulai());
+        }
+        if (request.getKontrakTanggalSelesai() != null) {
+            document.setKontrakTanggalSelesai(request.getKontrakTanggalSelesai());
+        }
+        if (request.getKontrakNilai() != null) {
+            document.setKontrakNilai(request.getKontrakNilai());
+        }
+        if (request.getKontrakJumlahTermin() != null) {
+            document.setKontrakJumlahTermin(request.getKontrakJumlahTermin());
+        }
+        if (request.getKontrakDetailPembayaran() != null) {
+            document.setKontrakDetailPembayaran(request.getKontrakDetailPembayaran());
+        }
+
+        // Apply monitoring fields - BA Deploy
+        if (request.getBaDeploy() != null) {
+            document.setBaDeploy(request.getBaDeploy());
+        }
+    }
+
+    /**
+     * Create a snapshot of the document's current state for change tracking.
+     * This captures the current values before any modifications are made.
+     */
+    private PksiDocument createSnapshot(PksiDocument document) {
+        return PksiDocument.builder()
+                .id(document.getId())
+                .namaPksi(document.getNamaPksi())
+                .tanggalPengajuan(document.getTanggalPengajuan())
+                .deskripsiPksi(document.getDeskripsiPksi())
+                .mengapaPksiDiperlukan(document.getMengapaPksiDiperlukan())
+                .kapanDiselesaikan(document.getKapanDiselesaikan())
+                .picSatker(document.getPicSatker())
+                .kegunaanPksi(document.getKegunaanPksi())
+                .tujuanPksi(document.getTujuanPksi())
+                .targetPksi(document.getTargetPksi())
+                .ruangLingkup(document.getRuangLingkup())
+                .batasanPksi(document.getBatasanPksi())
+                .hubunganSistemLain(document.getHubunganSistemLain())
+                .asumsi(document.getAsumsi())
+                .batasanDesain(document.getBatasanDesain())
+                .risikoBisnis(document.getRisikoBisnis())
+                .risikoSuksesPksi(document.getRisikoSuksesPksi())
+                .pengendalianRisiko(document.getPengendalianRisiko())
+                .pengelolaAplikasi(document.getPengelolaAplikasi())
+                .penggunaAplikasi(document.getPenggunaAplikasi())
+                .programInisiatifRbsi(document.getProgramInisiatifRbsi())
+                .fungsiAplikasi(document.getFungsiAplikasi())
+                .informasiYangDikelola(document.getInformasiYangDikelola())
+                .dasarPeraturan(document.getDasarPeraturan())
+                .tahap1Awal(document.getTahap1Awal())
+                .tahap1Akhir(document.getTahap1Akhir())
+                .tahap5Awal(document.getTahap5Awal())
+                .tahap5Akhir(document.getTahap5Akhir())
+                .tahap7Awal(document.getTahap7Awal())
+                .tahap7Akhir(document.getTahap7Akhir())
+                .rencanaPengelolaan(document.getRencanaPengelolaan())
+                .status(document.getStatus())
+                .iku(document.getIku())
+                .inhouseOutsource(document.getInhouseOutsource())
+                .picApproval(document.getPicApproval())
+                .picApprovalName(document.getPicApprovalName())
+                .anggotaTim(document.getAnggotaTim())
+                .anggotaTimNames(document.getAnggotaTimNames())
+                .progress(document.getProgress())
+                // Monitoring fields - Anggaran
+                .anggaranTotal(document.getAnggaranTotal())
+                .anggaranTahunIni(document.getAnggaranTahunIni())
+                .anggaranTahunDepan(document.getAnggaranTahunDepan())
+                // Monitoring fields - Target Timeline
+                .targetUsreq(document.getTargetUsreq())
+                .targetSit(document.getTargetSit())
+                .targetUat(document.getTargetUat())
+                .targetGoLive(document.getTargetGoLive())
+                // Monitoring fields - T01/T02 Status
+                .statusT01T02(document.getStatusT01T02())
+                .berkasT01T02(document.getBerkasT01T02())
+                // Monitoring fields - T11 Status
+                .statusT11(document.getStatusT11())
+                .berkasT11(document.getBerkasT11())
+                // Monitoring fields - CD Prinsip
+                .statusCd(document.getStatusCd())
+                .nomorCd(document.getNomorCd())
+                // Monitoring fields - Kontrak
+                .kontrakTanggalMulai(document.getKontrakTanggalMulai())
+                .kontrakTanggalSelesai(document.getKontrakTanggalSelesai())
+                .kontrakNilai(document.getKontrakNilai())
+                .kontrakJumlahTermin(document.getKontrakJumlahTermin())
+                .kontrakDetailPembayaran(document.getKontrakDetailPembayaran())
+                // Monitoring fields - BA Deploy
+                .baDeploy(document.getBaDeploy())
+                .build();
     }
 
     /**

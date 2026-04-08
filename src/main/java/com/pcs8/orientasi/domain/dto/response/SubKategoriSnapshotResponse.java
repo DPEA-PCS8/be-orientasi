@@ -15,9 +15,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SubKategoriResponse {
+public class SubKategoriSnapshotResponse {
 
     private UUID id;
+
+    @JsonProperty("snapshot_year")
+    private Integer snapshotYear;
+
+    @JsonProperty("sub_kategori_id")
+    private UUID subKategoriId;
 
     @JsonProperty("kode")
     private String kode;
@@ -31,9 +37,15 @@ public class SubKategoriResponse {
     @JsonProperty("category_name")
     private String categoryName;
 
+    @JsonProperty("snapshot_date")
+    private LocalDateTime snapshotDate;
+
+    @JsonProperty("change_type")
+    private String changeType;
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    @JsonProperty("created_by")
+    private String createdBy;
 }

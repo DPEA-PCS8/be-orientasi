@@ -5,7 +5,9 @@ import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.Fs2ApprovedSearchFilter;
 import com.pcs8.orientasi.domain.dto.request.Fs2DocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.Fs2ChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
+import com.pcs8.orientasi.service.Fs2ChangelogService;
 import com.pcs8.orientasi.service.Fs2Service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ import java.util.UUID;
 public class Fs2Controller {
 
     private final Fs2Service fs2Service;
+    private final Fs2ChangelogService fs2ChangelogService;
 
     /**
      * Build pagination response map from Page result
@@ -179,5 +182,23 @@ public class Fs2Controller {
     public ResponseEntity<BaseResponse> delete(@PathVariable UUID id) {
         fs2Service.delete(id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "F.S.2 berhasil dihapus", null));
+    }
+
+    /**
+     * Get changelogs for an FS2 document
+     */
+    @GetMapping("/{fs2Id}/changelogs")
+    public ResponseEntity<BaseResponse> getChangelogs(@PathVariable UUID fs2Id) {
+        List<Fs2ChangelogResponse> changelogs = fs2ChangelogService.getChangelogsByFs2Id(fs2Id);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, changelogs));
+    }
+
+    /**
+     * Get changelog count for an FS2 document
+     */
+    @GetMapping("/{fs2Id}/changelogs/count")
+    public ResponseEntity<BaseResponse> getChangelogCount(@PathVariable UUID fs2Id) {
+        long count = fs2ChangelogService.countChangelogsByFs2Id(fs2Id);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, count));
     }
 }

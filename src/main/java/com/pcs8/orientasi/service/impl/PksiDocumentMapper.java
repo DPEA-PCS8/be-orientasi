@@ -42,6 +42,8 @@ public interface PksiDocumentMapper {
     @Mapping(target = "inisiatifNomor", expression = "java(extractInisiatifNomor(document))")
     @Mapping(target = "inisiatifNama", expression = "java(extractInisiatifNama(document))")
     @Mapping(target = "inisiatifTahun", expression = "java(extractInisiatifTahun(document))")
+    @Mapping(target = "teamId", expression = "java(extractTeamId(document))")
+    @Mapping(target = "teamName", expression = "java(extractTeamName(document))")
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
     @Mapping(target = "kapanHarusDiselesaikan", source = "kapanDiselesaikan")
     @Mapping(target = "picSatkerBA", source = "picSatker")
@@ -149,6 +151,20 @@ public interface PksiDocumentMapper {
     default Integer extractInisiatifTahun(PksiDocument document) {
         if (document.getInisiatif() != null) {
             return document.getInisiatif().getTahun();
+        }
+        return null;
+    }
+
+    default String extractTeamId(PksiDocument document) {
+        if (document.getTeam() != null && document.getTeam().getId() != null) {
+            return document.getTeam().getId().toString();
+        }
+        return null;
+    }
+
+    default String extractTeamName(PksiDocument document) {
+        if (document.getTeam() != null) {
+            return document.getTeam().getName();
         }
         return null;
     }

@@ -54,6 +54,11 @@ public interface AplikasiHistorisService {
     List<AplikasiHistorisListResponse> getHistorisByTahun(Integer tahun);
 
     /**
+     * Get full snapshot details for a specific year (for export)
+     */
+    List<AplikasiSnapshotResponse> getFullSnapshotsByTahun(Integer tahun);
+
+    /**
      * Get all available years that have snapshots
      */
     List<Integer> getAvailableYears();

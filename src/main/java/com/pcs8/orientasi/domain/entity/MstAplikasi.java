@@ -50,6 +50,10 @@ public class MstAplikasi extends BaseEntity {
     @JoinColumn(name = "skpa_id", nullable = true)
     private MstSkpa skpa;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sub_kategori_id", nullable = true)
+    private MstSubKategori subKategori;
+
     @Column(name = "tanggal_implementasi")
     private LocalDate tanggalImplementasi;
 
