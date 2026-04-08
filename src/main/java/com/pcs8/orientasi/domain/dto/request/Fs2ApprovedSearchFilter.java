@@ -36,4 +36,10 @@ public class Fs2ApprovedSearchFilter {
     private String pelaksanaan;
 
     private Integer year;
+
+    @JsonProperty("start_month")
+    private Integer startMonth;
+
+    @JsonProperty("end_month")
+    private Integer endMonth;
 }
