@@ -129,13 +129,13 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all F.S.2 documents with year filter: {}", year);
-            return fs2Repository.searchFs2DocumentsWithYear(search, bidangId, skpaId, status, year, pageable)
+            log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         }
         
@@ -146,13 +146,13 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}", userDepartment, year);
+        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}, month range: {}-{}", userDepartment, year, startMonth, endMonth);
         
         // Find SKPA UUID for the user's department
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
         if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYear(search, bidangId, status, userDepartment.trim(), year, pageable)
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);

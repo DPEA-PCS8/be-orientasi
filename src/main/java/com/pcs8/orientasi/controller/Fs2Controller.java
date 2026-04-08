@@ -71,6 +71,8 @@ public class Fs2Controller {
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year,
+            @RequestParam(name = "start_month", required = false) Integer startMonth,
+            @RequestParam(name = "end_month", required = false) Integer endMonth,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest
@@ -82,7 +84,7 @@ public class Fs2Controller {
         Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
         String userDepartment = (String) httpRequest.getAttribute("department");
         
-        log.info("F.S.2 Search - User Roles: {}, Department: {}, Year: {}", userRoles, userDepartment, year);
+        log.info("F.S.2 Search - User Roles: {}, Department: {}, Year: {}, Month Range: {}-{}", userRoles, userDepartment, year, startMonth, endMonth);
         
         // Admin and Pengembang can see all F.S.2, SKPA role only sees matching department
         boolean canSeeAll = userRoles != null && userRoles.stream()
@@ -90,7 +92,7 @@ public class Fs2Controller {
         
         log.info("F.S.2 Search - canSeeAll: {}", canSeeAll);
         
-        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, year, pageable, userDepartment, canSeeAll);
+        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll);
         
         log.info("F.S.2 Search - Results count: {}", pageResult.getTotalElements());
         
@@ -107,6 +109,8 @@ public class Fs2Controller {
             @RequestParam(required = false) String mekanisme,
             @RequestParam(required = false) String pelaksanaan,
             @RequestParam(required = false) Integer year,
+            @RequestParam(name = "start_month", required = false) Integer startMonth,
+            @RequestParam(name = "end_month", required = false) Integer endMonth,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest
@@ -131,6 +135,8 @@ public class Fs2Controller {
                 .mekanisme(mekanisme)
                 .pelaksanaan(pelaksanaan)
                 .year(year)
+                .startMonth(startMonth)
+                .endMonth(endMonth)
                 .build();
         Page<Fs2DocumentResponse> pageResult = fs2Service.searchApproved(filter, pageable, userDepartment, canSeeAll);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, buildPaginationResponse(pageResult)));
