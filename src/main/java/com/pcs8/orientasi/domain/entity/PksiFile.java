@@ -54,4 +54,14 @@ public class PksiFile extends BaseEntity {
 
     @Column(name = "file_type", length = 20)
     private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
+
+    @Column(name = "version")
+    @lombok.Builder.Default
+    private Integer version = 1;
+
+    @Column(name = "file_group_id")
+    private UUID fileGroupId;
+
+    @Column(name = "display_name", length = 512)
+    private String displayName;
 }

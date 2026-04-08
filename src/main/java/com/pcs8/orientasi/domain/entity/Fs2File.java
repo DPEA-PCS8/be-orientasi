@@ -55,4 +55,14 @@ public class Fs2File extends BaseEntity {
 
     @Column(name = "file_type", length = 20)
     private String fileType; // ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA
+
+    @Column(name = "version")
+    @lombok.Builder.Default
+    private Integer version = 1;
+
+    @Column(name = "file_group_id")
+    private UUID fileGroupId;
+
+    @Column(name = "display_name", length = 512)
+    private String displayName;
 }

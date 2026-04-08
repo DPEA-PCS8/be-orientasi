@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.entity.Fs2File;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
 import com.pcs8.orientasi.repository.Fs2FileRepository;
+import com.pcs8.orientasi.service.FileVersioningService;
 import com.pcs8.orientasi.service.MinioService;
 import com.pcs8.orientasi.service.Fs2FileService;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,14 +43,17 @@ public class Fs2FileServiceImpl implements Fs2FileService {
     private final MinioService minioService;
     private final Fs2FileRepository fs2FileRepository;
     private final Fs2DocumentRepository fs2DocumentRepository;
+    private final FileVersioningService fileVersioningService;
 
     public Fs2FileServiceImpl(
             MinioService minioService,
             Fs2FileRepository fs2FileRepository,
-            Fs2DocumentRepository fs2DocumentRepository) {
+            Fs2DocumentRepository fs2DocumentRepository,
+            FileVersioningService fileVersioningService) {
         this.minioService = minioService;
         this.fs2FileRepository = fs2FileRepository;
         this.fs2DocumentRepository = fs2DocumentRepository;
+        this.fileVersioningService = fileVersioningService;
     }
 
     @Override
@@ -240,6 +245,25 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 file.getSize()
         );
 
+        // Calculate version and file group
+        Integer currentMaxVersion = fs2FileRepository.findMaxVersionByFs2IdAndFileType(fs2Document.getId(), fileType);
+        int newVersion = currentMaxVersion + 1;
+        
+        // Get or create file group ID
+        UUID fileGroupId;
+        Optional<Fs2File> existingFile = fs2FileRepository.findFirstByFs2DocumentIdAndFileTypeOrderByVersionDesc(fs2Document.getId(), fileType);
+        if (existingFile.isPresent() && existingFile.get().getFileGroupId() != null) {
+            fileGroupId = existingFile.get().getFileGroupId();
+        } else {
+            fileGroupId = UUID.randomUUID();
+        }
+
+        // Generate standardized display name - use aplikasi name if available
+        String docName = fs2Document.getAplikasi() != null 
+                ? fs2Document.getAplikasi().getNamaAplikasi() 
+                : "FS2_" + fs2Document.getId().toString().substring(0, 8);
+        String displayName = fileVersioningService.generateDisplayName(fileType, docName, newVersion, extension);
+
         // Save metadata to database
         Fs2File fs2File = Fs2File.builder()
                 .fs2Document(fs2Document)
@@ -249,7 +273,10 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .fileSize(file.getSize())
                 .blobUrl(fileUrl)
                 .blobName(blobName)
-                .fileType(fileType) // File type (ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA)
+                .fileType(fileType)
+                .version(newVersion)
+                .fileGroupId(fileGroupId)
+                .displayName(displayName)
                 .build();
 
         fs2File = fs2FileRepository.save(fs2File);
@@ -257,9 +284,10 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         // Update berkas field in fs2_document
         updateBerkasField(fs2Document, fileType);
 
-        log.info("Uploaded file successfully");
+        log.info("Uploaded file successfully - id: {}, displayName: {}, version: {}", 
+                fs2File.getId(), fs2File.getDisplayName(), fs2File.getVersion());
 
-        return mapToResponse(fs2File);
+        return mapToResponse(fs2File, true);
     }
 
     private void checkFs2FileValidity(MultipartFile uploadedFile) {
@@ -379,6 +407,10 @@ public class Fs2FileServiceImpl implements Fs2FileService {
     }
 
     private Fs2FileResponse mapToResponse(Fs2File file) {
+        return mapToResponse(file, false);
+    }
+
+    private Fs2FileResponse mapToResponse(Fs2File file, boolean isLatest) {
         return Fs2FileResponse.builder()
                 .id(file.getId())
                 .fs2Id(file.getFs2Document() != null ? file.getFs2Document().getId() : null)
@@ -389,7 +421,88 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .blobUrl(file.getBlobUrl())
                 .fileType(file.getFileType())
                 .createdAt(file.getCreatedAt() != null ? file.getCreatedAt() : LocalDateTime.now())
+                .version(file.getVersion())
+                .fileGroupId(file.getFileGroupId())
+                .displayName(file.getDisplayName())
+                .isLatestVersion(isLatest)
                 .build();
+    }
+
+    // ==================== VERSIONING METHODS ====================
+
+    @Override
+    @Transactional
+    public Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType) {
+        Fs2Document fs2Document = fs2DocumentRepository.findById(fs2Id)
+                .orElseThrow(() -> new ResourceNotFoundException("F.S.2 Document not found with id: " + fs2Id));
+        
+        checkFs2FileValidity(file);
+        
+        try {
+            return uploadSingleFile(fs2Document, file, fileType);
+        } catch (IOException e) {
+            log.error("Failed to upload new version. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to upload new version", e);
+        }
+    }
+
+    @Override
+    public List<Fs2FileResponse> getLatestVersionFiles(UUID fs2Id) {
+        List<Fs2File> latestFiles = fs2FileRepository.findLatestVersionFilesByFs2Id(fs2Id);
+        return latestFiles.stream()
+                .map(file -> mapToResponse(file, true))
+                .toList();
+    }
+
+    @Override
+    public List<Fs2FileResponse> getFileHistory(UUID fs2Id, String fileType) {
+        List<Fs2File> history = fs2FileRepository.findFileHistoryByFs2IdAndFileType(fs2Id, fileType);
+        if (history.isEmpty()) {
+            return List.of();
+        }
+        // First item is latest version
+        return history.stream()
+                .map(file -> mapToResponse(file, file.equals(history.get(0))))
+                .toList();
+    }
+
+    @Override
+    public List<Fs2FileResponse> getFilesByGroupId(UUID fileGroupId) {
+        List<Fs2File> files = fs2FileRepository.findByFileGroupIdOrderByVersionDesc(fileGroupId);
+        if (files.isEmpty()) {
+            return List.of();
+        }
+        // First item is latest version
+        return files.stream()
+                .map(file -> mapToResponse(file, file.equals(files.get(0))))
+                .toList();
+    }
+
+    @Override
+    public byte[] downloadFileVersion(UUID fs2Id, String fileType, Integer version) {
+        List<Fs2File> files = fs2FileRepository.findByFs2DocumentIdAndFileTypeOrderByVersionDesc(fs2Id, fileType);
+        Fs2File targetFile = files.stream()
+                .filter(f -> f.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("File not found for FS2 %s, type %s, version %d", fs2Id, fileType, version)));
+        
+        return downloadFileContent(targetFile);
+    }
+
+    private byte[] downloadFileContent(Fs2File fs2File) {
+        try (InputStream inputStream = minioService.downloadFile(fs2File.getBlobName());
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            log.error("Failed to download file. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to download file", e);
+        }
     }
 
     /**
