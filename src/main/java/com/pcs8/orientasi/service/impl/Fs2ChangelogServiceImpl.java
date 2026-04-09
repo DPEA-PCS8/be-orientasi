@@ -92,9 +92,9 @@ public class Fs2ChangelogServiceImpl implements Fs2ChangelogService {
         labels.put("tanggalNd", "Tanggal ND");
         labels.put("berkasNd", "Berkas ND");
         labels.put("berkasFs2", "Berkas F.S.2");
-        labels.put("nomorCd", "Nomor CD");
+        labels.put("nomorCd", "Nomor CD Prinsip Persetujuan FS2");
         labels.put("tanggalCd", "Tanggal CD");
-        labels.put("berkasCd", "Berkas CD");
+        labels.put("berkasCd", "Berkas CD Prinsip Persetujuan FS2");
         labels.put("berkasFs2a", "Berkas F.S.2.a");
         labels.put("berkasFs2b", "Berkas F.S.2.b");
         labels.put("realisasiPengujian", "Realisasi Pengujian");
