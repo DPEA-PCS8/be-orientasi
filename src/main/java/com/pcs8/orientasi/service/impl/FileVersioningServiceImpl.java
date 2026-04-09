@@ -12,7 +12,10 @@ import java.util.regex.Pattern;
 @Service
 public class FileVersioningServiceImpl implements FileVersioningService {
 
-    private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[\\\\/:*?\"<>|\\s]+");
+    private static final Pattern INVALID_FILENAME_CHARS = Pattern.compile("[\\\\/:*?\"<>|\\s]++");
+    private static final Pattern CONSECUTIVE_UNDERSCORES = Pattern.compile("_+");
+    private static final Pattern LEADING_UNDERSCORES = Pattern.compile("^_++");
+    private static final Pattern TRAILING_UNDERSCORES = Pattern.compile("_++$");
     private static final String REPLACEMENT_CHAR = "_";
     private static final String VERSION_PREFIX = "V";
     private static final String ND_SUFFIX = "_ND";
@@ -53,14 +56,14 @@ public class FileVersioningServiceImpl implements FileVersioningService {
         if (documentName == null || documentName.isEmpty()) {
             return "Document";
         }
-        // Replace invalid characters with underscore
+        // Replace invalid characters with underscore using possessive quantifier
         String sanitized = INVALID_FILENAME_CHARS.matcher(documentName).replaceAll(REPLACEMENT_CHAR);
         // Remove consecutive underscores
-        sanitized = sanitized.replaceAll("_+", "_");
-        // Remove leading underscores
-        sanitized = sanitized.replaceAll("^_+", "");
-        // Remove trailing underscores
-        sanitized = sanitized.replaceAll("_+$", "");
+        sanitized = CONSECUTIVE_UNDERSCORES.matcher(sanitized).replaceAll("_");
+        // Remove leading underscores using possessive quantifier
+        sanitized = LEADING_UNDERSCORES.matcher(sanitized).replaceAll("");
+        // Remove trailing underscores using possessive quantifier
+        sanitized = TRAILING_UNDERSCORES.matcher(sanitized).replaceAll("");
         // Limit length to 100 characters
         if (sanitized.length() > 100) {
             sanitized = sanitized.substring(0, 100);
