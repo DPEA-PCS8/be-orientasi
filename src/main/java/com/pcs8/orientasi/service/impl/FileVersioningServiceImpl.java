@@ -57,8 +57,10 @@ public class FileVersioningServiceImpl implements FileVersioningService {
         String sanitized = INVALID_FILENAME_CHARS.matcher(documentName).replaceAll(REPLACEMENT_CHAR);
         // Remove consecutive underscores
         sanitized = sanitized.replaceAll("_+", "_");
-        // Remove leading/trailing underscores
-        sanitized = sanitized.replaceAll("(?:^_+|_+$)", "");
+        // Remove leading underscores
+        sanitized = sanitized.replaceAll("^_+", "");
+        // Remove trailing underscores
+        sanitized = sanitized.replaceAll("_+$", "");
         // Limit length to 100 characters
         if (sanitized.length() > 100) {
             sanitized = sanitized.substring(0, 100);
