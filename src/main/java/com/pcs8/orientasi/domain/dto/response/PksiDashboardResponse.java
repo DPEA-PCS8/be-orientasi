@@ -227,8 +227,11 @@ public class PksiDashboardResponse {
         @JsonProperty("single_year")
         private Integer singleYear;
 
-        @JsonProperty("multiyears")
-        private Integer multiyears;
+        @JsonProperty("multiyears_y_minus1")
+        private Integer multiyearsYMinus1;
+
+        @JsonProperty("multiyears_y_plus1")
+        private Integer multiyearsYPlus1;
     }
 
     @Data

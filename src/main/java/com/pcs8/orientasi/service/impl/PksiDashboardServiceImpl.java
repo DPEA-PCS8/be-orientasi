@@ -115,7 +115,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         ApprovalBreakdown approvalBreakdown = calculateApprovalBreakdown(approvedDocuments, selectedTahun);
         List<ProgressByBidangRow> progressByBidang = calculateProgressByBidang(approvedDocuments, allBidang, skpaMap, historicalProgress);
         ProgressInsights progressInsights = calculateProgressInsights(approvedDocuments, selectedTahun, historicalProgress);
-        JenisPksiStats jenisPksiStats = calculateJenisPksiStats(approvedDocuments);
+        JenisPksiStats jenisPksiStats = calculateJenisPksiStats(approvedDocuments, selectedTahun);
         PelaksanaStats pelaksanaStats = calculatePelaksanaStats(approvedDocuments);
         List<BidangStat> bidangStats = calculateBidangStats(approvedDocuments, allBidang, skpaMap);
         List<PksiListItem> pksiList = buildPksiList(documentsInSnapshot, skpaMap, historicalProgress);
@@ -183,12 +183,10 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private boolean isInYear(PksiDocument doc, int year) {
-        return checkYearMatch(doc.getTahap1Awal(), year) ||
-               checkYearMatch(doc.getTahap1Akhir(), year) ||
-               checkYearMatch(doc.getTahap5Awal(), year) ||
-               checkYearMatch(doc.getTahap5Akhir(), year) ||
-               checkYearMatch(doc.getTahap7Awal(), year) ||
-               checkYearMatch(doc.getTahap7Akhir(), year);
+        return checkYearMatch(doc.getTargetUsreq(), year) ||
+               checkYearMatch(doc.getTargetSit(), year) ||
+               checkYearMatch(doc.getTargetUat(), year) ||
+               checkYearMatch(doc.getTargetGoLive(), year);
     }
 
     private boolean checkYearMatch(LocalDate date, int year) {
@@ -198,10 +196,10 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private List<Integer> extractAvailableYears(List<PksiDocument> documents) {
         Set<Integer> years = new TreeSet<>();
         for (PksiDocument doc : documents) {
-            addYearIfPresent(years, doc.getTahap1Awal());
-            addYearIfPresent(years, doc.getTahap1Akhir());
-            addYearIfPresent(years, doc.getTahap7Awal());
-            addYearIfPresent(years, doc.getTahap7Akhir());
+            addYearIfPresent(years, doc.getTargetUsreq());
+            addYearIfPresent(years, doc.getTargetSit());
+            addYearIfPresent(years, doc.getTargetUat());
+            addYearIfPresent(years, doc.getTargetGoLive());
         }
         return new ArrayList<>(years);
     }
@@ -230,14 +228,15 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         int disetujuiTahunIni = 0;
         int disetujuiMultiyearsSebelumnya = 0;
 
+        // One More Type: PKSI Mendesak
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate tahap1Awal = doc.getTahap1Awal();
-            if (tahap1Awal != null && tahap1Awal.getYear() == selectedTahun) {
+            LocalDate targetGoLive = doc.getTargetGoLive();
+            if (targetGoLive != null && targetGoLive.getYear() == selectedTahun) {
                 disetujuiTahunIni++;
-            } else if (tahap1Awal != null && tahap1Awal.getYear() < selectedTahun) {
+            } else if (targetGoLive != null && targetGoLive.getYear() == selectedTahun - 1) {
                 disetujuiMultiyearsSebelumnya++;
             } else {
-                disetujuiTahunIni++;
+                log.warn("PKSI {} has approved status but targetGoLive year is unknown or in the future", doc.getId());
             }
         }
 
@@ -357,7 +356,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         }
 
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate deadline = doc.getTahap7Akhir() != null ? doc.getTahap7Akhir() : doc.getTahap7Awal();
+            LocalDate deadline = doc.getTargetGoLive();
             if (deadline != null && deadline.getYear() == targetYear) {
                 deadlineTotal++;
                 String docProgress = historicalProgress.getOrDefault(doc.getId(), doc.getProgress());
@@ -388,21 +387,30 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
                 .build();
     }
 
-    private JenisPksiStats calculateJenisPksiStats(List<PksiDocument> approvedDocuments) {
+    private JenisPksiStats calculateJenisPksiStats(List<PksiDocument> approvedDocuments, int selectedTahun) {
         int singleYear = 0;
-        int multiyears = 0;
+        int multiyearsYMinus1 = 0;
+        int multiyearsYPlus1 = 0;
 
         for (PksiDocument doc : approvedDocuments) {
-            if (isMultiyear(doc)) {
-                multiyears++;
-            } else {
+            LocalDate targetGoLive = doc.getTargetGoLive();
+            if (targetGoLive == null) continue;
+
+            int targetYear = targetGoLive.getYear();
+
+            if (targetYear == selectedTahun) {
                 singleYear++;
+            } else if (targetYear == selectedTahun - 1) {
+                multiyearsYMinus1++;
+            } else if (targetYear > selectedTahun) {
+                multiyearsYPlus1++;
             }
         }
 
         return JenisPksiStats.builder()
                 .singleYear(singleYear)
-                .multiyears(multiyears)
+                .multiyearsYMinus1(multiyearsYMinus1)
+                .multiyearsYPlus1(multiyearsYPlus1)
                 .build();
     }
 
@@ -413,16 +421,15 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private Integer getStartYear(PksiDocument doc) {
-        if (doc.getTahap1Awal() != null) return doc.getTahap1Awal().getYear();
-        if (doc.getTahap5Awal() != null) return doc.getTahap5Awal().getYear();
-        if (doc.getTahap7Awal() != null) return doc.getTahap7Awal().getYear();
+        if (doc.getTargetUsreq() != null) return doc.getTargetUsreq().getYear();
+        if (doc.getTargetSit() != null) return doc.getTargetSit().getYear();
+        if (doc.getTargetUat() != null) return doc.getTargetUat().getYear();
+        if (doc.getTargetGoLive() != null) return doc.getTargetGoLive().getYear();
         return null;
     }
 
     private Integer getEndYear(PksiDocument doc) {
-        if (doc.getTahap7Akhir() != null) return doc.getTahap7Akhir().getYear();
-        if (doc.getTahap5Akhir() != null) return doc.getTahap5Akhir().getYear();
-        if (doc.getTahap1Akhir() != null) return doc.getTahap1Akhir().getYear();
+        if (doc.getTargetGoLive() != null) return doc.getTargetGoLive().getYear();
         return null;
     }
 
@@ -514,8 +521,8 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
                             .status(doc.getStatus() != null ? doc.getStatus().name() : null)
                             .progress(progress)
                             .bidangNama(bidangNama)
-                            .tahap7Awal(doc.getTahap7Awal() != null ? doc.getTahap7Awal().toString() : null)
-                            .tahap7Akhir(doc.getTahap7Akhir() != null ? doc.getTahap7Akhir().toString() : null)
+                            .tahap7Awal(doc.getTargetGoLive() != null ? doc.getTargetGoLive().toString() : null)
+                            .tahap7Akhir(doc.getTargetGoLive() != null ? doc.getTargetGoLive().toString() : null)
                             .isMultiyear(isMultiyear(doc))
                             .inhouseOutsource(doc.getInhouseOutsource())
                             .build();
