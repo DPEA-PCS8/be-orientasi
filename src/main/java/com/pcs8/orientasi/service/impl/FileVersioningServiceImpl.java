@@ -58,7 +58,7 @@ public class FileVersioningServiceImpl implements FileVersioningService {
         // Remove consecutive underscores
         sanitized = sanitized.replaceAll("_+", "_");
         // Remove leading/trailing underscores
-        sanitized = sanitized.replaceAll("(^_|_$)", "");
+        sanitized = sanitized.replaceAll("(?:^_+|_+$)", "");
         // Limit length to 100 characters
         if (sanitized.length() > 100) {
             sanitized = sanitized.substring(0, 100);
