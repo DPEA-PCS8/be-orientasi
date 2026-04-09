@@ -25,4 +25,8 @@ public class Fs2FileResponse {
     private String blobUrl;
     private String fileType; // ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA
     private LocalDateTime createdAt;
+    private Integer version;
+    private UUID fileGroupId;
+    private String displayName;
+    private boolean isLatestVersion;
 }

@@ -23,6 +23,10 @@ public class PksiFileResponse {
     private String contentType;
     private Long fileSize;
     private String blobUrl;
-    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan
+    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan, T01_ND, T11_ND
     private LocalDateTime createdAt;
+    private Integer version;
+    private UUID fileGroupId;
+    private String displayName;
+    private boolean isLatestVersion;
 }

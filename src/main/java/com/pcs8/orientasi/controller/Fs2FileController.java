@@ -152,4 +152,91 @@ public class Fs2FileController {
         
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Files deleted successfully", null));
     }
+
+    // ==================== VERSIONING ENDPOINTS ====================
+
+    /**
+     * Upload a new version of an existing file type
+     */
+    @PostMapping("/version/{fs2Id}")
+    public ResponseEntity<BaseResponse> uploadNewVersion(
+            @PathVariable UUID fs2Id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("fileType") String fileType) {
+        
+        log.info("Uploading new version of file F.S.2 document");
+        
+        Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "New version uploaded successfully", response));
+    }
+
+    /**
+     * Get the latest version files for a F.S.2 document (one per file type)
+     */
+    @GetMapping("/latest/{fs2Id}")
+    public ResponseEntity<BaseResponse> getLatestVersionFiles(@PathVariable UUID fs2Id) {
+        log.info("Getting latest version files for F.S.2 document");
+        
+        List<Fs2FileResponse> files = fs2FileService.getLatestVersionFiles(fs2Id);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, files));
+    }
+
+    /**
+     * Get file version history for a specific file type
+     */
+    @GetMapping("/history/{fs2Id}/{fileType}")
+    public ResponseEntity<BaseResponse> getFileHistory(
+            @PathVariable UUID fs2Id,
+            @PathVariable String fileType) {
+        
+        log.info("Getting file history for F.S.2 document");
+        
+        List<Fs2FileResponse> history = fs2FileService.getFileHistory(fs2Id, fileType);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, history));
+    }
+
+    /**
+     * Get all versions of a file by file group ID
+     */
+    @GetMapping("/group/{fileGroupId}")
+    public ResponseEntity<BaseResponse> getFilesByGroupId(@PathVariable UUID fileGroupId) {
+        log.info("Getting files by group ID");
+        
+        List<Fs2FileResponse> files = fs2FileService.getFilesByGroupId(fileGroupId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, files));
+    }
+
+    /**
+     * Download a specific version of a file
+     */
+    @GetMapping("/download/{fs2Id}/{fileType}/{version}")
+    public ResponseEntity<byte[]> downloadFileVersion(
+            @PathVariable UUID fs2Id,
+            @PathVariable String fileType,
+            @PathVariable Integer version) {
+        
+        log.info("Downloading file version for F.S.2 document");
+        
+        byte[] content = fs2FileService.downloadFileVersion(fs2Id, fileType, version);
+        List<Fs2FileResponse> history = fs2FileService.getFileHistory(fs2Id, fileType);
+        Fs2FileResponse fileInfo = history.stream()
+                .filter(f -> f.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("File not found"));
+
+        String fileName = fileInfo.getDisplayName() != null ? fileInfo.getDisplayName() : fileInfo.getOriginalName();
+        String contentType = fileInfo.getContentType() != null ? fileInfo.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentLength(content.length);
+
+        return new ResponseEntity<>(content, headers, HttpStatus.OK);
+    }
 }

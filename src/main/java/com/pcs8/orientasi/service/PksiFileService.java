@@ -57,4 +57,32 @@ public interface PksiFileService {
      * Get file metadata by ID
      */
     PksiFileResponse getFileById(UUID fileId);
+
+    // ==================== VERSIONING METHODS ====================
+
+    /**
+     * Upload a new version of an existing file type.
+     * Automatically increments version number and generates standardized display name.
+     */
+    PksiFileResponse uploadNewVersion(UUID pksiId, MultipartFile file, String fileType);
+
+    /**
+     * Get the latest version files for a PKSI document (one per file type)
+     */
+    List<PksiFileResponse> getLatestVersionFiles(UUID pksiId);
+
+    /**
+     * Get file version history for a specific file type
+     */
+    List<PksiFileResponse> getFileHistory(UUID pksiId, String fileType);
+
+    /**
+     * Get file by file group ID (all versions of same logical file)
+     */
+    List<PksiFileResponse> getFilesByGroupId(UUID fileGroupId);
+
+    /**
+     * Download a specific version of a file
+     */
+    byte[] downloadFileVersion(UUID pksiId, String fileType, Integer version);
 }

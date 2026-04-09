@@ -57,4 +57,32 @@ public interface Fs2FileService {
      * Get file metadata by ID
      */
     Fs2FileResponse getFileById(UUID fileId);
+
+    // ==================== VERSIONING METHODS ====================
+
+    /**
+     * Upload a new version of an existing file type.
+     * Automatically increments version number and generates standardized display name.
+     */
+    Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType);
+
+    /**
+     * Get the latest version files for a F.S.2 document (one per file type)
+     */
+    List<Fs2FileResponse> getLatestVersionFiles(UUID fs2Id);
+
+    /**
+     * Get file version history for a specific file type
+     */
+    List<Fs2FileResponse> getFileHistory(UUID fs2Id, String fileType);
+
+    /**
+     * Get file by file group ID (all versions of same logical file)
+     */
+    List<Fs2FileResponse> getFilesByGroupId(UUID fileGroupId);
+
+    /**
+     * Download a specific version of a file
+     */
+    byte[] downloadFileVersion(UUID fs2Id, String fileType, Integer version);
 }

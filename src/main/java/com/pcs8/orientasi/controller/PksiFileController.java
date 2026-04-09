@@ -177,4 +177,91 @@ public class PksiFileController {
         
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "All files deleted successfully", null));
     }
+
+    // ==================== VERSIONING ENDPOINTS ====================
+
+    /**
+     * Upload a new version of an existing file type
+     */
+    @PostMapping("/version/{pksiId}")
+    public ResponseEntity<BaseResponse> uploadNewVersion(
+            @PathVariable UUID pksiId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("fileType") String fileType) {
+        
+        log.info("Uploading new version of file for PKSI document");
+        
+        PksiFileResponse response = pksiFileService.uploadNewVersion(pksiId, file, fileType);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "New version uploaded successfully", response));
+    }
+
+    /**
+     * Get the latest version files for a PKSI document (one per file type)
+     */
+    @GetMapping("/latest/{pksiId}")
+    public ResponseEntity<BaseResponse> getLatestVersionFiles(@PathVariable UUID pksiId) {
+        log.info("Getting latest version files for PKSI document");
+        
+        List<PksiFileResponse> files = pksiFileService.getLatestVersionFiles(pksiId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, files));
+    }
+
+    /**
+     * Get file version history for a specific file type
+     */
+    @GetMapping("/history/{pksiId}/{fileType}")
+    public ResponseEntity<BaseResponse> getFileHistory(
+            @PathVariable UUID pksiId,
+            @PathVariable String fileType) {
+        
+        log.info("Getting file history for PKSI document");
+        
+        List<PksiFileResponse> history = pksiFileService.getFileHistory(pksiId, fileType);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, history));
+    }
+
+    /**
+     * Get all versions of a file by file group ID
+     */
+    @GetMapping("/group/{fileGroupId}")
+    public ResponseEntity<BaseResponse> getFilesByGroupId(@PathVariable UUID fileGroupId) {
+        log.info("Getting files by group ID");
+        
+        List<PksiFileResponse> files = pksiFileService.getFilesByGroupId(fileGroupId);
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, files));
+    }
+
+    /**
+     * Download a specific version of a file
+     */
+    @GetMapping("/download/{pksiId}/{fileType}/{version}")
+    public ResponseEntity<byte[]> downloadFileVersion(
+            @PathVariable UUID pksiId,
+            @PathVariable String fileType,
+            @PathVariable Integer version) {
+        
+        log.info("Downloading file version for PKSI document");
+        
+        byte[] content = pksiFileService.downloadFileVersion(pksiId, fileType, version);
+        List<PksiFileResponse> history = pksiFileService.getFileHistory(pksiId, fileType);
+        PksiFileResponse fileInfo = history.stream()
+                .filter(f -> f.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("File not found"));
+
+        String fileName = fileInfo.getDisplayName() != null ? fileInfo.getDisplayName() : fileInfo.getOriginalName();
+        String contentType = fileInfo.getContentType() != null ? fileInfo.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentLength(content.length);
+
+        return new ResponseEntity<>(content, headers, HttpStatus.OK);
+    }
 }
