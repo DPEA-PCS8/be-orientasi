@@ -189,7 +189,7 @@ public class PksiFileController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("fileType") String fileType) {
         
-        log.info("Uploading new version of file type {} for PKSI document", fileType);
+        log.info("Uploading new version of file for PKSI document");
         
         PksiFileResponse response = pksiFileService.uploadNewVersion(pksiId, file, fileType);
         
@@ -217,7 +217,7 @@ public class PksiFileController {
             @PathVariable UUID pksiId,
             @PathVariable String fileType) {
         
-        log.info("Getting file history for PKSI document, type: {}", fileType);
+        log.info("Getting file history for PKSI document");
         
         List<PksiFileResponse> history = pksiFileService.getFileHistory(pksiId, fileType);
         
@@ -245,7 +245,7 @@ public class PksiFileController {
             @PathVariable String fileType,
             @PathVariable Integer version) {
         
-        log.info("Downloading file version {} of type {} for PKSI document", version, fileType);
+        log.info("Downloading file version for PKSI document");
         
         byte[] content = pksiFileService.downloadFileVersion(pksiId, fileType, version);
         List<PksiFileResponse> history = pksiFileService.getFileHistory(pksiId, fileType);

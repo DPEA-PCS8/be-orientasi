@@ -164,7 +164,7 @@ public class Fs2FileController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("fileType") String fileType) {
         
-        log.info("Uploading new version of file type {} for F.S.2 document", fileType);
+        log.info("Uploading new version of file F.S.2 document");
         
         Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType);
         
@@ -192,7 +192,7 @@ public class Fs2FileController {
             @PathVariable UUID fs2Id,
             @PathVariable String fileType) {
         
-        log.info("Getting file history for F.S.2 document, type: {}", fileType);
+        log.info("Getting file history for F.S.2 document");
         
         List<Fs2FileResponse> history = fs2FileService.getFileHistory(fs2Id, fileType);
         
@@ -220,7 +220,7 @@ public class Fs2FileController {
             @PathVariable String fileType,
             @PathVariable Integer version) {
         
-        log.info("Downloading file version {} of type {} for F.S.2 document", version, fileType);
+        log.info("Downloading file version for F.S.2 document");
         
         byte[] content = fs2FileService.downloadFileVersion(fs2Id, fileType, version);
         List<Fs2FileResponse> history = fs2FileService.getFileHistory(fs2Id, fileType);
