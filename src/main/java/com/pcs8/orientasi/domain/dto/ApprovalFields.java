@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDate;
+
 /**
  * Base class containing shared approval fields.
  * Used by UpdateStatusRequest and PksiDocumentResponse to reduce code duplication.
@@ -52,16 +54,16 @@ public abstract class ApprovalFields {
 
     // Monitoring fields - Target Timeline
     @JsonProperty("target_usreq")
-    protected String targetUsreq;
+    protected LocalDate targetUsreq;
 
     @JsonProperty("target_sit")
-    protected String targetSit;
+    protected LocalDate targetSit;
 
     @JsonProperty("target_uat")
-    protected String targetUat;
+    protected LocalDate targetUat;
 
     @JsonProperty("target_go_live")
-    protected String targetGoLive;
+    protected LocalDate targetGoLive;
 
     // Monitoring fields - T01/T02 Status
     @JsonProperty("status_t01_t02")

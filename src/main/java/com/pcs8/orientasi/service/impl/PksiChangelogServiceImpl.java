@@ -241,13 +241,13 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
                 oldDocument.getAnggaranTahunDepan(), pksiDocument.getAnggaranTahunDepan(), updatedBy, updatedByName);
         
         // Monitoring fields - Target Timeline
-        trackStringChange(changes, pksiDocument, oldDocument, "targetUsreq",
+        trackDateChange(changes, pksiDocument, oldDocument, "targetUsreq",
                 oldDocument.getTargetUsreq(), pksiDocument.getTargetUsreq(), updatedBy, updatedByName);
-        trackStringChange(changes, pksiDocument, oldDocument, "targetSit",
+        trackDateChange(changes, pksiDocument, oldDocument, "targetSit",
                 oldDocument.getTargetSit(), pksiDocument.getTargetSit(), updatedBy, updatedByName);
-        trackStringChange(changes, pksiDocument, oldDocument, "targetUat",
+        trackDateChange(changes, pksiDocument, oldDocument, "targetUat",
                 oldDocument.getTargetUat(), pksiDocument.getTargetUat(), updatedBy, updatedByName);
-        trackStringChange(changes, pksiDocument, oldDocument, "targetGoLive",
+        trackDateChange(changes, pksiDocument, oldDocument, "targetGoLive",
                 oldDocument.getTargetGoLive(), pksiDocument.getTargetGoLive(), updatedBy, updatedByName);
         
         // Monitoring fields - T01/T02 Status
