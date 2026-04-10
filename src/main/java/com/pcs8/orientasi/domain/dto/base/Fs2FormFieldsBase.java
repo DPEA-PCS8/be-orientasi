@@ -131,6 +131,16 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("pic_id")
     private UUID picId;
 
+    // Team Structure
+    @JsonProperty("team_id")
+    private UUID teamId;
+
+    @JsonProperty("anggota_tim")
+    private String anggotaTim;
+
+    @JsonProperty("anggota_tim_names")
+    private String anggotaTimNames;
+
     @JsonProperty("dokumen_path")
     private String dokumenPath;
 

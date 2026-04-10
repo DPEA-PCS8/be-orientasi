@@ -194,6 +194,17 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "pic_name", length = 255)
     private String picName;
 
+    // Team Structure (similar to PKSI)
+    @Column(name = "anggota_tim", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTim;
+
+    @Column(name = "anggota_tim_names", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTimNames;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private MstTeam team;
+
     // Dokumen Pengajuan F.S.2 reference (file ID or path)
     @Column(name = "dokumen_path", length = 500)
     private String dokumenPath;
