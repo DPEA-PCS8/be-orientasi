@@ -7,6 +7,7 @@ import com.pcs8.orientasi.domain.entity.Fs2Document;
 import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
+import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
@@ -15,6 +16,7 @@ import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
+import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
 import com.pcs8.orientasi.service.Fs2FileService;
@@ -46,6 +48,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
     private final MstUserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
@@ -333,6 +336,8 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Create snapshot for changelog
         Fs2Document oldDocument = createSnapshot(document);
         Fs2DocumentResponse oldValue = mapToResponse(document);
+        
+        // Update status
         document.setStatus(status);
 
         Fs2Document saved = fs2Repository.save(document);
@@ -456,7 +461,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     /**
-     * Set document relations (Aplikasi, Bidang, SKPA, PIC) from request
+     * Set document relations (Aplikasi, Bidang, SKPA, PIC, Team) from request
      */
     private void setDocumentRelations(Fs2Document document, Fs2DocumentRequest request) {
         if (request.getAplikasiId() != null) {
@@ -482,6 +487,21 @@ public class Fs2ServiceImpl implements Fs2Service {
                     .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
             document.setPicId(pic.getUuid());
             document.setPicName(pic.getFullName());
+        }
+
+        // Handle team data
+        if (request.getTeamId() != null) {
+            MstTeam team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team" + NOT_FOUND_WITH_ID + request.getTeamId()));
+            document.setTeam(team);
+        }
+        
+        // Set team member data (comma-separated UUIDs and names)
+        if (request.getAnggotaTim() != null) {
+            document.setAnggotaTim(request.getAnggotaTim());
+        }
+        if (request.getAnggotaTimNames() != null) {
+            document.setAnggotaTimNames(request.getAnggotaTimNames());
         }
     }
 
@@ -531,6 +551,10 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tahunSelesai(document.getTahunSelesai())
                 .picId(document.getPicId())
                 .picName(document.getPicName())
+                .teamId(document.getTeam() != null ? document.getTeam().getId() : null)
+                .teamName(document.getTeam() != null ? document.getTeam().getName() : null)
+                .anggotaTim(document.getAnggotaTim())
+                .anggotaTimNames(document.getAnggotaTimNames())
                 .dokumenPath(document.getDokumenPath())
                 // Monitoring Fields - Dokumen Pengajuan F.S.2
                 .nomorNd(document.getNomorNd())
