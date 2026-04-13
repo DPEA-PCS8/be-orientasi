@@ -59,15 +59,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
         log.info("Creating PKSI document");
 
-        // userId is optional - used for audit/tracking only
+        // userId comes from JWT token via AuthorizationInterceptor (user_uuid attribute)
         // Authentication is enforced at controller level via @RequiresRole
-        MstUser user = null;
-        if (userId != null) {
-            user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                log.warn("User not found for tracking, proceeding without user association");
-            }
+        if (userId == null) {
+            throw new BadRequestException("User context tidak tersedia. Silakan login ulang.");
         }
+        MstUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User dengan UUID '" + userId + "' tidak ditemukan. Pastikan akun Anda terdaftar di sistem."));
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
