@@ -196,20 +196,6 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         trackStringChange(changes, pksiDocument, oldDocument, "dasarPeraturan",
                 oldDocument.getDasarPeraturan(), pksiDocument.getDasarPeraturan(), updatedBy, updatedByName);
         
-        // Section 6 - Timeline
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap1Awal",
-                oldDocument.getTahap1Awal(), pksiDocument.getTahap1Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap1Akhir",
-                oldDocument.getTahap1Akhir(), pksiDocument.getTahap1Akhir(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap5Awal",
-                oldDocument.getTahap5Awal(), pksiDocument.getTahap5Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap5Akhir",
-                oldDocument.getTahap5Akhir(), pksiDocument.getTahap5Akhir(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap7Awal",
-                oldDocument.getTahap7Awal(), pksiDocument.getTahap7Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap7Akhir",
-                oldDocument.getTahap7Akhir(), pksiDocument.getTahap7Akhir(), updatedBy, updatedByName);
-        
         // Section 7
         trackStringChange(changes, pksiDocument, oldDocument, "rencanaPengelolaan",
                 oldDocument.getRencanaPengelolaan(), pksiDocument.getRencanaPengelolaan(), updatedBy, updatedByName);
