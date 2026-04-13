@@ -120,28 +120,6 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "dasar_peraturan", columnDefinition = "NVARCHAR(MAX)")
     private String dasarPeraturan;
 
-    // ==================== SECTION 6: USULAN JADWAL PELAKSANAAN ====================
-    // Tahap 1: Penyusunan Spesifikasi
-    @Column(name = "tahap1_awal")
-    private LocalDate tahap1Awal;
-
-    @Column(name = "tahap1_akhir")
-    private LocalDate tahap1Akhir;
-
-    // Tahap 5: UAT
-    @Column(name = "tahap5_awal")
-    private LocalDate tahap5Awal;
-
-    @Column(name = "tahap5_akhir")
-    private LocalDate tahap5Akhir;
-
-    // Tahap 7: Go-Live
-    @Column(name = "tahap7_awal")
-    private LocalDate tahap7Awal;
-
-    @Column(name = "tahap7_akhir")
-    private LocalDate tahap7Akhir;
-
     // ==================== SECTION 7: RENCANA PENGELOLAAN ====================
     @Column(name = "rencana_pengelolaan", columnDefinition = "NVARCHAR(MAX)")
     private String rencanaPengelolaan;
