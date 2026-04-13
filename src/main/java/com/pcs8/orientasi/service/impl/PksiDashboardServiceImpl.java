@@ -393,17 +393,22 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         int multiyearsYPlus1 = 0;
 
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate targetGoLive = doc.getTargetGoLive();
-            if (targetGoLive == null) continue;
-
-            int targetYear = targetGoLive.getYear();
-
-            if (targetYear == selectedTahun) {
-                singleYear++;
-            } else if (targetYear == selectedTahun - 1) {
-                multiyearsYMinus1++;
-            } else if (targetYear > selectedTahun) {
-                multiyearsYPlus1++;
+            if (isMultiyear(doc)) {
+                // Multiyear PKSI
+                Integer startYear = getStartYear(doc);
+                Integer endYear = getEndYear(doc);
+                
+                if (startYear != null && startYear <= selectedTahun - 1) {
+                    multiyearsYMinus1++;
+                } else if (endYear != null && endYear >= selectedTahun + 1) {
+                    multiyearsYPlus1++;
+                }
+            } else {
+                // Single year PKSI
+                LocalDate targetGoLive = doc.getTargetGoLive();
+                if (targetGoLive != null && targetGoLive.getYear() == selectedTahun) {
+                    singleYear++;
+                }
             }
         }
 
