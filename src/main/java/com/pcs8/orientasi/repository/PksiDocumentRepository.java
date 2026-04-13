@@ -47,9 +47,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
             Pageable pageable);
 
     /**
-     * Search PKSI documents with year filter based on timeline.
-     * Year filter matches documents where the given year falls within
-     * any of the timeline date ranges (tahap1 through tahap7).
+     * Search PKSI documents with year filter based on target timeline fields.
      */
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
            "(:searchPattern IS NULL OR :searchPattern = '' OR " +
@@ -58,9 +56,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year))")
+           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
+           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year))")
     Page<PksiDocument> searchDocumentsWithYear(
             @Param("searchPattern") String searchPattern, 
             @Param("status") String status,
@@ -131,7 +128,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
 
     /**
      * Search PKSI documents with year and noInisiatif filter.
-     * - year: filter by year extracted from tanggal_pengajuan
+     * - year: filter by year extracted from target timeline fields
      * - noInisiatif: if true, only return documents with null/empty program_inisiatif_rbsi
      */
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
@@ -141,9 +138,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
+           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
+           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     Page<PksiDocument> searchDocumentsWithFilters(
             @Param("searchPattern") String searchPattern, 
@@ -163,9 +159,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
+           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
+           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '') " +
            "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
            "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))")
@@ -184,9 +179,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
     @Query("SELECT COUNT(p) FROM PksiDocument p WHERE " +
            "(:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.tahap1Awal) = :year OR YEAR(p.tahap1Akhir) = :year OR " +
-           "YEAR(p.tahap5Awal) = :year OR YEAR(p.tahap5Akhir) = :year OR " +
-           "YEAR(p.tahap7Awal) = :year OR YEAR(p.tahap7Akhir) = :year)) " +
+           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
+           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     long countByStatusYearAndNoInisiatif(
             @Param("status") String status,
