@@ -91,23 +91,18 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         // Filter by year
         List<PksiDocument> filteredDocuments = filterByYear(allDocuments, selectedTahun);
 
-        // Filter by month - only include documents created before or at the end of selected month
-        List<PksiDocument> documentsInSnapshot = filteredDocuments.stream()
-                .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isBefore(snapshotDateTime.plusSeconds(1)))
-                .collect(Collectors.toList());
-
         // Get historical progress state at snapshot date
-        Map<UUID, String> historicalProgress = getHistoricalProgressState(documentsInSnapshot, snapshotDateTime);
+        Map<UUID, String> historicalProgress = getHistoricalProgressState(filteredDocuments, snapshotDateTime);
 
         // Build available years & months
         List<Integer> availableYears = extractAvailableYears(allDocuments);
         List<MonthOption> availableMonths = buildMonthOptions();
 
         // Calculate summary - using snapshot filtered documents
-        DashboardSummary summary = calculateSummary(documentsInSnapshot);
+        DashboardSummary summary = calculateSummary(filteredDocuments);
 
         // Filter approved PKSI from snapshot
-        List<PksiDocument> approvedDocuments = documentsInSnapshot.stream()
+        List<PksiDocument> approvedDocuments = filteredDocuments.stream()
                 .filter(p -> p.getStatus() == DocumentStatus.DISETUJUI)
                 .collect(Collectors.toList());
 
@@ -118,7 +113,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         JenisPksiStats jenisPksiStats = calculateJenisPksiStats(approvedDocuments, selectedTahun);
         PelaksanaStats pelaksanaStats = calculatePelaksanaStats(approvedDocuments);
         List<BidangStat> bidangStats = calculateBidangStats(approvedDocuments, allBidang, skpaMap);
-        List<PksiListItem> pksiList = buildPksiList(documentsInSnapshot, skpaMap, historicalProgress);
+        List<PksiListItem> pksiList = buildPksiList(filteredDocuments, skpaMap, historicalProgress);
         List<MonthlyProgressTrend> monthlyTrend = calculateMonthlyTrend(approvedDocuments, selectedTahun);
 
         return PksiDashboardResponse.builder()
