@@ -183,12 +183,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private boolean isInYear(PksiDocument doc, int year) {
-        return checkYearMatch(doc.getTahap1Awal(), year) ||
-               checkYearMatch(doc.getTahap1Akhir(), year) ||
-               checkYearMatch(doc.getTahap5Awal(), year) ||
-               checkYearMatch(doc.getTahap5Akhir(), year) ||
-               checkYearMatch(doc.getTahap7Awal(), year) ||
-               checkYearMatch(doc.getTahap7Akhir(), year);
+        return checkYearMatch(doc.getTanggalPengajuan(), year);
     }
 
     private boolean checkYearMatch(LocalDate date, int year) {
@@ -198,10 +193,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private List<Integer> extractAvailableYears(List<PksiDocument> documents) {
         Set<Integer> years = new TreeSet<>();
         for (PksiDocument doc : documents) {
-            addYearIfPresent(years, doc.getTahap1Awal());
-            addYearIfPresent(years, doc.getTahap1Akhir());
-            addYearIfPresent(years, doc.getTahap7Awal());
-            addYearIfPresent(years, doc.getTahap7Akhir());
+            addYearIfPresent(years, doc.getTanggalPengajuan());
         }
         return new ArrayList<>(years);
     }
