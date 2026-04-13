@@ -49,6 +49,9 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "nama_pksi", nullable = false, length = 255)
     private String namaPksi;
 
+    @Column(name = "jenis_pksi", length = 50)
+    private String jenisPksi;
+
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
 
