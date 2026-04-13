@@ -183,17 +183,17 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "anggaran_tahun_depan", length = 255)
     private String anggaranTahunDepan;
 
-    @Column(name = "target_usreq", length = 50)
-    private String targetUsreq;
+    @Column(name = "target_usreq")
+    private LocalDate targetUsreq;
 
-    @Column(name = "target_sit", length = 50)
-    private String targetSit;
+    @Column(name = "target_sit")
+    private LocalDate targetSit;
 
-    @Column(name = "target_uat", length = 50)
-    private String targetUat;
+    @Column(name = "target_uat")
+    private LocalDate targetUat;
 
-    @Column(name = "target_go_live", length = 50)
-    private String targetGoLive;
+    @Column(name = "target_go_live")
+    private LocalDate targetGoLive;
 
     @Column(name = "status_t01_t02", length = 50)
     private String statusT01T02;

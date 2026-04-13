@@ -37,4 +37,10 @@ public interface KepProgressRepository extends JpaRepository<KepProgress, UUID> 
            "WHERE kp.kep.id IN :kepIds AND kp.status != 'none' " +
            "GROUP BY kp.kep.id, kp.tahun")
     List<Object[]> countRealizedByKepIdAndYear(@Param("kepIds") List<UUID> kepIds);
+
+    @Query("SELECT DISTINCT kp.tahun FROM KepProgress kp WHERE kp.kep.rbsi.id = :rbsiId AND kp.kep.id = :kepId ORDER BY kp.tahun ASC")
+    List<Integer> findDistinctTahunByRbsiIdAndKepId(@Param("rbsiId") UUID rbsiId, @Param("kepId") UUID kepId);
+
+    @Query("SELECT DISTINCT kp.tahun FROM KepProgress kp WHERE kp.kep.rbsi.id = :rbsiId ORDER BY kp.tahun ASC")
+    List<Integer> findDistinctTahunByRbsiId(@Param("rbsiId") UUID rbsiId);
 }

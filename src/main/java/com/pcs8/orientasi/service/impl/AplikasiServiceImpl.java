@@ -105,7 +105,7 @@ public class AplikasiServiceImpl implements AplikasiService {
                 .deskripsi(request.getDeskripsi())
                 .statusAplikasi(request.getStatusAplikasi())
                 .tanggalImplementasi(request.getTanggalImplementasi())
-                .akses(request.getAkses())
+                .akses(null) // Will be derived from URLs in setEntityDetails
                 .prosesDataPribadi(request.getProsesDataPribadi())
                 .dataPribadiDiproses(request.getDataPribadiDiproses())
                 .urls(new ArrayList<>())
@@ -165,6 +165,13 @@ public class AplikasiServiceImpl implements AplikasiService {
                             .build()
             ));
         }
+        // Derive akses from URL tipe_akses values
+        String derivedAkses = aplikasi.getUrls().stream()
+                .map(AplikasiUrl::getTipeAkses)
+                .filter(tipeAkses -> tipeAkses != null && !tipeAkses.isBlank())
+                .distinct()
+                .collect(Collectors.joining(","));
+        aplikasi.setAkses(derivedAkses.isEmpty() ? null : derivedAkses);
         // Satker Internals
         aplikasi.getSatkerInternals().clear();
         if (request.getSatkerInternals() != null) {
@@ -283,7 +290,7 @@ public class AplikasiServiceImpl implements AplikasiService {
         aplikasi.setDeskripsi(request.getDeskripsi());
         aplikasi.setStatusAplikasi(request.getStatusAplikasi());
         aplikasi.setTanggalImplementasi(request.getTanggalImplementasi());
-        aplikasi.setAkses(request.getAkses());
+        // akses will be derived from URLs in setEntityDetails
         aplikasi.setProsesDataPribadi(request.getProsesDataPribadi());
         aplikasi.setDataPribadiDiproses(request.getDataPribadiDiproses());
 

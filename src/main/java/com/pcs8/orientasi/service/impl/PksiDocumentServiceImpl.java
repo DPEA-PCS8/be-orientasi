@@ -7,7 +7,6 @@ import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
-import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;

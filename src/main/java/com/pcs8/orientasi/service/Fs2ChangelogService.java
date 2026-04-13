@@ -23,4 +23,9 @@ public interface Fs2ChangelogService {
      * Count total changelogs for an FS2 document
      */
     long countChangelogsByFs2Id(UUID fs2DocumentId);
+
+    /**
+     * Delete all changelogs for an FS2 document
+     */
+    void deleteByFs2DocumentId(UUID fs2DocumentId);
 }

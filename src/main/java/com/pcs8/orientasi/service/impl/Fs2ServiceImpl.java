@@ -7,15 +7,19 @@ import com.pcs8.orientasi.domain.entity.Fs2Document;
 import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
+import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
+import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
+import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
+import com.pcs8.orientasi.service.Fs2FileService;
 import com.pcs8.orientasi.service.Fs2Service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -44,9 +48,11 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
     private final MstUserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
+    private final Fs2FileService fs2FileService;
 
     @Override
     @Transactional
@@ -126,13 +132,13 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all F.S.2 documents with year filter: {}", year);
-            return fs2Repository.searchFs2DocumentsWithYear(search, bidangId, skpaId, status, year, pageable)
+            log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         }
         
@@ -143,13 +149,13 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}", userDepartment, year);
+        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}, month range: {}-{}", userDepartment, year, startMonth, endMonth);
         
         // Find SKPA UUID for the user's department
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
         if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYear(search, bidangId, status, userDepartment.trim(), year, pageable)
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
@@ -330,6 +336,8 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Create snapshot for changelog
         Fs2Document oldDocument = createSnapshot(document);
         Fs2DocumentResponse oldValue = mapToResponse(document);
+        
+        // Update status
         document.setStatus(status);
 
         Fs2Document saved = fs2Repository.save(document);
@@ -350,12 +358,38 @@ public class Fs2ServiceImpl implements Fs2Service {
         UUID userId = userContext.getCurrentUserId();
         String username = userContext.getCurrentUsername();
 
+        log.info("Starting delete process for F.S.2 document: {}", id);
+
         Fs2Document document = fs2Repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ENTITY_NAME + NOT_FOUND_WITH_ID + id));
 
         Fs2DocumentResponse oldValue = mapToResponse(document);
+        
+        // Delete all associated changelogs first
+        try {
+            log.info("Deleting changelogs for F.S.2 document: {}", id);
+            fs2ChangelogService.deleteByFs2DocumentId(id);
+            log.info("Successfully deleted changelogs for F.S.2 document: {}", id);
+        } catch (DataIntegrityViolationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new DataIntegrityViolationException("Failed to delete changelogs for F.S.2 document " + id + ": " + e.getMessage());
+        }
+        
+        // Delete all associated files (both from database and MinIO)
+        try {
+            log.info("Deleting associated files for F.S.2 document: {}", id);
+            fs2FileService.deleteFilesByFs2Id(id);
+            log.info("Successfully deleted all files associated with F.S.2 document: {}", id);
+        } catch (DataIntegrityViolationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new DataIntegrityViolationException("Failed to delete associated files for F.S.2 document " + id + ": " + e.getMessage());
+        }
+        
+        log.info("Deleting F.S.2 document: {}", id);
         fs2Repository.delete(document);
-        log.info("F.S.2 Document deleted: {}", id);
+        log.info("F.S.2 Document deleted successfully: {}", id);
 
         auditService.logDelete(ENTITY_NAME, id, oldValue, userId, username);
     }
@@ -427,7 +461,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     /**
-     * Set document relations (Aplikasi, Bidang, SKPA, PIC) from request
+     * Set document relations (Aplikasi, Bidang, SKPA, PIC, Team) from request
      */
     private void setDocumentRelations(Fs2Document document, Fs2DocumentRequest request) {
         if (request.getAplikasiId() != null) {
@@ -453,6 +487,21 @@ public class Fs2ServiceImpl implements Fs2Service {
                     .orElseThrow(() -> new ResourceNotFoundException("User" + NOT_FOUND_WITH_ID + request.getPicId()));
             document.setPicId(pic.getUuid());
             document.setPicName(pic.getFullName());
+        }
+
+        // Handle team data
+        if (request.getTeamId() != null) {
+            MstTeam team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team" + NOT_FOUND_WITH_ID + request.getTeamId()));
+            document.setTeam(team);
+        }
+        
+        // Set team member data (comma-separated UUIDs and names)
+        if (request.getAnggotaTim() != null) {
+            document.setAnggotaTim(request.getAnggotaTim());
+        }
+        if (request.getAnggotaTimNames() != null) {
+            document.setAnggotaTimNames(request.getAnggotaTimNames());
         }
     }
 
@@ -502,6 +551,10 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tahunSelesai(document.getTahunSelesai())
                 .picId(document.getPicId())
                 .picName(document.getPicName())
+                .teamId(document.getTeam() != null ? document.getTeam().getId() : null)
+                .teamName(document.getTeam() != null ? document.getTeam().getName() : null)
+                .anggotaTim(document.getAnggotaTim())
+                .anggotaTimNames(document.getAnggotaTimNames())
                 .dokumenPath(document.getDokumenPath())
                 // Monitoring Fields - Dokumen Pengajuan F.S.2
                 .nomorNd(document.getNomorNd())
