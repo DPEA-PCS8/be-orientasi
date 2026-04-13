@@ -67,14 +67,6 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         labels.put("informasiYangDikelola", "Informasi Yang Dikelola");
         labels.put("dasarPeraturan", "Dasar Peraturan");
         
-        // Section 6: Jadwal Pelaksanaan
-        labels.put("tahap1Awal", "Tahap 1 - Tanggal Awal");
-        labels.put("tahap1Akhir", "Tahap 1 - Tanggal Akhir");
-        labels.put("tahap5Awal", "Tahap 5 - Tanggal Awal");
-        labels.put("tahap5Akhir", "Tahap 5 - Tanggal Akhir");
-        labels.put("tahap7Awal", "Tahap 7 - Tanggal Awal");
-        labels.put("tahap7Akhir", "Tahap 7 - Tanggal Akhir");
-        
         // Section 7: Rencana Pengelolaan
         labels.put("rencanaPengelolaan", "Rencana Pengelolaan");
         
