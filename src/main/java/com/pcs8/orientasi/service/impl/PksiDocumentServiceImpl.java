@@ -187,7 +187,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, boolean noInisiatif, Pageable pageable, String userDepartment, boolean canSeeAll) {
-
+        log.info("Searching PKSI documents with filters - year: {}, noInisiatif: {}, canSeeAll: {}", year, noInisiatif, canSeeAll);
         
         // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
@@ -195,8 +195,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all documents with filters");
+            log.info("User can see all - fetching all documents with filters (year: {})", year);
             return pksiDocumentRepository.searchDocumentsWithFilters(searchPattern, sanitizedStatus, year, noInisiatif, pageable)
+                    .map(this::initializeLazyRelations)
                     .map(mapper::mapToResponse)
                     .map(this::enrichWithSkpaNames);
         }
@@ -208,13 +209,15 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering by department: '{}' (year: {})", userDepartment, year);
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
                 searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
         
-        log.info("Search result with filters: {} documents found", result.getTotalElements());
+        log.info("Search result with filters: {} documents found (year: {})", result.getTotalElements(), year);
         
         return result;
     }
