@@ -653,6 +653,9 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (document.getInisiatifGroup() != null) {
             Hibernate.initialize(document.getInisiatifGroup());
         }
+        if (document.getTeam() != null) {
+            Hibernate.initialize(document.getTeam());
+        }
         // Initialize timelines
         if (document.getTimelines() != null) {
             Hibernate.initialize(document.getTimelines());
