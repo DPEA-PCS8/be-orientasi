@@ -16,6 +16,7 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
+import com.pcs8.orientasi.repository.PksiTimelineRepository;
 import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -45,6 +46,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private static final String PKSI_NOT_FOUND = "PKSI document not found";
 
     private final PksiDocumentRepository pksiDocumentRepository;
+    private final PksiTimelineRepository pksiTimelineRepository;
     private final MstUserRepository userRepository;
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
@@ -78,6 +80,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument saved = pksiDocumentRepository.save(document);
+        
+        // Handle timelines
+        updateTimelines(saved, request);
+        
         log.info("PKSI document created successfully");
 
         return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(saved)));
@@ -263,6 +269,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
+        
+        // Handle timelines
+        updateTimelines(updated, request);
+        
         log.info("PKSI document updated successfully");
 
         // Track changes
@@ -598,6 +608,24 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     }
 
     /**
+     * Update timelines for a PKSI document (DRY helper method).
+     * Deletes old timelines and creates new ones based on the request.
+     */
+    private void updateTimelines(PksiDocument document, PksiDocumentRequest request) {
+        // Delete old timelines
+        pksiTimelineRepository.deleteByPksiDocumentId(document.getId());
+        
+        // Create new timelines if provided
+        if (request.getTimelines() != null && !request.getTimelines().isEmpty()) {
+            List<com.pcs8.orientasi.domain.entity.PksiTimeline> timelines = mapper.convertDtoToTimelines(request.getTimelines());
+            if (timelines != null) {
+                timelines.forEach(timeline -> timeline.setPksiDocument(document));
+                pksiTimelineRepository.saveAll(timelines);
+            }
+        }
+    }
+
+    /**
      * Save document and re-fetch with initialized lazy relations.
      * Common pattern used after update operations.
      */
@@ -624,6 +652,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         if (document.getInisiatifGroup() != null) {
             Hibernate.initialize(document.getInisiatifGroup());
+        }
+        // Initialize timelines
+        if (document.getTimelines() != null) {
+            Hibernate.initialize(document.getTimelines());
         }
         return document;
     }

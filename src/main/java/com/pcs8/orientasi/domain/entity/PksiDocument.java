@@ -9,6 +9,8 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -164,6 +166,12 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "anggaran_tahun_depan", length = 255)
     private String anggaranTahunDepan;
 
+    // ==================== TIMELINE (new flexible structure) ====================
+    @OneToMany(mappedBy = "pksiDocument", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @lombok.Builder.Default
+    private List<PksiTimeline> timelines = new ArrayList<>();
+
+    // ==================== LEGACY TIMELINE FIELDS (deprecated - use timelines list) ====================
     @Column(name = "target_usreq")
     private LocalDate targetUsreq;
 
@@ -220,6 +228,67 @@ public class PksiDocument extends BaseEntity {
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
     private String tujuanPengajuan;
+
+    /**
+     * Helper methods to get timeline dates by stage (for backward compatibility with dashboard)
+     * Returns the first phase's date for the given stage, or falls back to legacy field if no timeline exists
+     */
+    public LocalDate getTargetUsreqDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.USREQ);
+        return fromTimeline != null ? fromTimeline : targetUsreq;
+    }
+
+    public LocalDate getTargetSitDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.SIT);
+        return fromTimeline != null ? fromTimeline : targetSit;
+    }
+
+    public LocalDate getTargetUatDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.UAT);
+        return fromTimeline != null ? fromTimeline : targetUat;
+    }
+
+    public LocalDate getTargetGoLiveDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.GO_LIVE);
+        return fromTimeline != null ? fromTimeline : targetGoLive;
+    }
+
+    /**
+     * Get the last (latest) GO_LIVE phase date from timelines
+     * Used for dashboard deadline calculations
+     */
+    public LocalDate getTargetGoLiveDateLastPhase() {
+        LocalDate fromTimeline = getLastPhaseDate(PksiTimeline.TimelineStage.GO_LIVE);
+        return fromTimeline != null ? fromTimeline : targetGoLive;
+    }
+
+    /**
+     * Get the earliest date for a specific stage from timelines
+     */
+    private LocalDate getFirstPhaseDate(PksiTimeline.TimelineStage stage) {
+        if (timelines == null || timelines.isEmpty()) {
+            return null;
+        }
+        return timelines.stream()
+                .filter(t -> t.getStage() == stage)
+                .map(PksiTimeline::getTargetDate)
+                .min(LocalDate::compareTo)
+                .orElse(null);
+    }
+
+    /**
+     * Get the latest (last) date for a specific stage from timelines
+     */
+    private LocalDate getLastPhaseDate(PksiTimeline.TimelineStage stage) {
+        if (timelines == null || timelines.isEmpty()) {
+            return null;
+        }
+        return timelines.stream()
+                .filter(t -> t.getStage() == stage)
+                .map(PksiTimeline::getTargetDate)
+                .max(LocalDate::compareTo)
+                .orElse(null);
+    }
 
     public enum DocumentStatus {
         PENDING,
