@@ -55,13 +55,7 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 "Status", "Tanggal Pengajuan", "User Pembuat", "Dokumen FS2"
             };
             
-            Row headerRow = sheet.createRow(0);
-            headerRow.setHeightInPoints(25);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
+            createHeaderRow(sheet, headers, headerStyle);
             
             // Create data rows
             int rowNum = 1;
@@ -85,21 +79,9 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             }
             
             // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-                // Set minimum width for readability
-                if (sheet.getColumnWidth(i) < 3000) {
-                    sheet.setColumnWidth(i, 3000);
-                }
-                // Set maximum width to prevent very wide columns
-                if (sheet.getColumnWidth(i) > 15000) {
-                    sheet.setColumnWidth(i, 15000);
-                }
-            }
+            autoSizeColumns(sheet, headers.length);
             
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            return outputStream;
+            return writeWorkbookToStream(workbook);
             
         } catch (IOException e) {
             log.error("Error creating Excel file for all F.S.2", e);
@@ -157,13 +139,7 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 "Berkas ND/BA", "Tgl Berkas NDBA"
             };
             
-            Row headerRow = sheet.createRow(0);
-            headerRow.setHeightInPoints(25);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
+            createHeaderRow(sheet, headers, headerStyle);
             
             // Create data rows
             int rowNum = 1;
@@ -213,21 +189,9 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             }
             
             // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-                // Set minimum width for readability
-                if (sheet.getColumnWidth(i) < 3000) {
-                    sheet.setColumnWidth(i, 3000);
-                }
-                // Set maximum width to prevent very wide columns
-                if (sheet.getColumnWidth(i) > 15000) {
-                    sheet.setColumnWidth(i, 15000);
-                }
-            }
+            autoSizeColumns(sheet, headers.length);
             
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            return outputStream;
+            return writeWorkbookToStream(workbook);
             
         } catch (IOException e) {
             log.error("Error creating Excel file for approved F.S.2", e);
@@ -236,6 +200,45 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
     }
     
     // ==================== Helper Methods ====================
+    
+    /**
+     * Create header row with styling
+     */
+    private void createHeaderRow(Sheet sheet, String[] headers, CellStyle headerStyle) {
+        Row headerRow = sheet.createRow(0);
+        headerRow.setHeightInPoints(25);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+    }
+    
+    /**
+     * Auto-size columns with min and max width constraints
+     */
+    private void autoSizeColumns(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            sheet.autoSizeColumn(i);
+            // Set minimum width for readability
+            if (sheet.getColumnWidth(i) < 3000) {
+                sheet.setColumnWidth(i, 3000);
+            }
+            // Set maximum width to prevent very wide columns
+            if (sheet.getColumnWidth(i) > 15000) {
+                sheet.setColumnWidth(i, 15000);
+            }
+        }
+    }
+    
+    /**
+     * Write workbook to ByteArrayOutputStream
+     */
+    private ByteArrayOutputStream writeWorkbookToStream(Workbook workbook) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        return outputStream;
+    }
     
     private void createCell(Row row, int col, Object value, CellStyle style) {
         Cell cell = row.createCell(col);
