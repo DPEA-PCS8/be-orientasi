@@ -8,6 +8,7 @@ import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.PksiChangelog;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.domain.entity.PksiDocument.DocumentStatus;
+import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.PksiChangelogRepository;
@@ -178,10 +179,20 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private boolean isInYear(PksiDocument doc, int year) {
-        return checkYearMatch(doc.getTargetUsreq(), year) ||
-               checkYearMatch(doc.getTargetSit(), year) ||
-               checkYearMatch(doc.getTargetUat(), year) ||
-               checkYearMatch(doc.getTargetGoLive(), year);
+        // Check all timeline phases first
+        if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+            for (PksiTimeline timeline : doc.getTimelines()) {
+                if (timeline.getTargetDate() != null && timeline.getTargetDate().getYear() == year) {
+                    return true;
+                }
+            }
+        }
+        
+        // Fallback to consolidated dates for backward compatibility
+        return checkYearMatch(doc.getTargetUsreqDate(), year) ||
+               checkYearMatch(doc.getTargetSitDate(), year) ||
+               checkYearMatch(doc.getTargetUatDate(), year) ||
+               checkYearMatch(doc.getTargetGoLiveDate(), year);
     }
 
     private boolean checkYearMatch(LocalDate date, int year) {
@@ -191,10 +202,18 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private List<Integer> extractAvailableYears(List<PksiDocument> documents) {
         Set<Integer> years = new TreeSet<>();
         for (PksiDocument doc : documents) {
-            addYearIfPresent(years, doc.getTargetUsreq());
-            addYearIfPresent(years, doc.getTargetSit());
-            addYearIfPresent(years, doc.getTargetUat());
-            addYearIfPresent(years, doc.getTargetGoLive());
+            // Check all timeline phases
+            if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+                for (PksiTimeline timeline : doc.getTimelines()) {
+                    addYearIfPresent(years, timeline.getTargetDate());
+                }
+            }
+            
+            // Fallback to consolidated dates for backward compatibility
+            addYearIfPresent(years, doc.getTargetUsreqDate());
+            addYearIfPresent(years, doc.getTargetSitDate());
+            addYearIfPresent(years, doc.getTargetUatDate());
+            addYearIfPresent(years, doc.getTargetGoLiveDate());
         }
         return new ArrayList<>(years);
     }
@@ -222,13 +241,17 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private ApprovalBreakdown calculateApprovalBreakdown(List<PksiDocument> approvedDocuments, int selectedTahun) {
         int disetujuiTahunIni = 0;
         int disetujuiMultiyearsSebelumnya = 0;
+        int disetujuiMendesak = 0;
 
         // One More Type: PKSI Mendesak
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate targetGoLive = doc.getTargetGoLive();
-            if (targetGoLive != null && targetGoLive.getYear() == selectedTahun) {
+            LocalDate targetGoLive = getLastTargetDate(doc);
+            LocalDate targetUsreq = doc.getTargetUsreqDate();
+            if (doc.getJenisPksi() != null && doc.getJenisPksi().equalsIgnoreCase("Mendesak")) {
+                disetujuiMendesak++;
+            }else if (targetUsreq != null && targetUsreq.getYear() == selectedTahun) {
                 disetujuiTahunIni++;
-            } else if (targetGoLive != null && targetGoLive.getYear() == selectedTahun - 1) {
+            } else if ((targetGoLive != null && targetGoLive.getYear() == selectedTahun) && (targetUsreq != null && targetUsreq.getYear() == selectedTahun - 1)) {
                 disetujuiMultiyearsSebelumnya++;
             } else {
                 log.warn("PKSI {} has approved status but targetGoLive year is unknown or in the future", doc.getId());
@@ -238,6 +261,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         return ApprovalBreakdown.builder()
                 .disetujuiTahunIni(disetujuiTahunIni)
                 .disetujuiMultiyearsSebelumnya(disetujuiMultiyearsSebelumnya)
+                .disetujuiMendesak(disetujuiMendesak)
                 .build();
     }
 
@@ -351,7 +375,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         }
 
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate deadline = doc.getTargetGoLive();
+            LocalDate deadline = getLastTargetDate(doc);
             if (deadline != null && deadline.getYear() == targetYear) {
                 deadlineTotal++;
                 String docProgress = historicalProgress.getOrDefault(doc.getId(), doc.getProgress());
@@ -400,7 +424,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
                 }
             } else {
                 // Single year PKSI
-                LocalDate targetGoLive = doc.getTargetGoLive();
+                LocalDate targetGoLive = getLastTargetDate(doc);
                 if (targetGoLive != null && targetGoLive.getYear() == selectedTahun) {
                     singleYear++;
                 }
@@ -421,16 +445,35 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private Integer getStartYear(PksiDocument doc) {
-        if (doc.getTargetUsreq() != null) return doc.getTargetUsreq().getYear();
-        if (doc.getTargetSit() != null) return doc.getTargetSit().getYear();
-        if (doc.getTargetUat() != null) return doc.getTargetUat().getYear();
-        if (doc.getTargetGoLive() != null) return doc.getTargetGoLive().getYear();
+        LocalDate firstDate = null;
+        
+        // Check all timeline phases and get the earliest date
+        if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+            for (PksiTimeline timeline : doc.getTimelines()) {
+                if (timeline.getTargetDate() != null) {
+                    if (firstDate == null || timeline.getTargetDate().isBefore(firstDate)) {
+                        firstDate = timeline.getTargetDate();
+                    }
+                }
+            }
+            if (firstDate != null) return firstDate.getYear();
+        }
+        
+        // Fallback to consolidated dates for backward compatibility
+        if (doc.getTargetUsreqDate() != null) return doc.getTargetUsreqDate().getYear();
+        if (doc.getTargetSitDate() != null) return doc.getTargetSitDate().getYear();
+        if (doc.getTargetUatDate() != null) return doc.getTargetUatDate().getYear();
+        if (doc.getTargetGoLiveDate() != null) return doc.getTargetGoLiveDate().getYear();
         return null;
     }
 
     private Integer getEndYear(PksiDocument doc) {
-        if (doc.getTargetGoLive() != null) return doc.getTargetGoLive().getYear();
-        return null;
+        LocalDate lastDate = getLastTargetDate(doc);
+        return lastDate != null ? lastDate.getYear() : null;
+    }
+
+    private LocalDate getLastTargetDate(PksiDocument doc) {
+        return doc.getTargetGoLiveDateLastPhase();
     }
 
     private PelaksanaStats calculatePelaksanaStats(List<PksiDocument> approvedDocuments) {
