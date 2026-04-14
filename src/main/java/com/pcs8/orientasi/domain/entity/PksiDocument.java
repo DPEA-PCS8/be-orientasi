@@ -184,6 +184,18 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "target_go_live")
     private LocalDate targetGoLive;
 
+    @Column(name = "tanggal_pengadaan")
+    private LocalDate tanggalPengadaan;
+
+    @Column(name = "tanggal_desain")
+    private LocalDate tanggalDesain;
+
+    @Column(name = "tanggal_coding")
+    private LocalDate tanggalCoding;
+
+    @Column(name = "tanggal_unit_test")
+    private LocalDate tanggalUnitTest;
+
     @Column(name = "status_t01_t02", length = 50)
     private String statusT01T02;
 
@@ -219,6 +231,34 @@ public class PksiDocument extends BaseEntity {
 
     @Column(name = "ba_deploy", length = 255)
     private String baDeploy;
+
+    // ==================== TAHAPAN STATUS ====================
+    @Column(name = "tahapan_status_usreq", length = 30)
+    private String tahapanStatusUsreq;
+
+    @Column(name = "tahapan_status_pengadaan", length = 30)
+    private String tahapanStatusPengadaan;
+
+    @Column(name = "tahapan_status_desain", length = 30)
+    private String tahapanStatusDesain;
+
+    @Column(name = "tahapan_status_coding", length = 30)
+    private String tahapanStatusCoding;
+
+    @Column(name = "tahapan_status_unit_test", length = 30)
+    private String tahapanStatusUnitTest;
+
+    @Column(name = "tahapan_status_sit", length = 30)
+    private String tahapanStatusSit;
+
+    @Column(name = "tahapan_status_uat", length = 30)
+    private String tahapanStatusUat;
+
+    @Column(name = "tahapan_status_deployment", length = 30)
+    private String tahapanStatusDeployment;
+
+    @Column(name = "tahapan_status_selesai", length = 30)
+    private String tahapanStatusSelesai;
 
     // ==================== TEAM REFERENCE ====================
     @ManyToOne(fetch = FetchType.LAZY)

@@ -70,6 +70,18 @@ public abstract class ApprovalFields {
     @JsonProperty("target_go_live")
     protected LocalDate targetGoLive;
 
+    @JsonProperty("tanggal_pengadaan")
+    protected LocalDate tanggalPengadaan;
+
+    @JsonProperty("tanggal_desain")
+    protected LocalDate tanggalDesain;
+
+    @JsonProperty("tanggal_coding")
+    protected LocalDate tanggalCoding;
+
+    @JsonProperty("tanggal_unit_test")
+    protected LocalDate tanggalUnitTest;
+
     // Monitoring fields - T01/T02 Status
     @JsonProperty("status_t01_t02")
     protected String statusT01T02;
@@ -110,4 +122,32 @@ public abstract class ApprovalFields {
     // Monitoring fields - BA Deploy
     @JsonProperty("ba_deploy")
     protected String baDeploy;
+
+    // Per-tahapan statuses
+    @JsonProperty("tahapan_status_usreq")
+    protected String tahapanStatusUsreq;
+
+    @JsonProperty("tahapan_status_pengadaan")
+    protected String tahapanStatusPengadaan;
+
+    @JsonProperty("tahapan_status_desain")
+    protected String tahapanStatusDesain;
+
+    @JsonProperty("tahapan_status_coding")
+    protected String tahapanStatusCoding;
+
+    @JsonProperty("tahapan_status_unit_test")
+    protected String tahapanStatusUnitTest;
+
+    @JsonProperty("tahapan_status_sit")
+    protected String tahapanStatusSit;
+
+    @JsonProperty("tahapan_status_uat")
+    protected String tahapanStatusUat;
+
+    @JsonProperty("tahapan_status_deployment")
+    protected String tahapanStatusDeployment;
+
+    @JsonProperty("tahapan_status_selesai")
+    protected String tahapanStatusSelesai;
 }
