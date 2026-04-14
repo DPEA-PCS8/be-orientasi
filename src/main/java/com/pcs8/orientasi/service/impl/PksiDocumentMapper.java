@@ -1,12 +1,16 @@
 package com.pcs8.orientasi.service.impl;
 
+import com.pcs8.orientasi.domain.dto.PksiTimelineDto;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import org.mapstruct.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * MapStruct mapper untuk konversi antara PksiDocument entity, request, dan response.
@@ -18,18 +22,15 @@ public interface PksiDocumentMapper {
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "aplikasi", ignore = true)
     @Mapping(target = "inisiatifGroup", ignore = true)
+    @Mapping(target = "inisiatif", ignore = true)
+    @Mapping(target = "team", ignore = true)
+    @Mapping(target = "timelines", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "tanggalPengajuan", expression = "java(parseDate(request.getTanggalPengajuan()))")
     @Mapping(target = "kapanDiselesaikan", expression = "java(resolveKapanDiselesaikan(request))")
     @Mapping(target = "picSatker", expression = "java(resolvePicSatker(request))")
-    @Mapping(target = "tahap1Awal", expression = "java(parseDate(request.getTahap1Awal()))")
-    @Mapping(target = "tahap1Akhir", expression = "java(parseDate(request.getTahap1Akhir()))")
-    @Mapping(target = "tahap5Awal", expression = "java(parseDate(request.getTahap5Awal()))")
-    @Mapping(target = "tahap5Akhir", expression = "java(parseDate(request.getTahap5Akhir()))")
-    @Mapping(target = "tahap7Awal", expression = "java(parseDate(request.getTahap7Awal()))")
-    @Mapping(target = "tahap7Akhir", expression = "java(parseDate(request.getTahap7Akhir()))")
     void mapRequestToDocument(PksiDocumentRequest request, @MappingTarget PksiDocument document);
 
     @Mapping(target = "id", expression = "java(document.getId().toString())")
@@ -47,12 +48,7 @@ public interface PksiDocumentMapper {
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
     @Mapping(target = "kapanHarusDiselesaikan", source = "kapanDiselesaikan")
     @Mapping(target = "picSatkerBA", source = "picSatker")
-    @Mapping(target = "tahap1Awal", expression = "java(formatDate(document.getTahap1Awal()))")
-    @Mapping(target = "tahap1Akhir", expression = "java(formatDate(document.getTahap1Akhir()))")
-    @Mapping(target = "tahap5Awal", expression = "java(formatDate(document.getTahap5Awal()))")
-    @Mapping(target = "tahap5Akhir", expression = "java(formatDate(document.getTahap5Akhir()))")
-    @Mapping(target = "tahap7Awal", expression = "java(formatDate(document.getTahap7Awal()))")
-    @Mapping(target = "tahap7Akhir", expression = "java(formatDate(document.getTahap7Akhir()))")
+    @Mapping(target = "timelines", expression = "java(convertTimelinesToDto(document.getTimelines()))")
     @Mapping(target = "status", expression = "java(document.getStatus() != null ? document.getStatus().name() : null)")
     @Mapping(target = "createdAt", expression = "java(document.getCreatedAt() != null ? document.getCreatedAt().toString() : null)")
     @Mapping(target = "updatedAt", expression = "java(document.getUpdatedAt() != null ? document.getUpdatedAt().toString() : null)")
@@ -167,5 +163,58 @@ public interface PksiDocumentMapper {
             return document.getTeam().getName();
         }
         return null;
+    }
+
+    /**
+     * Convert timeline entities to DTOs
+     */
+    default List<PksiTimelineDto> convertTimelinesToDto(List<PksiTimeline> timelines) {
+        if (timelines == null || timelines.isEmpty()) {
+            return null;
+        }
+        return timelines.stream()
+                .map(this::timelineToDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert single timeline entity to DTO
+     */
+    default PksiTimelineDto timelineToDto(PksiTimeline timeline) {
+        if (timeline == null) {
+            return null;
+        }
+        return PksiTimelineDto.builder()
+                .phase(timeline.getPhase())
+                .targetDate(formatDate(timeline.getTargetDate()))
+                .stage(timeline.getStage() != null ? timeline.getStage().name() : null)
+                .build();
+    }
+
+    /**
+     * Convert timeline DTOs to entities
+     * Note: pksiDocument reference must be set separately by the service
+     */
+    default List<PksiTimeline> convertDtoToTimelines(List<PksiTimelineDto> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return null;
+        }
+        return dtos.stream()
+                .map(this::dtoToTimeline)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert single DTO to timeline entity
+     */
+    default PksiTimeline dtoToTimeline(PksiTimelineDto dto) {
+        if (dto == null) {
+            return null;
+        }
+        return PksiTimeline.builder()
+                .phase(dto.getPhase())
+                .targetDate(parseDate(dto.getTargetDate()))
+                .stage(dto.getStage() != null ? PksiTimeline.TimelineStage.valueOf(dto.getStage()) : null)
+                .build();
     }
 }

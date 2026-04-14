@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Base class containing shared approval fields.
@@ -52,7 +53,11 @@ public abstract class ApprovalFields {
     @JsonProperty("anggaran_tahun_depan")
     protected String anggaranTahunDepan;
 
-    // Monitoring fields - Target Timeline
+    // Monitoring fields - Target Timeline (new flexible structure)
+    @JsonProperty("timelines")
+    protected List<PksiTimelineDto> timelines;
+
+    // Monitoring fields - Target Timeline (DEPRECATED - kept for backward compatibility)
     @JsonProperty("target_usreq")
     protected LocalDate targetUsreq;
 

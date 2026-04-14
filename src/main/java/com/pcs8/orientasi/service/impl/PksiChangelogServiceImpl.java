@@ -67,14 +67,6 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
         labels.put("informasiYangDikelola", "Informasi Yang Dikelola");
         labels.put("dasarPeraturan", "Dasar Peraturan");
         
-        // Section 6: Jadwal Pelaksanaan
-        labels.put("tahap1Awal", "Tahap 1 - Tanggal Awal");
-        labels.put("tahap1Akhir", "Tahap 1 - Tanggal Akhir");
-        labels.put("tahap5Awal", "Tahap 5 - Tanggal Awal");
-        labels.put("tahap5Akhir", "Tahap 5 - Tanggal Akhir");
-        labels.put("tahap7Awal", "Tahap 7 - Tanggal Awal");
-        labels.put("tahap7Akhir", "Tahap 7 - Tanggal Akhir");
-        
         // Section 7: Rencana Pengelolaan
         labels.put("rencanaPengelolaan", "Rencana Pengelolaan");
         
@@ -195,20 +187,6 @@ public class PksiChangelogServiceImpl implements PksiChangelogService {
                 oldDocument.getInformasiYangDikelola(), pksiDocument.getInformasiYangDikelola(), updatedBy, updatedByName);
         trackStringChange(changes, pksiDocument, oldDocument, "dasarPeraturan",
                 oldDocument.getDasarPeraturan(), pksiDocument.getDasarPeraturan(), updatedBy, updatedByName);
-        
-        // Section 6 - Timeline
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap1Awal",
-                oldDocument.getTahap1Awal(), pksiDocument.getTahap1Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap1Akhir",
-                oldDocument.getTahap1Akhir(), pksiDocument.getTahap1Akhir(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap5Awal",
-                oldDocument.getTahap5Awal(), pksiDocument.getTahap5Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap5Akhir",
-                oldDocument.getTahap5Akhir(), pksiDocument.getTahap5Akhir(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap7Awal",
-                oldDocument.getTahap7Awal(), pksiDocument.getTahap7Awal(), updatedBy, updatedByName);
-        trackDateChange(changes, pksiDocument, oldDocument, "tahap7Akhir",
-                oldDocument.getTahap7Akhir(), pksiDocument.getTahap7Akhir(), updatedBy, updatedByName);
         
         // Section 7
         trackStringChange(changes, pksiDocument, oldDocument, "rencanaPengelolaan",

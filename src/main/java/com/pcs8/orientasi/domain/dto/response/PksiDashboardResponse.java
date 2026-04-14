@@ -109,6 +109,9 @@ public class PksiDashboardResponse {
 
         @JsonProperty("disetujui_multiyears_sebelumnya")
         private Integer disetujuiMultiyearsSebelumnya;
+
+        @JsonProperty("disetujui_mendesak")
+        private Integer disetujuiMendesak;
     }
 
     @Data

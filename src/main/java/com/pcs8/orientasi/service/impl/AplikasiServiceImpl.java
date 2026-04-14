@@ -245,9 +245,9 @@ public class AplikasiServiceImpl implements AplikasiService {
     @Override
     @Transactional(readOnly = true)
     public List<AplikasiResponse> getAll() {
-        return aplikasiRepository.findAllByOrderByKodeAplikasiAsc()
+        return aplikasiRepository.findAllLightweightList()
                 .stream()
-                .map(this::mapToResponse)
+                .map(this::mapToLightweightResponse)
                 .collect(Collectors.toList());
     }
 
@@ -555,5 +555,19 @@ public class AplikasiServiceImpl implements AplikasiService {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Lightweight mapper untuk list views - hanya include 3 field utama
+     * untuk mengurangi beban query dan response payload
+     */
+    private AplikasiResponse mapToLightweightResponse(MstAplikasi entity) {
+        return AplikasiResponse.builder()
+                .id(entity.getId())
+                .kodeAplikasi(entity.getKodeAplikasi())
+                .namaAplikasi(entity.getNamaAplikasi())
+                // Semua field lain null, tidak akan di-include dalam JSON response
+                // karena AplikasiResponse punya @JsonInclude(JsonInclude.Include.NON_NULL)
+                .build();
     }
 }
