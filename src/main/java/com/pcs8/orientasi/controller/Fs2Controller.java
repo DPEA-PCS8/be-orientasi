@@ -8,7 +8,6 @@ import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.Fs2ChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
-import com.pcs8.orientasi.service.Fs2ExcelExportService;
 import com.pcs8.orientasi.service.Fs2Service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -17,15 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +35,6 @@ public class Fs2Controller {
 
     private final Fs2Service fs2Service;
     private final Fs2ChangelogService fs2ChangelogService;
-    private final Fs2ExcelExportService fs2ExcelExportService;
 
     /**
      * Build pagination response map from Page result
@@ -213,79 +206,5 @@ public class Fs2Controller {
     public ResponseEntity<BaseResponse> getChangelogCount(@PathVariable UUID fs2Id) {
         long count = fs2ChangelogService.countChangelogsByFs2Id(fs2Id);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, count));
-    }
-
-    /**
-     * Export all F.S.2 documents to Excel
-     */
-    @GetMapping("/export")
-    public ResponseEntity<byte[]> exportAllToExcel(
-            @RequestParam(required = false) String search,
-            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
-            @RequestParam(name = "skpa_id", required = false) UUID skpaId,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(name = "start_month", required = false) Integer startMonth,
-            @RequestParam(name = "end_month", required = false) Integer endMonth,
-            HttpServletRequest httpRequest
-    ) {
-        // Extract user info from request attributes
-        @SuppressWarnings("unchecked")
-        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
-        String userDepartment = (String) httpRequest.getAttribute("department");
-        
-        boolean canSeeAll = userRoles != null && userRoles.stream()
-                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
-        
-        ByteArrayOutputStream outputStream = fs2ExcelExportService.exportAllFs2ToExcel(
-                search, bidangId, skpaId, status, year, startMonth, endMonth, userDepartment, canSeeAll);
-        
-        String filename = "Semua_FS2_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDispositionFormData("attachment", filename);
-        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-        
-        return new ResponseEntity<>(outputStream.toByteArray(), headers, HttpStatus.OK);
-    }
-
-    /**
-     * Export approved F.S.2 documents (Monitoring) to Excel
-     */
-    @GetMapping("/approved/export")
-    public ResponseEntity<byte[]> exportApprovedToExcel(
-            @RequestParam(required = false) String search,
-            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
-            @RequestParam(name = "skpa_id", required = false) UUID skpaId,
-            @RequestParam(required = false) String progres,
-            @RequestParam(name = "fase_pengajuan", required = false) String fasePengajuan,
-            @RequestParam(required = false) String mekanisme,
-            @RequestParam(required = false) String pelaksanaan,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(name = "start_month", required = false) Integer startMonth,
-            @RequestParam(name = "end_month", required = false) Integer endMonth,
-            HttpServletRequest httpRequest
-    ) {
-        // Extract user info from request attributes
-        @SuppressWarnings("unchecked")
-        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
-        String userDepartment = (String) httpRequest.getAttribute("department");
-        
-        boolean canSeeAll = userRoles != null && userRoles.stream()
-                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
-        
-        ByteArrayOutputStream outputStream = fs2ExcelExportService.exportApprovedFs2ToExcel(
-                search, bidangId, skpaId, progres, fasePengajuan, mekanisme, pelaksanaan,
-                year, startMonth, endMonth, userDepartment, canSeeAll);
-        
-        String filename = "Monitoring_FS2_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDispositionFormData("attachment", filename);
-        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-        
-        return new ResponseEntity<>(outputStream.toByteArray(), headers, HttpStatus.OK);
     }
 }
