@@ -482,6 +482,20 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             document.setTargetGoLive(request.getTargetGoLive());
         }
 
+        // Apply per-tahapan completion dates
+        if (request.getTanggalPengadaan() != null) {
+            document.setTanggalPengadaan(request.getTanggalPengadaan());
+        }
+        if (request.getTanggalDesain() != null) {
+            document.setTanggalDesain(request.getTanggalDesain());
+        }
+        if (request.getTanggalCoding() != null) {
+            document.setTanggalCoding(request.getTanggalCoding());
+        }
+        if (request.getTanggalUnitTest() != null) {
+            document.setTanggalUnitTest(request.getTanggalUnitTest());
+        }
+
         // Apply monitoring fields - T01/T02 Status
         if (request.getStatusT01T02() != null) {
             document.setStatusT01T02(request.getStatusT01T02());
@@ -526,6 +540,35 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         // Apply monitoring fields - BA Deploy
         if (request.getBaDeploy() != null) {
             document.setBaDeploy(request.getBaDeploy());
+        }
+
+        // Apply per-tahapan statuses
+        if (request.getTahapanStatusUsreq() != null) {
+            document.setTahapanStatusUsreq(request.getTahapanStatusUsreq());
+        }
+        if (request.getTahapanStatusPengadaan() != null) {
+            document.setTahapanStatusPengadaan(request.getTahapanStatusPengadaan());
+        }
+        if (request.getTahapanStatusDesain() != null) {
+            document.setTahapanStatusDesain(request.getTahapanStatusDesain());
+        }
+        if (request.getTahapanStatusCoding() != null) {
+            document.setTahapanStatusCoding(request.getTahapanStatusCoding());
+        }
+        if (request.getTahapanStatusUnitTest() != null) {
+            document.setTahapanStatusUnitTest(request.getTahapanStatusUnitTest());
+        }
+        if (request.getTahapanStatusSit() != null) {
+            document.setTahapanStatusSit(request.getTahapanStatusSit());
+        }
+        if (request.getTahapanStatusUat() != null) {
+            document.setTahapanStatusUat(request.getTahapanStatusUat());
+        }
+        if (request.getTahapanStatusDeployment() != null) {
+            document.setTahapanStatusDeployment(request.getTahapanStatusDeployment());
+        }
+        if (request.getTahapanStatusSelesai() != null) {
+            document.setTahapanStatusSelesai(request.getTahapanStatusSelesai());
         }
     }
 
