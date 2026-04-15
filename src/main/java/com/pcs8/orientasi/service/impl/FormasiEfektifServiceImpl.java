@@ -207,7 +207,7 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
         // Calculate maintenance man hours based on active applications
         int maintBaseCount = getAplikasiAktifCount(tahun, config.maintBaseCount());
         double maintManajer = maintBaseCount * (config.maintMgrPct() / 100.0) * config.maintHours();
-        double maintAsman = maintBaseCount * config.maintHours();
+        double maintAsman = (double) maintBaseCount * config.maintHours();
 
         // Total man hours
         double totalManajer = pksiManajer + fs2Manajer + maintManajer;
@@ -230,7 +230,7 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
      */
     private double[] calculatePksiManHour(PksiDocument pksi, int tahun, ConfigParams config) {
         int durationMonths = calculatePksiDuration(pksi, tahun);
-        double manHour = durationMonths * config.manHourPerMonth();
+        double manHour = (double) durationMonths * config.manHourPerMonth();
         double workloadPct = getWorkloadPercentage(pksi.getInhouseOutsource(), config);
 
         double manajer = manHour * workloadPct * (config.managerPct() / 100.0);
@@ -244,7 +244,7 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
      */
     private double[] calculateFs2ManHour(Fs2Document fs2, int tahun, ConfigParams config) {
         int durationMonths = calculateFs2Duration(fs2, tahun);
-        double manHour = durationMonths * config.manHourPerMonth();
+        double manHour = (double) durationMonths * config.manHourPerMonth();
         double workloadPct = getWorkloadPercentage(fs2.getMekanisme(), config);
 
         double manajer = manHour * workloadPct * (config.managerPct() / 100.0);
@@ -386,8 +386,8 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
     private List<PksiDetailItem> calculatePksiDetails(List<PksiDocument> pksiList, int tahun, ConfigParams config) {
         return pksiList.stream().map(pksi -> {
             int duration = calculatePksiDuration(pksi, tahun);
-            double manHourBase = duration * config.manHourPerMonth();
-            double workloadPct = getWorkloadPercentage(pksi.getInhouseOutsource(), config) * 100;
+            double manHourBase = (double) duration * config.manHourPerMonth();
+            double workloadPct = getWorkloadPercentage(pksi.getInhouseOutsource(), config) * 100.0;
             double manHour = manHourBase * (workloadPct / 100);
 
             LocalDate usreq = findFurthestDateByStage(pksi.getTimelines(), TimelineStage.USREQ);
@@ -413,8 +413,8 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
     private List<Fs2DetailItem> calculateFs2Details(List<Fs2Document> fs2List, int tahun, ConfigParams config) {
         return fs2List.stream().map(fs2 -> {
             int duration = calculateFs2Duration(fs2, tahun);
-            double manHourBase = duration * config.manHourPerMonth();
-            double workloadPct = getWorkloadPercentage(fs2.getMekanisme(), config) * 100;
+            double manHourBase = (double) duration * config.manHourPerMonth();
+            double workloadPct = getWorkloadPercentage(fs2.getMekanisme(), config) * 100.0;
             double manHour = manHourBase * (workloadPct / 100);
 
             return Fs2DetailItem.builder()
@@ -456,7 +456,7 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
     private ManHourByLevel calculateMaintenanceManHour(int tahun, ConfigParams config) {
         int maintBaseCount = getAplikasiAktifCount(tahun, config.maintBaseCount());
         double manajer = maintBaseCount * (config.maintMgrPct() / 100.0) * config.maintHours();
-        double asman = maintBaseCount * config.maintHours();
+        double asman = (double) maintBaseCount * config.maintHours();
         return ManHourByLevel.builder()
                 .manajer(roundToTwoDecimals(manajer))
                 .asistenManajer(roundToTwoDecimals(asman))
