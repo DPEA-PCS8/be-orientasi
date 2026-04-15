@@ -519,7 +519,7 @@ public class FormasiEfektifServiceImpl implements FormasiEfektifService {
     private List<MstUser> getDeveloperUsers() {
         return userRepository.findByRoleName(ROLE_PENGEMBANG).stream()
                 .filter(u -> isManagerLevel(u.getTitle()) || isAsmanLevel(u.getTitle()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<PksiDocument> getFilteredPksiDocuments(int tahun) {
