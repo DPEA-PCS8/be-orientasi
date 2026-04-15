@@ -128,7 +128,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
 
     /**
      * Search PKSI documents with year and noInisiatif filter.
-     * - year: filter by year extracted from target timeline fields
+     * - year: filter by year extracted from trn_pksi_timeline table
      * - noInisiatif: if true, only return documents with null/empty program_inisiatif_rbsi
      */
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u WHERE " +
@@ -138,8 +138,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
-           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
+           "EXISTS (SELECT 1 FROM PksiTimeline pt WHERE pt.pksiDocument.id = p.id AND YEAR(pt.targetDate) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     Page<PksiDocument> searchDocumentsWithFilters(
             @Param("searchPattern") String searchPattern, 
@@ -150,6 +149,8 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
 
     /**
      * Search PKSI documents filtered by user department with year and noInisiatif filter.
+     * - year: filter by year extracted from trn_pksi_timeline table
+     * - noInisiatif: if true, only return documents with null/empty program_inisiatif_rbsi
      */
     @SuppressWarnings("java:S2077") // CONCAT uses internal UUID, not user input
     @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.user u LEFT JOIN p.aplikasi a LEFT JOIN a.skpa s WHERE " +
@@ -159,8 +160,7 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
            "LOWER(p.picSatker) LIKE :searchPattern) " +
            "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
-           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
+           "EXISTS (SELECT 1 FROM PksiTimeline pt WHERE pt.pksiDocument.id = p.id AND YEAR(pt.targetDate) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '') " +
            "AND ((s IS NOT NULL AND UPPER(s.kodeSkpa) = UPPER(:userDepartment)) OR " +
            "EXISTS (SELECT 1 FROM MstSkpa skpa WHERE UPPER(skpa.kodeSkpa) = UPPER(:userDepartment) AND p.picSatker LIKE CONCAT('%', CAST(skpa.id AS string), '%')))")
@@ -174,13 +174,13 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
 
     /**
      * Count PKSI documents with optional year and noInisiatif filters.
-     * Used for displaying total count in monitoring page.
+     * - year: filter by year extracted from trn_pksi_timeline table
+     * - noInisiatif: if true, only return documents with null/empty program_inisiatif_rbsi
      */
-    @Query("SELECT COUNT(p) FROM PksiDocument p WHERE " +
+    @Query("SELECT COUNT(DISTINCT p) FROM PksiDocument p WHERE " +
            "(:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status) " +
            "AND (:year IS NULL OR " +
-           "(YEAR(p.targetUsreq) = :year OR YEAR(p.targetSit) = :year OR " +
-           "YEAR(p.targetUat) = :year OR YEAR(p.targetGoLive) = :year)) " +
+           "EXISTS (SELECT 1 FROM PksiTimeline pt WHERE pt.pksiDocument.id = p.id AND YEAR(pt.targetDate) = :year)) " +
            "AND (:noInisiatif = false OR p.programInisiatifRbsi IS NULL OR TRIM(p.programInisiatifRbsi) = '')")
     long countByStatusYearAndNoInisiatif(
             @Param("status") String status,
