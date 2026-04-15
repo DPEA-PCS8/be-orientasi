@@ -68,6 +68,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = Fs2Document.builder()
                 .userId(userId)
                 .userName(username)
+                .namaFs2(request.getNamaFs2())
                 .tanggalPengajuan(request.getTanggalPengajuan() != null ? request.getTanggalPengajuan() : LocalDate.now())
                 .status(request.getStatus() != null ? request.getStatus() : "PENDING")
                 // New form fields
@@ -110,6 +111,32 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tahunMulai(request.getTahunMulai())
                 .tahunSelesai(request.getTahunSelesai())
                 .dokumenPath(request.getDokumenPath())
+                // Monitoring Fields - Dokumen Pengajuan F.S.2
+                .nomorNd(request.getNomorNd())
+                .tanggalNd(request.getTanggalNd())
+                .berkasNd(request.getBerkasNd())
+                .berkasFs2(request.getBerkasFs2())
+                .tanggalBerkasFs2(request.getTanggalBerkasFs2())
+                // Monitoring Fields - CD Prinsip
+                .nomorCd(request.getNomorCd())
+                .tanggalCd(request.getTanggalCd())
+                .berkasCd(request.getBerkasCd())
+                .berkasFs2a(request.getBerkasFs2a())
+                .tanggalBerkasFs2a(request.getTanggalBerkasFs2a())
+                .berkasFs2b(request.getBerkasFs2b())
+                .tanggalBerkasFs2b(request.getTanggalBerkasFs2b())
+                // Monitoring Fields - Pengujian
+                .realisasiPengujian(request.getRealisasiPengujian())
+                .berkasF45(request.getBerkasF45())
+                .tanggalBerkasF45(request.getTanggalBerkasF45())
+                .berkasF46(request.getBerkasF46())
+                .tanggalBerkasF46(request.getTanggalBerkasF46())
+                // Monitoring Fields - Deployment
+                .realisasiDeployment(request.getRealisasiDeployment())
+                .berkasNdBaDeployment(request.getBerkasNdBaDeployment())
+                .tanggalBerkasNdBa(request.getTanggalBerkasNdBa())
+                // Monitoring Fields - Keterangan
+                .keterangan(request.getKeterangan())
                 .build();
 
         setDocumentRelations(document, request);
@@ -249,6 +276,9 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
         if (request.getStatus() != null) {
             document.setStatus(request.getStatus());
+        }
+        if (request.getNamaFs2() != null) {
+            document.setNamaFs2(request.getNamaFs2());
         }
         
         // Update form fields - only update if not null to prevent data loss
@@ -531,6 +561,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .id(document.getId())
                 .userId(document.getUserId())
                 .userName(document.getUserName())
+                .namaFs2(document.getNamaFs2())
                 .tanggalPengajuan(document.getTanggalPengajuan())
                 .status(document.getStatus())
                 // New form fields

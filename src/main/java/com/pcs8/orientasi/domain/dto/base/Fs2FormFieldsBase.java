@@ -19,6 +19,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public abstract class Fs2FormFieldsBase {
 
+    // Nama FS2 - Free text field
+    @JsonProperty("nama_fs2")
+    private String namaFs2;
+
     // === Form Fields from requirement point 6 ===
     
     @JsonProperty("deskripsi_pengubahan")

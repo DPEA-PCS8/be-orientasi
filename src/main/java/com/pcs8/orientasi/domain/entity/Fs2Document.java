@@ -33,6 +33,10 @@ public class Fs2Document extends BaseEntity {
     @JoinColumn(name = "aplikasi_id")
     private MstAplikasi aplikasi;
 
+    // Nama FS2 - Free text field
+    @Column(name = "nama_fs2", length = 500)
+    private String namaFs2;
+
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
 
