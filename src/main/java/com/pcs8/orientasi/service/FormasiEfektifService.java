@@ -3,7 +3,6 @@ package com.pcs8.orientasi.service;
 import com.pcs8.orientasi.domain.dto.request.FormasiEfektifRequest;
 import com.pcs8.orientasi.domain.dto.response.FormasiEfektifDetailResponse;
 import com.pcs8.orientasi.domain.dto.response.FormasiEfektifResponse;
-import com.pcs8.orientasi.domain.entity.MstVariable;
 
 import java.util.List;
 
