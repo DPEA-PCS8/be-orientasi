@@ -31,6 +31,9 @@ public interface AplikasiSnapshotRepository extends JpaRepository<AplikasiSnapsh
     @Query("SELECT s.statusAplikasi, COUNT(s) FROM AplikasiSnapshot s WHERE s.tahun = :tahun GROUP BY s.statusAplikasi")
     List<Object[]> countByStatusAndTahun(@Param("tahun") Integer tahun);
 
+    @Query("SELECT COUNT(s) FROM AplikasiSnapshot s WHERE s.tahun = :tahun AND s.statusAplikasi = 'AKTIF'")
+    Long countAktifByTahun(@Param("tahun") Integer tahun);
+
     boolean existsByAplikasiIdAndTahun(UUID aplikasiId, Integer tahun);
 
     List<AplikasiSnapshot> findByAplikasiIdOrderByTahunDesc(UUID aplikasiId);

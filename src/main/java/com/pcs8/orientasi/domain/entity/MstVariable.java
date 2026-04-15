@@ -35,6 +35,9 @@ public class MstVariable extends BaseEntity {
     @Column(name = "deskripsi", columnDefinition = "TEXT")
     private String deskripsi;
 
+    @Column(name = "nilai", length = 255)
+    private String nilai;
+
     @Column(name = "urutan")
     private Integer urutan;
 
