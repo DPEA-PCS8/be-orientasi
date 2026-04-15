@@ -50,7 +50,7 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             
             // Create header row
             String[] headers = {
-                "No", "Nama Aplikasi", "Kode Aplikasi", "SKPA", 
+                "No", "Nama Aplikasi", "Nama FS2", "Kode Aplikasi", "SKPA", 
                 "Status Tahapan", "Target Pengujian", "Target Deployment", "Target Go Live",
                 "Status", "Tanggal Pengajuan", "User Pembuat", "Dokumen FS2"
             };
@@ -64,16 +64,17 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 
                 createCell(row, 0, rowNum, dataStyle);
                 createCell(row, 1, item.getNamaAplikasi(), dataStyle);
-                createCell(row, 2, item.getKodeAplikasi(), dataStyle);
-                createCell(row, 3, item.getNamaSkpa(), dataStyle);
-                createCell(row, 4, formatStatusTahapan(item.getStatusTahapan()), dataStyle);
-                createCell(row, 5, formatMonthYear(item.getTargetPengujian()), dateStyle);
-                createCell(row, 6, formatMonthYear(item.getTargetDeployment()), dateStyle);
-                createCell(row, 7, formatMonthYear(item.getTargetGoLive()), dateStyle);
-                createCell(row, 8, formatStatus(item.getStatus()), dataStyle);
-                createCell(row, 9, formatDate(item.getTanggalPengajuan()), dateStyle);
-                createCell(row, 10, item.getUserName(), dataStyle);
-                createHyperlinkCell(workbook, row, 11, item.getDokumenPath(), hyperlinkStyle);
+                createCell(row, 2, item.getNamaFs2(), dataStyle);
+                createCell(row, 3, item.getKodeAplikasi(), dataStyle);
+                createCell(row, 4, item.getNamaSkpa(), dataStyle);
+                createCell(row, 5, formatStatusTahapan(item.getStatusTahapan()), dataStyle);
+                createCell(row, 6, formatMonthYear(item.getTargetPengujian()), dateStyle);
+                createCell(row, 7, formatMonthYear(item.getTargetDeployment()), dateStyle);
+                createCell(row, 8, formatMonthYear(item.getTargetGoLive()), dateStyle);
+                createCell(row, 9, formatStatus(item.getStatus()), dataStyle);
+                createCell(row, 10, formatDate(item.getTanggalPengajuan()), dateStyle);
+                createCell(row, 11, item.getUserName(), dataStyle);
+                createHyperlinkCell(workbook, row, 12, item.getDokumenPath(), hyperlinkStyle);
                 
                 rowNum++;
             }
@@ -123,17 +124,18 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             
             // Create header row
             String[] headers = {
-                "No", "Nama Aplikasi", "Kode Aplikasi", "Bidang", "SKPA",
+                "No", "Nama Aplikasi", "Nama FS2", "Kode Aplikasi", "Bidang", "SKPA",
                 "Progres", "Status Progres", "Tanggal Progres",
                 "Fase Pengajuan", "IKU", "Mekanisme", "Pelaksanaan",
                 "PIC", "Anggota Tim",
-                "Nomor ND", "Tanggal Berkas ND",
-                "Nomor CD", "Tanggal Berkas CD Prinsip Persetujuan FS2",
+                "Nomor ND", "Nomor CD",
                 "Target Pengujian", "Realisasi Pengujian",
                 "Target Deployment", "Realisasi Deployment",
                 "Target Go Live", "Keterangan",
-                "Berkas ND", "Berkas F.S.2", "Tgl Berkas FS2",
-                "Berkas CD Prinsip", "Berkas F.S.2A", "Tgl Berkas FS2A",
+                "Berkas ND", "Tanggal Berkas ND",
+                "Berkas F.S.2", "Tgl Berkas FS2",
+                "Berkas CD Prinsip", "Tanggal Berkas CD Prinsip Persetujuan FS2",
+                "Berkas F.S.2A", "Tgl Berkas FS2A",
                 "Berkas F.S.2B", "Tgl Berkas FS2B",
                 "Berkas F45", "Tgl Berkas F45", "Berkas F46", "Tgl Berkas F46",
                 "Berkas ND/BA", "Tgl Berkas NDBA"
@@ -148,42 +150,43 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 
                 createCell(row, 0, rowNum, dataStyle);
                 createCell(row, 1, item.getNamaAplikasi(), dataStyle);
-                createCell(row, 2, item.getKodeAplikasi(), dataStyle);
-                createCell(row, 3, item.getNamaBidang(), dataStyle);
-                createCell(row, 4, item.getNamaSkpa(), dataStyle);
-                createCell(row, 5, formatProgres(item.getProgres()), dataStyle);
-                createCell(row, 6, formatProgresStatus(item.getProgresStatus()), dataStyle);
-                createCell(row, 7, formatDate(item.getTanggalProgres()), dateStyle);
-                createCell(row, 8, formatFasePengajuan(item.getFasePengajuan()), dataStyle);
-                createCell(row, 9, formatIku(item.getIku()), dataStyle);
-                createCell(row, 10, formatMekanisme(item.getMekanisme()), dataStyle);
-                createCell(row, 11, formatPelaksanaan(item), dataStyle);
-                createCell(row, 12, item.getPicName(), dataStyle);
-                createCell(row, 13, item.getAnggotaTimNames(), dataStyle);
-                createCell(row, 14, item.getNomorNd(), dataStyle);
-                createCell(row, 15, formatDate(item.getTanggalNd()), dateStyle);
+                createCell(row, 2, item.getNamaFs2(), dataStyle);
+                createCell(row, 3, item.getKodeAplikasi(), dataStyle);
+                createCell(row, 4, item.getNamaBidang(), dataStyle);
+                createCell(row, 5, item.getNamaSkpa(), dataStyle);
+                createCell(row, 6, formatProgres(item.getProgres()), dataStyle);
+                createCell(row, 7, formatProgresStatus(item.getProgresStatus()), dataStyle);
+                createCell(row, 8, formatDate(item.getTanggalProgres()), dateStyle);
+                createCell(row, 9, formatFasePengajuan(item.getFasePengajuan()), dataStyle);
+                createCell(row, 10, formatIku(item.getIku()), dataStyle);
+                createCell(row, 11, formatMekanisme(item.getMekanisme()), dataStyle);
+                createCell(row, 12, formatPelaksanaan(item), dataStyle);
+                createCell(row, 13, item.getPicName(), dataStyle);
+                createCell(row, 14, item.getAnggotaTimNames(), dataStyle);
+                createCell(row, 15, item.getNomorNd(), dataStyle);
                 createCell(row, 16, item.getNomorCd(), dataStyle);
-                createCell(row, 17, formatDate(item.getTanggalCd()), dateStyle);
-                createCell(row, 18, formatMonthYear(item.getTargetPengujian()), dateStyle);
-                createCell(row, 19, formatMonthYear(item.getRealisasiPengujian()), dateStyle);
-                createCell(row, 20, formatMonthYear(item.getTargetDeployment()), dateStyle);
-                createCell(row, 21, formatMonthYear(item.getRealisasiDeployment()), dateStyle);
-                createCell(row, 22, formatMonthYear(item.getTargetGoLive()), dateStyle);
-                createCell(row, 23, item.getKeterangan(), dataStyle);
-                createHyperlinkCell(workbook, row, 24, item.getBerkasNd(), hyperlinkStyle);
+                createCell(row, 17, formatMonthYear(item.getTargetPengujian()), dateStyle);
+                createCell(row, 18, formatMonthYear(item.getRealisasiPengujian()), dateStyle);
+                createCell(row, 19, formatMonthYear(item.getTargetDeployment()), dateStyle);
+                createCell(row, 20, formatMonthYear(item.getRealisasiDeployment()), dateStyle);
+                createCell(row, 21, formatMonthYear(item.getTargetGoLive()), dateStyle);
+                createCell(row, 22, item.getKeterangan(), dataStyle);
+                createHyperlinkCell(workbook, row, 23, item.getBerkasNd(), hyperlinkStyle);
+                createCell(row, 24, formatDate(item.getTanggalNd()), dateStyle);
                 createHyperlinkCell(workbook, row, 25, item.getBerkasFs2(), hyperlinkStyle);
                 createCell(row, 26, formatDate(item.getTanggalBerkasFs2()), dateStyle);
                 createHyperlinkCell(workbook, row, 27, item.getBerkasCd(), hyperlinkStyle);
-                createHyperlinkCell(workbook, row, 28, item.getBerkasFs2a(), hyperlinkStyle);
-                createCell(row, 29, formatDate(item.getTanggalBerkasFs2a()), dateStyle);
-                createHyperlinkCell(workbook, row, 30, item.getBerkasFs2b(), hyperlinkStyle);
-                createCell(row, 31, formatDate(item.getTanggalBerkasFs2b()), dateStyle);
-                createHyperlinkCell(workbook, row, 32, item.getBerkasF45(), hyperlinkStyle);
-                createCell(row, 33, formatDate(item.getTanggalBerkasF45()), dateStyle);
-                createHyperlinkCell(workbook, row, 34, item.getBerkasF46(), hyperlinkStyle);
-                createCell(row, 35, formatDate(item.getTanggalBerkasF46()), dateStyle);
-                createHyperlinkCell(workbook, row, 36, item.getBerkasNdBaDeployment(), hyperlinkStyle);
-                createCell(row, 37, formatDate(item.getTanggalBerkasNdBa()), dateStyle);
+                createCell(row, 28, formatDate(item.getTanggalCd()), dateStyle);
+                createHyperlinkCell(workbook, row, 29, item.getBerkasFs2a(), hyperlinkStyle);
+                createCell(row, 30, formatDate(item.getTanggalBerkasFs2a()), dateStyle);
+                createHyperlinkCell(workbook, row, 31, item.getBerkasFs2b(), hyperlinkStyle);
+                createCell(row, 32, formatDate(item.getTanggalBerkasFs2b()), dateStyle);
+                createHyperlinkCell(workbook, row, 33, item.getBerkasF45(), hyperlinkStyle);
+                createCell(row, 34, formatDate(item.getTanggalBerkasF45()), dateStyle);
+                createHyperlinkCell(workbook, row, 35, item.getBerkasF46(), hyperlinkStyle);
+                createCell(row, 36, formatDate(item.getTanggalBerkasF46()), dateStyle);
+                createHyperlinkCell(workbook, row, 37, item.getBerkasNdBaDeployment(), hyperlinkStyle);
+                createCell(row, 38, formatDate(item.getTanggalBerkasNdBa()), dateStyle);
                 
                 rowNum++;
             }
@@ -321,7 +324,7 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             case "ASESMEN" -> "Asesmen";
             case "CODING" -> "Coding";
             case "PDKK" -> "PDKK";
-            case "DEPLOY_SELESAI" -> "Deploy Selesai";
+            case "DEPLOY_SELESAI" -> "Deploy";
             default -> progres;
         };
     }
