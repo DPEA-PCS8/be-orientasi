@@ -3,6 +3,7 @@ package com.pcs8.orientasi.service;
 import com.pcs8.orientasi.domain.dto.response.Fs2FileResponse;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,12 +12,12 @@ public interface Fs2FileService {
     /**
      * Upload multiple files for a F.S.2 document
      */
-    List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType);
+    List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
      * Upload files to temporary storage (before F.S.2 is created)
      */
-    List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType);
+    List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
      * Move temporary files to permanent storage after F.S.2 is created
@@ -64,7 +65,7 @@ public interface Fs2FileService {
      * Upload a new version of an existing file type.
      * Automatically increments version number and generates standardized display name.
      */
-    Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType);
+    Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType, LocalDate tanggalDokumen);
 
     /**
      * Get the latest version files for a F.S.2 document (one per file type)

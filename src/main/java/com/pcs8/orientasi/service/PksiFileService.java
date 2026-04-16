@@ -3,6 +3,7 @@ package com.pcs8.orientasi.service;
 import com.pcs8.orientasi.domain.dto.response.PksiFileResponse;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,12 +12,12 @@ public interface PksiFileService {
     /**
      * Upload multiple files for a PKSI document
      */
-    List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files, String fileType);
+    List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
      * Upload files to temporary storage (before PKSI is created)
      */
-    List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType);
+    List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
      * Move temporary files to permanent storage after PKSI is created
@@ -64,7 +65,7 @@ public interface PksiFileService {
      * Upload a new version of an existing file type.
      * Automatically increments version number and generates standardized display name.
      */
-    PksiFileResponse uploadNewVersion(UUID pksiId, MultipartFile file, String fileType);
+    PksiFileResponse uploadNewVersion(UUID pksiId, MultipartFile file, String fileType, LocalDate tanggalDokumen);
 
     /**
      * Get the latest version files for a PKSI document (one per file type)
