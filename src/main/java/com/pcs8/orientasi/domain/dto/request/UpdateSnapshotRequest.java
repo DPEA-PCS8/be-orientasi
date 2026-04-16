@@ -28,7 +28,7 @@ public class UpdateSnapshotRequest {
     private String deskripsi;
 
     @JsonProperty(STATUS_APLIKASI)
-    private String statusAplikasi; // AKTIF, IDLE, DIAKHIRI
+    private String statusAplikasi; // AKTIF, IDLE, DIAKHIRI, DALAM_PENGEMBANGAN, BELUM_DIKEMBANGKAN
 
     @JsonProperty(BIDANG_ID)
     private UUID bidangId;

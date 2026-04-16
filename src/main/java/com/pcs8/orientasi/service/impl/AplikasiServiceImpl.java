@@ -339,8 +339,9 @@ public class AplikasiServiceImpl implements AplikasiService {
         AplikasiResponse oldValue = mapToResponse(aplikasi);
 
         // Validate status
-        if (!status.equals("AKTIF") && !status.equals("IDLE") && !status.equals("DIAKHIRI")) {
-            throw new BadRequestException("Status tidak valid. Gunakan: AKTIF, IDLE, atau DIAKHIRI");
+        if (!status.equals("AKTIF") && !status.equals("IDLE") && !status.equals("DIAKHIRI") 
+                && !status.equals("DALAM_PENGEMBANGAN") && !status.equals("BELUM_DIKEMBANGKAN")) {
+            throw new BadRequestException("Status tidak valid. Gunakan: AKTIF, IDLE, DIAKHIRI, DALAM_PENGEMBANGAN, atau BELUM_DIKEMBANGKAN");
         }
 
         aplikasi.setStatusAplikasi(status);
@@ -373,8 +374,9 @@ public class AplikasiServiceImpl implements AplikasiService {
 
         String status = request.getStatus();
         // Validate status
-        if (!status.equals("AKTIF") && !status.equals("IDLE") && !status.equals("DIAKHIRI")) {
-            throw new BadRequestException("Status tidak valid. Gunakan: AKTIF, IDLE, atau DIAKHIRI");
+        if (!status.equals("AKTIF") && !status.equals("IDLE") && !status.equals("DIAKHIRI") 
+                && !status.equals("DALAM_PENGEMBANGAN") && !status.equals("BELUM_DIKEMBANGKAN")) {
+            throw new BadRequestException("Status tidak valid. Gunakan: AKTIF, IDLE, DIAKHIRI, DALAM_PENGEMBANGAN, atau BELUM_DIKEMBANGKAN");
         }
 
         aplikasi.setStatusAplikasi(status);
