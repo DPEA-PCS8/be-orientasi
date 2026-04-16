@@ -33,7 +33,7 @@ public class AplikasiRequest {
 
     @JsonProperty("status_aplikasi")
     @NotBlank(message = "Status aplikasi is required")
-    private String statusAplikasi; // AKTIF, IDLE, DIAKHIRI
+    private String statusAplikasi; // AKTIF, IDLE, DIAKHIRI, DALAM_PENGEMBANGAN, BELUM_DIKEMBANGKAN
 
     @JsonProperty("bidang_id")
     private UUID bidangId;

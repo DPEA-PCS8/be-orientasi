@@ -35,9 +35,9 @@ public class MstAplikasi extends BaseEntity {
     @Column(name = "deskripsi", columnDefinition = "TEXT")
     private String deskripsi;
 
-    @Column(name = "status_aplikasi", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'AKTIF'")
+    @Column(name = "status_aplikasi", nullable = false, length = 30)
     @Builder.Default
-    private String statusAplikasi = "AKTIF"; // AKTIF, IDLE, DIAKHIRI
+    private String statusAplikasi = "AKTIF"; // AKTIF, IDLE, DIAKHIRI, DALAM_PENGEMBANGAN, BELUM_DIKEMBANGKAN
 
     @Column(name = "tanggal_status")
     private LocalDate tanggalStatus; // Tanggal status aplikasi mulai berlaku
