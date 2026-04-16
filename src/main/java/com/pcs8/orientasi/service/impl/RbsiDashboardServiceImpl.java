@@ -16,7 +16,6 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.KepProgressRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
-import com.pcs8.orientasi.repository.RbsiProgramRepository;
 import com.pcs8.orientasi.repository.RbsiRepository;
 import com.pcs8.orientasi.util.NomorComparator;
 import com.pcs8.orientasi.service.RbsiDashboardService;
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +42,6 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
     private static final String DISCREPANCY_UNEXPECTED = "UNEXPECTED_PKSI";
 
     private final RbsiRepository rbsiRepository;
-    private final RbsiProgramRepository programRepository;
     private final InisiatifGroupRepository inisiatifGroupRepository;
     private final PksiDocumentRepository pksiDocumentRepository;
     private final KepProgressRepository kepProgressRepository;
@@ -58,9 +55,10 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
         Rbsi rbsi = rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        // Get available years
-        List<Integer> availableYears = programRepository.findDistinctTahunByRbsiId(rbsiId);
-        availableYears.sort(Comparator.naturalOrder());
+        // Get available years from KEP progress based on kepId filter
+        List<Integer> availableYears = request.getKepId() != null ?
+                kepProgressRepository.findDistinctTahunByRbsiIdAndKepId(rbsiId, request.getKepId()) :
+                kepProgressRepository.findDistinctTahunByRbsiId(rbsiId);
 
         Integer selectedTahun = request.getTahun() != null ? request.getTahun() : 
                 (availableYears.isEmpty() ? LocalDate.now().getYear() : availableYears.get(availableYears.size() - 1));
@@ -195,13 +193,14 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
             UUID groupId = inisiatif.getGroup().getId();
             
             List<PksiDocument> groupPksi = pksiByGroup.getOrDefault(groupId, new ArrayList<>());
-            boolean hasPksi = !groupPksi.isEmpty();
+            // boolean hasPksi = !groupPksi.isEmpty();
 
             // Check if any PKSI covers the selected year (for multiyear)
             boolean hasPksiInSelectedYear = hasPksiInYear(groupPksi, selectedTahun);
 
-            // Build PKSI info list
+            // Build PKSI info list - only include PKSI that covers the selected year
             List<PksiInfo> pksiList = groupPksi.stream()
+                    .filter(pksi -> isPksiCoveringYear(pksi, selectedTahun))
                     .map(this::mapToPksiInfo)
                     .collect(Collectors.toList());
 
@@ -220,7 +219,7 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
                     .namaInisiatif(inisiatif.getNamaInisiatif())
                     .nomorInisiatif(inisiatif.getNomorInisiatif())
                     .programNama(programNama)
-                    .hasPksi(hasPksi)
+                    .hasPksi(hasPksiInSelectedYear)
                     .pksiList(pksiList)
                     .kepProgressComparison(kepComparison)
                     .build());
@@ -242,8 +241,8 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
 
     private boolean isPksiCoveringYear(PksiDocument pksi, Integer year) {
         // Get start and end years from PKSI
-        Integer startYear = pksi.getTahap1Awal() != null ? pksi.getTahap1Awal().getYear() : null;
-        Integer endYear = pksi.getTahap7Akhir() != null ? pksi.getTahap7Akhir().getYear() : null;
+        Integer startYear = pksi.getTargetUsreq() != null ? pksi.getTargetUsreq().getYear() : null;
+        Integer endYear = pksi.getTargetGoLive() != null ? pksi.getTargetGoLive().getYear() : null;
 
         if (startYear == null && endYear == null) {
             // If no dates, use tanggalPengajuan year
@@ -258,8 +257,8 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
     }
 
     private PksiInfo mapToPksiInfo(PksiDocument pksi) {
-        Integer startYear = pksi.getTahap1Awal() != null ? pksi.getTahap1Awal().getYear() : null;
-        Integer endYear = pksi.getTahap7Akhir() != null ? pksi.getTahap7Akhir().getYear() : null;
+        Integer startYear = pksi.getTargetUsreq() != null ? pksi.getTargetUsreq().getYear() : null;
+        Integer endYear = pksi.getTargetGoLive() != null ? pksi.getTargetGoLive().getYear() : null;
         boolean isMultiyear = startYear != null && endYear != null && !startYear.equals(endYear);
 
         return PksiInfo.builder()

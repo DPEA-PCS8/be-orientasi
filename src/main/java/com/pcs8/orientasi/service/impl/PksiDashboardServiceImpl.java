@@ -8,6 +8,7 @@ import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.PksiChangelog;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.domain.entity.PksiDocument.DocumentStatus;
+import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.PksiChangelogRepository;
@@ -91,23 +92,18 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         // Filter by year
         List<PksiDocument> filteredDocuments = filterByYear(allDocuments, selectedTahun);
 
-        // Filter by month - only include documents created before or at the end of selected month
-        List<PksiDocument> documentsInSnapshot = filteredDocuments.stream()
-                .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isBefore(snapshotDateTime.plusSeconds(1)))
-                .collect(Collectors.toList());
-
         // Get historical progress state at snapshot date
-        Map<UUID, String> historicalProgress = getHistoricalProgressState(documentsInSnapshot, snapshotDateTime);
+        Map<UUID, String> historicalProgress = getHistoricalProgressState(filteredDocuments, snapshotDateTime);
 
         // Build available years & months
         List<Integer> availableYears = extractAvailableYears(allDocuments);
         List<MonthOption> availableMonths = buildMonthOptions();
 
         // Calculate summary - using snapshot filtered documents
-        DashboardSummary summary = calculateSummary(documentsInSnapshot);
+        DashboardSummary summary = calculateSummary(filteredDocuments);
 
         // Filter approved PKSI from snapshot
-        List<PksiDocument> approvedDocuments = documentsInSnapshot.stream()
+        List<PksiDocument> approvedDocuments = filteredDocuments.stream()
                 .filter(p -> p.getStatus() == DocumentStatus.DISETUJUI)
                 .collect(Collectors.toList());
 
@@ -115,10 +111,10 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         ApprovalBreakdown approvalBreakdown = calculateApprovalBreakdown(approvedDocuments, selectedTahun);
         List<ProgressByBidangRow> progressByBidang = calculateProgressByBidang(approvedDocuments, allBidang, skpaMap, historicalProgress);
         ProgressInsights progressInsights = calculateProgressInsights(approvedDocuments, selectedTahun, historicalProgress);
-        JenisPksiStats jenisPksiStats = calculateJenisPksiStats(approvedDocuments);
+        JenisPksiStats jenisPksiStats = calculateJenisPksiStats(approvedDocuments, selectedTahun);
         PelaksanaStats pelaksanaStats = calculatePelaksanaStats(approvedDocuments);
         List<BidangStat> bidangStats = calculateBidangStats(approvedDocuments, allBidang, skpaMap);
-        List<PksiListItem> pksiList = buildPksiList(documentsInSnapshot, skpaMap, historicalProgress);
+        List<PksiListItem> pksiList = buildPksiList(filteredDocuments, skpaMap, historicalProgress);
         List<MonthlyProgressTrend> monthlyTrend = calculateMonthlyTrend(approvedDocuments, selectedTahun);
 
         return PksiDashboardResponse.builder()
@@ -183,12 +179,20 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private boolean isInYear(PksiDocument doc, int year) {
-        return checkYearMatch(doc.getTahap1Awal(), year) ||
-               checkYearMatch(doc.getTahap1Akhir(), year) ||
-               checkYearMatch(doc.getTahap5Awal(), year) ||
-               checkYearMatch(doc.getTahap5Akhir(), year) ||
-               checkYearMatch(doc.getTahap7Awal(), year) ||
-               checkYearMatch(doc.getTahap7Akhir(), year);
+        // Check all timeline phases first
+        if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+            for (PksiTimeline timeline : doc.getTimelines()) {
+                if (timeline.getTargetDate() != null && timeline.getTargetDate().getYear() == year) {
+                    return true;
+                }
+            }
+        }
+        
+        // Fallback to consolidated dates for backward compatibility
+        return checkYearMatch(doc.getTargetUsreqDate(), year) ||
+               checkYearMatch(doc.getTargetSitDate(), year) ||
+               checkYearMatch(doc.getTargetUatDate(), year) ||
+               checkYearMatch(doc.getTargetGoLiveDate(), year);
     }
 
     private boolean checkYearMatch(LocalDate date, int year) {
@@ -198,10 +202,18 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private List<Integer> extractAvailableYears(List<PksiDocument> documents) {
         Set<Integer> years = new TreeSet<>();
         for (PksiDocument doc : documents) {
-            addYearIfPresent(years, doc.getTahap1Awal());
-            addYearIfPresent(years, doc.getTahap1Akhir());
-            addYearIfPresent(years, doc.getTahap7Awal());
-            addYearIfPresent(years, doc.getTahap7Akhir());
+            // Check all timeline phases
+            if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+                for (PksiTimeline timeline : doc.getTimelines()) {
+                    addYearIfPresent(years, timeline.getTargetDate());
+                }
+            }
+            
+            // Fallback to consolidated dates for backward compatibility
+            addYearIfPresent(years, doc.getTargetUsreqDate());
+            addYearIfPresent(years, doc.getTargetSitDate());
+            addYearIfPresent(years, doc.getTargetUatDate());
+            addYearIfPresent(years, doc.getTargetGoLiveDate());
         }
         return new ArrayList<>(years);
     }
@@ -229,21 +241,27 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private ApprovalBreakdown calculateApprovalBreakdown(List<PksiDocument> approvedDocuments, int selectedTahun) {
         int disetujuiTahunIni = 0;
         int disetujuiMultiyearsSebelumnya = 0;
+        int disetujuiMendesak = 0;
 
+        // One More Type: PKSI Mendesak
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate tahap1Awal = doc.getTahap1Awal();
-            if (tahap1Awal != null && tahap1Awal.getYear() == selectedTahun) {
+            LocalDate targetGoLive = getLastTargetDate(doc);
+            LocalDate targetUsreq = doc.getTargetUsreqDate();
+            if (doc.getJenisPksi() != null && doc.getJenisPksi().equalsIgnoreCase("Mendesak")) {
+                disetujuiMendesak++;
+            }else if (targetUsreq != null && targetUsreq.getYear() == selectedTahun) {
                 disetujuiTahunIni++;
-            } else if (tahap1Awal != null && tahap1Awal.getYear() < selectedTahun) {
+            } else if ((targetGoLive != null && targetGoLive.getYear() == selectedTahun) && (targetUsreq != null && targetUsreq.getYear() == selectedTahun - 1)) {
                 disetujuiMultiyearsSebelumnya++;
             } else {
-                disetujuiTahunIni++;
+                log.warn("PKSI {} has approved status but targetGoLive year is unknown or in the future", doc.getId());
             }
         }
 
         return ApprovalBreakdown.builder()
                 .disetujuiTahunIni(disetujuiTahunIni)
                 .disetujuiMultiyearsSebelumnya(disetujuiMultiyearsSebelumnya)
+                .disetujuiMendesak(disetujuiMendesak)
                 .build();
     }
 
@@ -357,7 +375,7 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
         }
 
         for (PksiDocument doc : approvedDocuments) {
-            LocalDate deadline = doc.getTahap7Akhir() != null ? doc.getTahap7Akhir() : doc.getTahap7Awal();
+            LocalDate deadline = getLastTargetDate(doc);
             if (deadline != null && deadline.getYear() == targetYear) {
                 deadlineTotal++;
                 String docProgress = historicalProgress.getOrDefault(doc.getId(), doc.getProgress());
@@ -388,21 +406,35 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
                 .build();
     }
 
-    private JenisPksiStats calculateJenisPksiStats(List<PksiDocument> approvedDocuments) {
+    private JenisPksiStats calculateJenisPksiStats(List<PksiDocument> approvedDocuments, int selectedTahun) {
         int singleYear = 0;
-        int multiyears = 0;
+        int multiyearsYMinus1 = 0;
+        int multiyearsYPlus1 = 0;
 
         for (PksiDocument doc : approvedDocuments) {
             if (isMultiyear(doc)) {
-                multiyears++;
+                // Multiyear PKSI
+                Integer startYear = getStartYear(doc);
+                Integer endYear = getEndYear(doc);
+                
+                if (startYear != null && startYear <= selectedTahun - 1) {
+                    multiyearsYMinus1++;
+                } else if (endYear != null && endYear >= selectedTahun + 1) {
+                    multiyearsYPlus1++;
+                }
             } else {
-                singleYear++;
+                // Single year PKSI
+                LocalDate targetGoLive = getLastTargetDate(doc);
+                if (targetGoLive != null && targetGoLive.getYear() == selectedTahun) {
+                    singleYear++;
+                }
             }
         }
 
         return JenisPksiStats.builder()
                 .singleYear(singleYear)
-                .multiyears(multiyears)
+                .multiyearsYMinus1(multiyearsYMinus1)
+                .multiyearsYPlus1(multiyearsYPlus1)
                 .build();
     }
 
@@ -413,17 +445,35 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     }
 
     private Integer getStartYear(PksiDocument doc) {
-        if (doc.getTahap1Awal() != null) return doc.getTahap1Awal().getYear();
-        if (doc.getTahap5Awal() != null) return doc.getTahap5Awal().getYear();
-        if (doc.getTahap7Awal() != null) return doc.getTahap7Awal().getYear();
+        LocalDate firstDate = null;
+        
+        // Check all timeline phases and get the earliest date
+        if (doc.getTimelines() != null && !doc.getTimelines().isEmpty()) {
+            for (PksiTimeline timeline : doc.getTimelines()) {
+                if (timeline.getTargetDate() != null) {
+                    if (firstDate == null || timeline.getTargetDate().isBefore(firstDate)) {
+                        firstDate = timeline.getTargetDate();
+                    }
+                }
+            }
+            if (firstDate != null) return firstDate.getYear();
+        }
+        
+        // Fallback to consolidated dates for backward compatibility
+        if (doc.getTargetUsreqDate() != null) return doc.getTargetUsreqDate().getYear();
+        if (doc.getTargetSitDate() != null) return doc.getTargetSitDate().getYear();
+        if (doc.getTargetUatDate() != null) return doc.getTargetUatDate().getYear();
+        if (doc.getTargetGoLiveDate() != null) return doc.getTargetGoLiveDate().getYear();
         return null;
     }
 
     private Integer getEndYear(PksiDocument doc) {
-        if (doc.getTahap7Akhir() != null) return doc.getTahap7Akhir().getYear();
-        if (doc.getTahap5Akhir() != null) return doc.getTahap5Akhir().getYear();
-        if (doc.getTahap1Akhir() != null) return doc.getTahap1Akhir().getYear();
-        return null;
+        LocalDate lastDate = getLastTargetDate(doc);
+        return lastDate != null ? lastDate.getYear() : null;
+    }
+
+    private LocalDate getLastTargetDate(PksiDocument doc) {
+        return doc.getTargetGoLiveDateLastPhase();
     }
 
     private PelaksanaStats calculatePelaksanaStats(List<PksiDocument> approvedDocuments) {
@@ -514,8 +564,8 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
                             .status(doc.getStatus() != null ? doc.getStatus().name() : null)
                             .progress(progress)
                             .bidangNama(bidangNama)
-                            .tahap7Awal(doc.getTahap7Awal() != null ? doc.getTahap7Awal().toString() : null)
-                            .tahap7Akhir(doc.getTahap7Akhir() != null ? doc.getTahap7Akhir().toString() : null)
+                            .tahap7Awal(doc.getTargetGoLive() != null ? doc.getTargetGoLive().toString() : null)
+                            .tahap7Akhir(doc.getTargetGoLive() != null ? doc.getTargetGoLive().toString() : null)
                             .isMultiyear(isMultiyear(doc))
                             .inhouseOutsource(doc.getInhouseOutsource())
                             .build();

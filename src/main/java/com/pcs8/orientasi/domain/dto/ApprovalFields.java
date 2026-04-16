@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * Base class containing shared approval fields.
  * Used by UpdateStatusRequest and PksiDocumentResponse to reduce code duplication.
@@ -50,18 +53,34 @@ public abstract class ApprovalFields {
     @JsonProperty("anggaran_tahun_depan")
     protected String anggaranTahunDepan;
 
-    // Monitoring fields - Target Timeline
+    // Monitoring fields - Target Timeline (new flexible structure)
+    @JsonProperty("timelines")
+    protected List<PksiTimelineDto> timelines;
+
+    // Monitoring fields - Target Timeline (DEPRECATED - kept for backward compatibility)
     @JsonProperty("target_usreq")
-    protected String targetUsreq;
+    protected LocalDate targetUsreq;
 
     @JsonProperty("target_sit")
-    protected String targetSit;
+    protected LocalDate targetSit;
 
     @JsonProperty("target_uat")
-    protected String targetUat;
+    protected LocalDate targetUat;
 
     @JsonProperty("target_go_live")
-    protected String targetGoLive;
+    protected LocalDate targetGoLive;
+
+    @JsonProperty("tanggal_pengadaan")
+    protected LocalDate tanggalPengadaan;
+
+    @JsonProperty("tanggal_desain")
+    protected LocalDate tanggalDesain;
+
+    @JsonProperty("tanggal_coding")
+    protected LocalDate tanggalCoding;
+
+    @JsonProperty("tanggal_unit_test")
+    protected LocalDate tanggalUnitTest;
 
     // Monitoring fields - T01/T02 Status
     @JsonProperty("status_t01_t02")
@@ -103,4 +122,32 @@ public abstract class ApprovalFields {
     // Monitoring fields - BA Deploy
     @JsonProperty("ba_deploy")
     protected String baDeploy;
+
+    // Per-tahapan statuses
+    @JsonProperty("tahapan_status_usreq")
+    protected String tahapanStatusUsreq;
+
+    @JsonProperty("tahapan_status_pengadaan")
+    protected String tahapanStatusPengadaan;
+
+    @JsonProperty("tahapan_status_desain")
+    protected String tahapanStatusDesain;
+
+    @JsonProperty("tahapan_status_coding")
+    protected String tahapanStatusCoding;
+
+    @JsonProperty("tahapan_status_unit_test")
+    protected String tahapanStatusUnitTest;
+
+    @JsonProperty("tahapan_status_sit")
+    protected String tahapanStatusSit;
+
+    @JsonProperty("tahapan_status_uat")
+    protected String tahapanStatusUat;
+
+    @JsonProperty("tahapan_status_deployment")
+    protected String tahapanStatusDeployment;
+
+    @JsonProperty("tahapan_status_selesai")
+    protected String tahapanStatusSelesai;
 }

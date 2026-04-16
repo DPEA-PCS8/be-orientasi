@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.entity.PksiFile;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.repository.PksiFileRepository;
+import com.pcs8.orientasi.service.FileVersioningService;
 import com.pcs8.orientasi.service.MinioService;
 import com.pcs8.orientasi.service.PksiFileService;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -44,14 +46,17 @@ public class PksiFileServiceImpl implements PksiFileService {
     private final MinioService minioService;
     private final PksiFileRepository pksiFileRepository;
     private final PksiDocumentRepository pksiDocumentRepository;
+    private final FileVersioningService fileVersioningService;
 
     public PksiFileServiceImpl(
             MinioService minioService,
             PksiFileRepository pksiFileRepository,
-            PksiDocumentRepository pksiDocumentRepository) {
+            PksiDocumentRepository pksiDocumentRepository,
+            FileVersioningService fileVersioningService) {
         this.minioService = minioService;
         this.pksiFileRepository = pksiFileRepository;
         this.pksiDocumentRepository = pksiDocumentRepository;
+        this.fileVersioningService = fileVersioningService;
     }
 
     @Override
@@ -242,6 +247,22 @@ public class PksiFileServiceImpl implements PksiFileService {
                 file.getSize()
         );
 
+        // Calculate version and file group
+        Integer currentMaxVersion = pksiFileRepository.findMaxVersionByPksiIdAndFileType(pksiDocument.getId(), fileType);
+        int newVersion = currentMaxVersion + 1;
+        
+        // Get or create file group ID
+        UUID fileGroupId;
+        Optional<PksiFile> existingFile = pksiFileRepository.findFirstByPksiDocumentIdAndFileTypeOrderByVersionDesc(pksiDocument.getId(), fileType);
+        if (existingFile.isPresent() && existingFile.get().getFileGroupId() != null) {
+            fileGroupId = existingFile.get().getFileGroupId();
+        } else {
+            fileGroupId = UUID.randomUUID();
+        }
+
+        // Generate standardized display name
+        String displayName = fileVersioningService.generateDisplayName(fileType, pksiDocument.getNamaPksi(), newVersion, extension);
+
         // Save metadata to database
         PksiFile pksiFile = PksiFile.builder()
                 .pksiDocument(pksiDocument)
@@ -251,15 +272,18 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .fileSize(file.getSize())
                 .blobUrl(fileUrl)
                 .blobName(blobName)
-                .fileType(fileType) // T01 or T11
+                .fileType(fileType)
+                .version(newVersion)
+                .fileGroupId(fileGroupId)
+                .displayName(displayName)
                 .build();
 
         pksiFile = pksiFileRepository.save(pksiFile);
 
-        log.info("Uploaded file successfully - id: {}, originalName: {}, fileSize: {}, contentType: {}", 
-                pksiFile.getId(), pksiFile.getOriginalName(), pksiFile.getFileSize(), pksiFile.getContentType());
+        log.info("Uploaded file successfully - id: {}, displayName: {}, version: {}", 
+                pksiFile.getId(), pksiFile.getDisplayName(), pksiFile.getVersion());
 
-        return mapToResponse(pksiFile);
+        return mapToResponse(pksiFile, true);
     }
 
     private void validateFile(MultipartFile file) {
@@ -352,8 +376,10 @@ public class PksiFileServiceImpl implements PksiFileService {
     }
 
     private PksiFileResponse mapToResponse(PksiFile file) {
-        log.info("Mapping PksiFile to response - id: {}, originalName: {}, fileSize: {}", 
-                file.getId(), file.getOriginalName(), file.getFileSize());
+        return mapToResponse(file, false);
+    }
+
+    private PksiFileResponse mapToResponse(PksiFile file, boolean isLatest) {
         return PksiFileResponse.builder()
                 .id(file.getId())
                 .pksiId(file.getPksiDocument() != null ? file.getPksiDocument().getId() : null)
@@ -364,6 +390,87 @@ public class PksiFileServiceImpl implements PksiFileService {
                 .blobUrl(file.getBlobUrl())
                 .fileType(file.getFileType())
                 .createdAt(file.getCreatedAt() != null ? file.getCreatedAt() : LocalDateTime.now())
+                .version(file.getVersion())
+                .fileGroupId(file.getFileGroupId())
+                .displayName(file.getDisplayName())
+                .isLatestVersion(isLatest)
                 .build();
+    }
+
+    // ==================== VERSIONING METHODS ====================
+
+    @Override
+    @Transactional
+    public PksiFileResponse uploadNewVersion(UUID pksiId, MultipartFile file, String fileType) {
+        PksiDocument pksiDocument = pksiDocumentRepository.findById(pksiId)
+                .orElseThrow(() -> new ResourceNotFoundException("PKSI Document not found with id: " + pksiId));
+        
+        validateFile(file);
+        
+        try {
+            return uploadSingleFile(pksiDocument, file, fileType);
+        } catch (IOException e) {
+            log.error("Failed to upload new version. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to upload new version", e);
+        }
+    }
+
+    @Override
+    public List<PksiFileResponse> getLatestVersionFiles(UUID pksiId) {
+        List<PksiFile> latestFiles = pksiFileRepository.findLatestVersionFilesByPksiId(pksiId);
+        return latestFiles.stream()
+                .map(file -> mapToResponse(file, true))
+                .toList();
+    }
+
+    @Override
+    public List<PksiFileResponse> getFileHistory(UUID pksiId, String fileType) {
+        List<PksiFile> history = pksiFileRepository.findFileHistoryByPksiIdAndFileType(pksiId, fileType);
+        if (history.isEmpty()) {
+            return List.of();
+        }
+        // First item is latest version
+        return history.stream()
+                .map(file -> mapToResponse(file, file.equals(history.get(0))))
+                .toList();
+    }
+
+    @Override
+    public List<PksiFileResponse> getFilesByGroupId(UUID fileGroupId) {
+        List<PksiFile> files = pksiFileRepository.findByFileGroupIdOrderByVersionDesc(fileGroupId);
+        if (files.isEmpty()) {
+            return List.of();
+        }
+        // First item is latest version
+        return files.stream()
+                .map(file -> mapToResponse(file, file.equals(files.get(0))))
+                .toList();
+    }
+
+    @Override
+    public byte[] downloadFileVersion(UUID pksiId, String fileType, Integer version) {
+        List<PksiFile> files = pksiFileRepository.findByPksiDocumentIdAndFileTypeOrderByVersionDesc(pksiId, fileType);
+        PksiFile targetFile = files.stream()
+                .filter(f -> f.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("File not found for PKSI %s, type %s, version %d", pksiId, fileType, version)));
+        
+        return downloadFileContent(targetFile);
+    }
+
+    private byte[] downloadFileContent(PksiFile pksiFile) {
+        try (InputStream inputStream = minioService.downloadFile(pksiFile.getBlobName());
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            log.error("Failed to download file. Error: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to download file", e);
+        }
     }
 }

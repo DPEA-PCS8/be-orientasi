@@ -22,6 +22,9 @@ public abstract class PksiDocumentFields extends ApprovalFields {
     @JsonProperty("nama_pksi")
     protected String namaPksi;
 
+    @JsonProperty("jenis_pksi")
+    protected String jenisPksi;
+
     @JsonProperty("tanggal_pengajuan")
     protected String tanggalPengajuan;
 

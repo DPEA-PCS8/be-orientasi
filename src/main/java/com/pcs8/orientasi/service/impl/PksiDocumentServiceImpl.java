@@ -7,7 +7,6 @@ import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
-import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.BadRequestException;
@@ -17,6 +16,7 @@ import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
 import com.pcs8.orientasi.repository.PksiDocumentRepository;
+import com.pcs8.orientasi.repository.PksiTimelineRepository;
 import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -46,6 +46,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private static final String PKSI_NOT_FOUND = "PKSI document not found";
 
     private final PksiDocumentRepository pksiDocumentRepository;
+    private final PksiTimelineRepository pksiTimelineRepository;
     private final MstUserRepository userRepository;
     private final PksiDocumentMapper mapper;
     private final MstAplikasiRepository aplikasiRepository;
@@ -60,15 +61,14 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     public PksiDocumentResponse createDocument(PksiDocumentRequest request, UUID userId) {
         log.info("Creating PKSI document");
 
-        // userId is optional - used for audit/tracking only
+        // userId comes from JWT token via AuthorizationInterceptor (user_uuid attribute)
         // Authentication is enforced at controller level via @RequiresRole
-        MstUser user = null;
-        if (userId != null) {
-            user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                log.warn("User not found for tracking, proceeding without user association");
-            }
+        if (userId == null) {
+            throw new BadRequestException("User context tidak tersedia. Silakan login ulang.");
         }
+        MstUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User dengan UUID '" + userId + "' tidak ditemukan. Pastikan akun Anda terdaftar di sistem."));
 
         PksiDocument document = PksiDocument.builder()
                 .user(user)
@@ -80,6 +80,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument saved = pksiDocumentRepository.save(document);
+        
+        // Handle timelines
+        updateTimelines(saved, request);
+        
         log.info("PKSI document created successfully");
 
         return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(saved)));
@@ -183,16 +187,15 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PksiDocumentResponse> searchDocuments(String search, String status, Integer year, boolean noInisiatif, Pageable pageable, String userDepartment, boolean canSeeAll) {
-
-        
         // Sanitize and format search input with wildcards
         String searchPattern = formatSearchPattern(search);
         String sanitizedStatus = sanitizeSearchInput(status);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all documents with filters");
+            log.info("User can see all - fetching all documents with filters (year: {})", year);
             return pksiDocumentRepository.searchDocumentsWithFilters(searchPattern, sanitizedStatus, year, noInisiatif, pageable)
+                    .map(this::initializeLazyRelations)
                     .map(mapper::mapToResponse)
                     .map(this::enrichWithSkpaNames);
         }
@@ -204,13 +207,15 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering by department: '{}' (year: {})", userDepartment, year);
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
                 searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)
+                .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponse)
                 .map(this::enrichWithSkpaNames);
         
-        log.info("Search result with filters: {} documents found", result.getTotalElements());
+        log.info("Search result with filters: {} documents found (year: {})", result.getTotalElements(), year);
         
         return result;
     }
@@ -265,6 +270,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         mapper.mapRequestToDocument(request, document);
 
         PksiDocument updated = pksiDocumentRepository.save(document);
+        
+        // Handle timelines
+        updateTimelines(updated, request);
+        
         log.info("PKSI document updated successfully");
 
         // Track changes
@@ -484,6 +493,20 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             document.setTargetGoLive(request.getTargetGoLive());
         }
 
+        // Apply per-tahapan completion dates
+        if (request.getTanggalPengadaan() != null) {
+            document.setTanggalPengadaan(request.getTanggalPengadaan());
+        }
+        if (request.getTanggalDesain() != null) {
+            document.setTanggalDesain(request.getTanggalDesain());
+        }
+        if (request.getTanggalCoding() != null) {
+            document.setTanggalCoding(request.getTanggalCoding());
+        }
+        if (request.getTanggalUnitTest() != null) {
+            document.setTanggalUnitTest(request.getTanggalUnitTest());
+        }
+
         // Apply monitoring fields - T01/T02 Status
         if (request.getStatusT01T02() != null) {
             document.setStatusT01T02(request.getStatusT01T02());
@@ -529,6 +552,35 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         if (request.getBaDeploy() != null) {
             document.setBaDeploy(request.getBaDeploy());
         }
+
+        // Apply per-tahapan statuses
+        if (request.getTahapanStatusUsreq() != null) {
+            document.setTahapanStatusUsreq(request.getTahapanStatusUsreq());
+        }
+        if (request.getTahapanStatusPengadaan() != null) {
+            document.setTahapanStatusPengadaan(request.getTahapanStatusPengadaan());
+        }
+        if (request.getTahapanStatusDesain() != null) {
+            document.setTahapanStatusDesain(request.getTahapanStatusDesain());
+        }
+        if (request.getTahapanStatusCoding() != null) {
+            document.setTahapanStatusCoding(request.getTahapanStatusCoding());
+        }
+        if (request.getTahapanStatusUnitTest() != null) {
+            document.setTahapanStatusUnitTest(request.getTahapanStatusUnitTest());
+        }
+        if (request.getTahapanStatusSit() != null) {
+            document.setTahapanStatusSit(request.getTahapanStatusSit());
+        }
+        if (request.getTahapanStatusUat() != null) {
+            document.setTahapanStatusUat(request.getTahapanStatusUat());
+        }
+        if (request.getTahapanStatusDeployment() != null) {
+            document.setTahapanStatusDeployment(request.getTahapanStatusDeployment());
+        }
+        if (request.getTahapanStatusSelesai() != null) {
+            document.setTahapanStatusSelesai(request.getTahapanStatusSelesai());
+        }
     }
 
     /**
@@ -561,12 +613,6 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 .fungsiAplikasi(document.getFungsiAplikasi())
                 .informasiYangDikelola(document.getInformasiYangDikelola())
                 .dasarPeraturan(document.getDasarPeraturan())
-                .tahap1Awal(document.getTahap1Awal())
-                .tahap1Akhir(document.getTahap1Akhir())
-                .tahap5Awal(document.getTahap5Awal())
-                .tahap5Akhir(document.getTahap5Akhir())
-                .tahap7Awal(document.getTahap7Awal())
-                .tahap7Akhir(document.getTahap7Akhir())
                 .rencanaPengelolaan(document.getRencanaPengelolaan())
                 .status(document.getStatus())
                 .iku(document.getIku())
@@ -606,6 +652,24 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     }
 
     /**
+     * Update timelines for a PKSI document (DRY helper method).
+     * Deletes old timelines and creates new ones based on the request.
+     */
+    private void updateTimelines(PksiDocument document, PksiDocumentRequest request) {
+        // Delete old timelines
+        pksiTimelineRepository.deleteByPksiDocumentId(document.getId());
+        
+        // Create new timelines if provided
+        if (request.getTimelines() != null && !request.getTimelines().isEmpty()) {
+            List<com.pcs8.orientasi.domain.entity.PksiTimeline> timelines = mapper.convertDtoToTimelines(request.getTimelines());
+            if (timelines != null) {
+                timelines.forEach(timeline -> timeline.setPksiDocument(document));
+                pksiTimelineRepository.saveAll(timelines);
+            }
+        }
+    }
+
+    /**
      * Save document and re-fetch with initialized lazy relations.
      * Common pattern used after update operations.
      */
@@ -632,6 +696,13 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         if (document.getInisiatifGroup() != null) {
             Hibernate.initialize(document.getInisiatifGroup());
+        }
+        if (document.getTeam() != null) {
+            Hibernate.initialize(document.getTeam());
+        }
+        // Initialize timelines
+        if (document.getTimelines() != null) {
+            Hibernate.initialize(document.getTimelines());
         }
         return document;
     }

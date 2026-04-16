@@ -20,7 +20,7 @@ import java.util.UUID;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Fs2File extends BaseEntity {
+public class Fs2File extends BaseFile {
 
     @Id
     @UuidGenerator
@@ -30,29 +30,4 @@ public class Fs2File extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fs2_id", nullable = true)
     private Fs2Document fs2Document;
-
-    // File metadata fields for FS2 attachments stored in MinIO
-    @Column(name = "file_name", nullable = false, length = 256)
-    private String fileName;
-
-    @Column(name = "original_name", nullable = false, length = 256)
-    private String originalName;
-
-    @Column(name = "content_type", length = 128)
-    private String contentType;
-
-    @Column(name = "file_size")
-    private Long fileSize;
-
-    @Column(name = "blob_url", length = 512)
-    private String blobUrl;
-
-    @Column(name = "blob_name", length = 512)
-    private String blobName;
-
-    @Column(name = "session_id", length = 128)
-    private String sessionId;
-
-    @Column(name = "file_type", length = 20)
-    private String fileType; // ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA
 }

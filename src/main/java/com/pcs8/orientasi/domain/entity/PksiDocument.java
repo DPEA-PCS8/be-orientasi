@@ -9,6 +9,8 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -48,6 +50,9 @@ public class PksiDocument extends BaseEntity {
     // ==================== HEADER ====================
     @Column(name = "nama_pksi", nullable = false, length = 255)
     private String namaPksi;
+
+    @Column(name = "jenis_pksi", length = 50)
+    private String jenisPksi;
 
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
@@ -120,28 +125,6 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "dasar_peraturan", columnDefinition = "NVARCHAR(MAX)")
     private String dasarPeraturan;
 
-    // ==================== SECTION 6: USULAN JADWAL PELAKSANAAN ====================
-    // Tahap 1: Penyusunan Spesifikasi
-    @Column(name = "tahap1_awal")
-    private LocalDate tahap1Awal;
-
-    @Column(name = "tahap1_akhir")
-    private LocalDate tahap1Akhir;
-
-    // Tahap 5: UAT
-    @Column(name = "tahap5_awal")
-    private LocalDate tahap5Awal;
-
-    @Column(name = "tahap5_akhir")
-    private LocalDate tahap5Akhir;
-
-    // Tahap 7: Go-Live
-    @Column(name = "tahap7_awal")
-    private LocalDate tahap7Awal;
-
-    @Column(name = "tahap7_akhir")
-    private LocalDate tahap7Akhir;
-
     // ==================== SECTION 7: RENCANA PENGELOLAAN ====================
     @Column(name = "rencana_pengelolaan", columnDefinition = "NVARCHAR(MAX)")
     private String rencanaPengelolaan;
@@ -183,17 +166,35 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "anggaran_tahun_depan", length = 255)
     private String anggaranTahunDepan;
 
-    @Column(name = "target_usreq", length = 50)
-    private String targetUsreq;
+    // ==================== TIMELINE (new flexible structure) ====================
+    @OneToMany(mappedBy = "pksiDocument", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @lombok.Builder.Default
+    private List<PksiTimeline> timelines = new ArrayList<>();
 
-    @Column(name = "target_sit", length = 50)
-    private String targetSit;
+    // ==================== LEGACY TIMELINE FIELDS (deprecated - use timelines list) ====================
+    @Column(name = "target_usreq")
+    private LocalDate targetUsreq;
 
-    @Column(name = "target_uat", length = 50)
-    private String targetUat;
+    @Column(name = "target_sit")
+    private LocalDate targetSit;
 
-    @Column(name = "target_go_live", length = 50)
-    private String targetGoLive;
+    @Column(name = "target_uat")
+    private LocalDate targetUat;
+
+    @Column(name = "target_go_live")
+    private LocalDate targetGoLive;
+
+    @Column(name = "tanggal_pengadaan")
+    private LocalDate tanggalPengadaan;
+
+    @Column(name = "tanggal_desain")
+    private LocalDate tanggalDesain;
+
+    @Column(name = "tanggal_coding")
+    private LocalDate tanggalCoding;
+
+    @Column(name = "tanggal_unit_test")
+    private LocalDate tanggalUnitTest;
 
     @Column(name = "status_t01_t02", length = 50)
     private String statusT01T02;
@@ -231,6 +232,34 @@ public class PksiDocument extends BaseEntity {
     @Column(name = "ba_deploy", length = 255)
     private String baDeploy;
 
+    // ==================== TAHAPAN STATUS ====================
+    @Column(name = "tahapan_status_usreq", length = 30)
+    private String tahapanStatusUsreq;
+
+    @Column(name = "tahapan_status_pengadaan", length = 30)
+    private String tahapanStatusPengadaan;
+
+    @Column(name = "tahapan_status_desain", length = 30)
+    private String tahapanStatusDesain;
+
+    @Column(name = "tahapan_status_coding", length = 30)
+    private String tahapanStatusCoding;
+
+    @Column(name = "tahapan_status_unit_test", length = 30)
+    private String tahapanStatusUnitTest;
+
+    @Column(name = "tahapan_status_sit", length = 30)
+    private String tahapanStatusSit;
+
+    @Column(name = "tahapan_status_uat", length = 30)
+    private String tahapanStatusUat;
+
+    @Column(name = "tahapan_status_deployment", length = 30)
+    private String tahapanStatusDeployment;
+
+    @Column(name = "tahapan_status_selesai", length = 30)
+    private String tahapanStatusSelesai;
+
     // ==================== TEAM REFERENCE ====================
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
@@ -239,6 +268,67 @@ public class PksiDocument extends BaseEntity {
     // ==================== LEGACY FIELDS (backward compatibility) ====================
     @Column(name = "tujuan_pengajuan", columnDefinition = "NVARCHAR(MAX)")
     private String tujuanPengajuan;
+
+    /**
+     * Helper methods to get timeline dates by stage (for backward compatibility with dashboard)
+     * Returns the first phase's date for the given stage, or falls back to legacy field if no timeline exists
+     */
+    public LocalDate getTargetUsreqDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.USREQ);
+        return fromTimeline != null ? fromTimeline : targetUsreq;
+    }
+
+    public LocalDate getTargetSitDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.SIT);
+        return fromTimeline != null ? fromTimeline : targetSit;
+    }
+
+    public LocalDate getTargetUatDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.UAT);
+        return fromTimeline != null ? fromTimeline : targetUat;
+    }
+
+    public LocalDate getTargetGoLiveDate() {
+        LocalDate fromTimeline = getFirstPhaseDate(PksiTimeline.TimelineStage.GO_LIVE);
+        return fromTimeline != null ? fromTimeline : targetGoLive;
+    }
+
+    /**
+     * Get the last (latest) GO_LIVE phase date from timelines
+     * Used for dashboard deadline calculations
+     */
+    public LocalDate getTargetGoLiveDateLastPhase() {
+        LocalDate fromTimeline = getLastPhaseDate(PksiTimeline.TimelineStage.GO_LIVE);
+        return fromTimeline != null ? fromTimeline : targetGoLive;
+    }
+
+    /**
+     * Get the earliest date for a specific stage from timelines
+     */
+    private LocalDate getFirstPhaseDate(PksiTimeline.TimelineStage stage) {
+        if (timelines == null || timelines.isEmpty()) {
+            return null;
+        }
+        return timelines.stream()
+                .filter(t -> t.getStage() == stage)
+                .map(PksiTimeline::getTargetDate)
+                .min(LocalDate::compareTo)
+                .orElse(null);
+    }
+
+    /**
+     * Get the latest (last) date for a specific stage from timelines
+     */
+    private LocalDate getLastPhaseDate(PksiTimeline.TimelineStage stage) {
+        if (timelines == null || timelines.isEmpty()) {
+            return null;
+        }
+        return timelines.stream()
+                .filter(t -> t.getStage() == stage)
+                .map(PksiTimeline::getTargetDate)
+                .max(LocalDate::compareTo)
+                .orElse(null);
+    }
 
     public enum DocumentStatus {
         PENDING,

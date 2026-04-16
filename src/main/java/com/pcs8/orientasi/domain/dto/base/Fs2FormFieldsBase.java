@@ -19,6 +19,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public abstract class Fs2FormFieldsBase {
 
+    // Nama FS2 - Free text field
+    @JsonProperty("nama_fs2")
+    private String namaFs2;
+
     // === Form Fields from requirement point 6 ===
     
     @JsonProperty("deskripsi_pengubahan")
@@ -111,6 +115,12 @@ public abstract class Fs2FormFieldsBase {
     // Fields for F.S.2 Disetujui
     private String progres;
 
+    @JsonProperty("progres_status")
+    private String progresStatus;
+
+    @JsonProperty("tanggal_progres")
+    private LocalDate tanggalProgres;
+
     @JsonProperty("fase_pengajuan")
     private String fasePengajuan;
 
@@ -131,6 +141,16 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("pic_id")
     private UUID picId;
 
+    // Team Structure
+    @JsonProperty("team_id")
+    private UUID teamId;
+
+    @JsonProperty("anggota_tim")
+    private String anggotaTim;
+
+    @JsonProperty("anggota_tim_names")
+    private String anggotaTimNames;
+
     @JsonProperty("dokumen_path")
     private String dokumenPath;
 
@@ -149,6 +169,9 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("berkas_fs2")
     private String berkasFs2;
 
+    @JsonProperty("tanggal_berkas_fs2")
+    private LocalDate tanggalBerkasFs2;
+
     // CD Prinsip
     @JsonProperty("nomor_cd")
     private String nomorCd;
@@ -162,8 +185,14 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("berkas_fs2a")
     private String berkasFs2a;
 
+    @JsonProperty("tanggal_berkas_fs2a")
+    private LocalDate tanggalBerkasFs2a;
+
     @JsonProperty("berkas_fs2b")
     private String berkasFs2b;
+
+    @JsonProperty("tanggal_berkas_fs2b")
+    private LocalDate tanggalBerkasFs2b;
 
     // Pengujian
     @JsonProperty("realisasi_pengujian")
@@ -172,8 +201,14 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("berkas_f45")
     private String berkasF45;
 
+    @JsonProperty("tanggal_berkas_f45")
+    private LocalDate tanggalBerkasF45;
+
     @JsonProperty("berkas_f46")
     private String berkasF46;
+
+    @JsonProperty("tanggal_berkas_f46")
+    private LocalDate tanggalBerkasF46;
 
     // Deployment
     @JsonProperty("realisasi_deployment")
@@ -181,6 +216,9 @@ public abstract class Fs2FormFieldsBase {
 
     @JsonProperty("berkas_nd_ba_deployment")
     private String berkasNdBaDeployment;
+
+    @JsonProperty("tanggal_berkas_nd_ba")
+    private LocalDate tanggalBerkasNdBa;
 
     // Keterangan
     private String keterangan;

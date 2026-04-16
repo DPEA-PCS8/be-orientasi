@@ -33,6 +33,10 @@ public class Fs2Document extends BaseEntity {
     @JoinColumn(name = "aplikasi_id")
     private MstAplikasi aplikasi;
 
+    // Nama FS2 - Free text field
+    @Column(name = "nama_fs2", length = 500)
+    private String namaFs2;
+
     @Column(name = "tanggal_pengajuan")
     private LocalDate tanggalPengajuan;
 
@@ -159,6 +163,14 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "progres", length = 50)
     private String progres;
 
+    // Progres Status: BELUM_DIMULAI, DALAM_PROSES, SELESAI
+    @Column(name = "progres_status", length = 50)
+    private String progresStatus;
+
+    // Tanggal Progres (date when progress was updated)
+    @Column(name = "tanggal_progres")
+    private LocalDate tanggalProgres;
+
     // Fase Pengajuan: DESAIN, PEMELIHARAAN
     @Column(name = "fase_pengajuan", length = 50)
     private String fasePengajuan;
@@ -194,6 +206,17 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "pic_name", length = 255)
     private String picName;
 
+    // Team Structure (similar to PKSI)
+    @Column(name = "anggota_tim", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTim;
+
+    @Column(name = "anggota_tim_names", columnDefinition = "NVARCHAR(MAX)")
+    private String anggotaTimNames;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private MstTeam team;
+
     // Dokumen Pengajuan F.S.2 reference (file ID or path)
     @Column(name = "dokumen_path", length = 500)
     private String dokumenPath;
@@ -213,6 +236,9 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "berkas_fs2", length = 500)
     private String berkasFs2;
 
+    @Column(name = "tanggal_berkas_fs2")
+    private LocalDate tanggalBerkasFs2;
+
     // CD Prinsip
     @Column(name = "nomor_cd", length = 100)
     private String nomorCd;
@@ -226,8 +252,14 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "berkas_fs2a", length = 500)
     private String berkasFs2a;
 
+    @Column(name = "tanggal_berkas_fs2a")
+    private LocalDate tanggalBerkasFs2a;
+
     @Column(name = "berkas_fs2b", length = 500)
     private String berkasFs2b;
+
+    @Column(name = "tanggal_berkas_fs2b")
+    private LocalDate tanggalBerkasFs2b;
 
     // Pengujian
     @Column(name = "realisasi_pengujian")
@@ -236,8 +268,14 @@ public class Fs2Document extends BaseEntity {
     @Column(name = "berkas_f45", length = 500)
     private String berkasF45;
 
+    @Column(name = "tanggal_berkas_f45")
+    private LocalDate tanggalBerkasF45;
+
     @Column(name = "berkas_f46", length = 500)
     private String berkasF46;
+
+    @Column(name = "tanggal_berkas_f46")
+    private LocalDate tanggalBerkasF46;
 
     // Deployment
     @Column(name = "realisasi_deployment")
@@ -245,6 +283,9 @@ public class Fs2Document extends BaseEntity {
 
     @Column(name = "berkas_nd_ba_deployment", length = 500)
     private String berkasNdBaDeployment;
+
+    @Column(name = "tanggal_berkas_nd_ba")
+    private LocalDate tanggalBerkasNdBa;
 
     // Keterangan
     @Column(name = "keterangan", columnDefinition = "TEXT")

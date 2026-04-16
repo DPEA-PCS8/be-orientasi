@@ -1,0 +1,9 @@
+ALTER TABLE trn_pksi_document ADD tahapan_status_usreq       VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_pengadaan   VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_desain      VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_coding      VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_unit_test   VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_sit         VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_uat         VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_deployment  VARCHAR(30) NULL;
+ALTER TABLE trn_pksi_document ADD tahapan_status_selesai     VARCHAR(30) NULL;

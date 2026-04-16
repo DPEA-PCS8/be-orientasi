@@ -4,21 +4,26 @@ import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.Fs2DocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
 import com.pcs8.orientasi.domain.entity.Fs2Document;
+import com.pcs8.orientasi.domain.entity.Fs2File;
 import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
+import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
+import com.pcs8.orientasi.repository.Fs2FileRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
+import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
 import com.pcs8.orientasi.service.Fs2FileService;
 import com.pcs8.orientasi.service.Fs2Service;
+import com.pcs8.orientasi.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +47,17 @@ public class Fs2ServiceImpl implements Fs2Service {
     private static final String NOT_FOUND_WITH_ID = " not found with id: ";
 
     private final Fs2DocumentRepository fs2Repository;
+    private final Fs2FileRepository fs2FileRepository;
     private final MstAplikasiRepository aplikasiRepository;
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
     private final MstUserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
     private final Fs2FileService fs2FileService;
+    private final MinioService minioService;
 
     @Override
     @Transactional
@@ -60,6 +68,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         Fs2Document document = Fs2Document.builder()
                 .userId(userId)
                 .userName(username)
+                .namaFs2(request.getNamaFs2())
                 .tanggalPengajuan(request.getTanggalPengajuan() != null ? request.getTanggalPengajuan() : LocalDate.now())
                 .status(request.getStatus() != null ? request.getStatus() : "PENDING")
                 // New form fields
@@ -92,6 +101,8 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .pernyataan2(Boolean.TRUE.equals(request.getPernyataan2()))
                 // F.S.2 Disetujui fields
                 .progres(request.getProgres())
+                .progresStatus(request.getProgresStatus())
+                .tanggalProgres(request.getTanggalProgres())
                 .fasePengajuan(request.getFasePengajuan())
                 .iku(request.getIku())
                 .mekanisme(request.getMekanisme())
@@ -100,6 +111,32 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tahunMulai(request.getTahunMulai())
                 .tahunSelesai(request.getTahunSelesai())
                 .dokumenPath(request.getDokumenPath())
+                // Monitoring Fields - Dokumen Pengajuan F.S.2
+                .nomorNd(request.getNomorNd())
+                .tanggalNd(request.getTanggalNd())
+                .berkasNd(request.getBerkasNd())
+                .berkasFs2(request.getBerkasFs2())
+                .tanggalBerkasFs2(request.getTanggalBerkasFs2())
+                // Monitoring Fields - CD Prinsip
+                .nomorCd(request.getNomorCd())
+                .tanggalCd(request.getTanggalCd())
+                .berkasCd(request.getBerkasCd())
+                .berkasFs2a(request.getBerkasFs2a())
+                .tanggalBerkasFs2a(request.getTanggalBerkasFs2a())
+                .berkasFs2b(request.getBerkasFs2b())
+                .tanggalBerkasFs2b(request.getTanggalBerkasFs2b())
+                // Monitoring Fields - Pengujian
+                .realisasiPengujian(request.getRealisasiPengujian())
+                .berkasF45(request.getBerkasF45())
+                .tanggalBerkasF45(request.getTanggalBerkasF45())
+                .berkasF46(request.getBerkasF46())
+                .tanggalBerkasF46(request.getTanggalBerkasF46())
+                // Monitoring Fields - Deployment
+                .realisasiDeployment(request.getRealisasiDeployment())
+                .berkasNdBaDeployment(request.getBerkasNdBaDeployment())
+                .tanggalBerkasNdBa(request.getTanggalBerkasNdBa())
+                // Monitoring Fields - Keterangan
+                .keterangan(request.getKeterangan())
                 .build();
 
         setDocumentRelations(document, request);
@@ -129,13 +166,13 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}", canSeeAll, userDepartment, year);
+    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all F.S.2 documents with year filter: {}", year);
-            return fs2Repository.searchFs2DocumentsWithYear(search, bidangId, skpaId, status, year, pageable)
+            log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         }
         
@@ -146,13 +183,13 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
         
         // SKPA users only see documents where SKPA kode matches their department
-        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}", userDepartment, year);
+        log.info("User is SKPA - filtering F.S.2 by department: '{}' and year: {}, month range: {}-{}", userDepartment, year, startMonth, endMonth);
         
         // Find SKPA UUID for the user's department
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
         if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYear(search, bidangId, status, userDepartment.trim(), year, pageable)
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
@@ -240,6 +277,9 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getStatus() != null) {
             document.setStatus(request.getStatus());
         }
+        if (request.getNamaFs2() != null) {
+            document.setNamaFs2(request.getNamaFs2());
+        }
         
         // Update form fields - only update if not null to prevent data loss
         if (request.getDeskripsiPengubahan() != null) document.setDeskripsiPengubahan(request.getDeskripsiPengubahan());
@@ -272,6 +312,8 @@ public class Fs2ServiceImpl implements Fs2Service {
         
         // F.S.2 Disetujui fields - only update if not null
         if (request.getProgres() != null) document.setProgres(request.getProgres());
+        if (request.getProgresStatus() != null) document.setProgresStatus(request.getProgresStatus());
+        if (request.getTanggalProgres() != null) document.setTanggalProgres(request.getTanggalProgres());
         if (request.getFasePengajuan() != null) document.setFasePengajuan(request.getFasePengajuan());
         if (request.getIku() != null) document.setIku(request.getIku());
         if (request.getMekanisme() != null) document.setMekanisme(request.getMekanisme());
@@ -286,22 +328,28 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getTanggalNd() != null) document.setTanggalNd(request.getTanggalNd());
         if (request.getBerkasNd() != null) document.setBerkasNd(request.getBerkasNd());
         if (request.getBerkasFs2() != null) document.setBerkasFs2(request.getBerkasFs2());
+        if (request.getTanggalBerkasFs2() != null) document.setTanggalBerkasFs2(request.getTanggalBerkasFs2());
 
         // Monitoring Fields - CD Prinsip - only update if not null
         if (request.getNomorCd() != null) document.setNomorCd(request.getNomorCd());
         if (request.getTanggalCd() != null) document.setTanggalCd(request.getTanggalCd());
         if (request.getBerkasCd() != null) document.setBerkasCd(request.getBerkasCd());
         if (request.getBerkasFs2a() != null) document.setBerkasFs2a(request.getBerkasFs2a());
+        if (request.getTanggalBerkasFs2a() != null) document.setTanggalBerkasFs2a(request.getTanggalBerkasFs2a());
         if (request.getBerkasFs2b() != null) document.setBerkasFs2b(request.getBerkasFs2b());
+        if (request.getTanggalBerkasFs2b() != null) document.setTanggalBerkasFs2b(request.getTanggalBerkasFs2b());
 
         // Monitoring Fields - Pengujian - only update if not null
         if (request.getRealisasiPengujian() != null) document.setRealisasiPengujian(request.getRealisasiPengujian());
         if (request.getBerkasF45() != null) document.setBerkasF45(request.getBerkasF45());
+        if (request.getTanggalBerkasF45() != null) document.setTanggalBerkasF45(request.getTanggalBerkasF45());
         if (request.getBerkasF46() != null) document.setBerkasF46(request.getBerkasF46());
+        if (request.getTanggalBerkasF46() != null) document.setTanggalBerkasF46(request.getTanggalBerkasF46());
 
         // Monitoring Fields - Deployment - only update if not null
         if (request.getRealisasiDeployment() != null) document.setRealisasiDeployment(request.getRealisasiDeployment());
         if (request.getBerkasNdBaDeployment() != null) document.setBerkasNdBaDeployment(request.getBerkasNdBaDeployment());
+        if (request.getTanggalBerkasNdBa() != null) document.setTanggalBerkasNdBa(request.getTanggalBerkasNdBa());
 
         // Monitoring Fields - Keterangan - only update if not null
         if (request.getKeterangan() != null) document.setKeterangan(request.getKeterangan());
@@ -333,6 +381,8 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Create snapshot for changelog
         Fs2Document oldDocument = createSnapshot(document);
         Fs2DocumentResponse oldValue = mapToResponse(document);
+        
+        // Update status
         document.setStatus(status);
 
         Fs2Document saved = fs2Repository.save(document);
@@ -441,22 +491,28 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tanggalNd(document.getTanggalNd())
                 .berkasNd(document.getBerkasNd())
                 .berkasFs2(document.getBerkasFs2())
+                .tanggalBerkasFs2(document.getTanggalBerkasFs2())
                 .nomorCd(document.getNomorCd())
                 .tanggalCd(document.getTanggalCd())
                 .berkasCd(document.getBerkasCd())
                 .berkasFs2a(document.getBerkasFs2a())
+                .tanggalBerkasFs2a(document.getTanggalBerkasFs2a())
                 .berkasFs2b(document.getBerkasFs2b())
+                .tanggalBerkasFs2b(document.getTanggalBerkasFs2b())
                 .realisasiPengujian(document.getRealisasiPengujian())
                 .berkasF45(document.getBerkasF45())
+                .tanggalBerkasF45(document.getTanggalBerkasF45())
                 .berkasF46(document.getBerkasF46())
+                .tanggalBerkasF46(document.getTanggalBerkasF46())
                 .realisasiDeployment(document.getRealisasiDeployment())
                 .berkasNdBaDeployment(document.getBerkasNdBaDeployment())
+                .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 .keterangan(document.getKeterangan())
                 .build();
     }
 
     /**
-     * Set document relations (Aplikasi, Bidang, SKPA, PIC) from request
+     * Set document relations (Aplikasi, Bidang, SKPA, PIC, Team) from request
      */
     private void setDocumentRelations(Fs2Document document, Fs2DocumentRequest request) {
         if (request.getAplikasiId() != null) {
@@ -483,6 +539,21 @@ public class Fs2ServiceImpl implements Fs2Service {
             document.setPicId(pic.getUuid());
             document.setPicName(pic.getFullName());
         }
+
+        // Handle team data
+        if (request.getTeamId() != null) {
+            MstTeam team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team" + NOT_FOUND_WITH_ID + request.getTeamId()));
+            document.setTeam(team);
+        }
+        
+        // Set team member data (comma-separated UUIDs and names)
+        if (request.getAnggotaTim() != null) {
+            document.setAnggotaTim(request.getAnggotaTim());
+        }
+        if (request.getAnggotaTimNames() != null) {
+            document.setAnggotaTimNames(request.getAnggotaTimNames());
+        }
     }
 
     private Fs2DocumentResponse mapToResponse(Fs2Document document) {
@@ -490,6 +561,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .id(document.getId())
                 .userId(document.getUserId())
                 .userName(document.getUserName())
+                .namaFs2(document.getNamaFs2())
                 .tanggalPengajuan(document.getTanggalPengajuan())
                 .status(document.getStatus())
                 // New form fields
@@ -522,6 +594,8 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .pernyataan2(document.getPernyataan2())
                 // F.S.2 Disetujui fields
                 .progres(document.getProgres())
+                .progresStatus(document.getProgresStatus())
+                .tanggalProgres(document.getTanggalProgres())
                 .fasePengajuan(document.getFasePengajuan())
                 .iku(document.getIku())
                 .mekanisme(document.getMekanisme())
@@ -531,25 +605,35 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tahunSelesai(document.getTahunSelesai())
                 .picId(document.getPicId())
                 .picName(document.getPicName())
-                .dokumenPath(document.getDokumenPath())
+                .teamId(document.getTeam() != null ? document.getTeam().getId() : null)
+                .teamName(document.getTeam() != null ? document.getTeam().getName() : null)
+                .anggotaTim(document.getAnggotaTim())
+                .anggotaTimNames(document.getAnggotaTimNames())
+                .dokumenPath(getFileUrl(document.getId(), "FS2"))
                 // Monitoring Fields - Dokumen Pengajuan F.S.2
                 .nomorNd(document.getNomorNd())
                 .tanggalNd(document.getTanggalNd())
-                .berkasNd(document.getBerkasNd())
-                .berkasFs2(document.getBerkasFs2())
+                .berkasNd(getFileUrl(document.getId(), "ND"))
+                .berkasFs2(getFileUrl(document.getId(), "FS2"))
+                .tanggalBerkasFs2(document.getTanggalBerkasFs2())
                 // Monitoring Fields - CD Prinsip
                 .nomorCd(document.getNomorCd())
                 .tanggalCd(document.getTanggalCd())
-                .berkasCd(document.getBerkasCd())
-                .berkasFs2a(document.getBerkasFs2a())
-                .berkasFs2b(document.getBerkasFs2b())
+                .berkasCd(getFileUrl(document.getId(), "CD"))
+                .berkasFs2a(getFileUrl(document.getId(), "FS2A"))
+                .tanggalBerkasFs2a(document.getTanggalBerkasFs2a())
+                .berkasFs2b(getFileUrl(document.getId(), "FS2B"))
+                .tanggalBerkasFs2b(document.getTanggalBerkasFs2b())
                 // Monitoring Fields - Pengujian
                 .realisasiPengujian(document.getRealisasiPengujian())
-                .berkasF45(document.getBerkasF45())
-                .berkasF46(document.getBerkasF46())
+                .berkasF45(getFileUrl(document.getId(), "F45"))
+                .tanggalBerkasF45(document.getTanggalBerkasF45())
+                .berkasF46(getFileUrl(document.getId(), "F46"))
+                .tanggalBerkasF46(document.getTanggalBerkasF46())
                 // Monitoring Fields - Deployment
                 .realisasiDeployment(document.getRealisasiDeployment())
-                .berkasNdBaDeployment(document.getBerkasNdBaDeployment())
+                .berkasNdBaDeployment(getFileUrl(document.getId(), "NDBA"))
+                .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 // Monitoring Fields - Keterangan
                 .keterangan(document.getKeterangan())
                 .createdAt(document.getCreatedAt())
@@ -573,5 +657,23 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Get the latest file URL for a specific file type.
+     * Returns null if no file exists for the given type.
+     * Generates a fresh presigned URL to ensure it's valid and accessible.
+     */
+    private String getFileUrl(UUID fs2Id, String fileType) {
+        return fs2FileRepository.findFirstByFs2DocumentIdAndFileTypeOrderByVersionDesc(fs2Id, fileType)
+                .map(file -> {
+                    // Generate fresh presigned URL using blobName
+                    String blobName = file.getBlobName();
+                    if (blobName != null && !blobName.isEmpty()) {
+                        return minioService.getFileUrl(blobName);
+                    }
+                    return null;
+                })
+                .orElse(null);
     }
 }

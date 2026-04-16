@@ -71,7 +71,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<BaseResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
+        log.error("Data integrity violation: {}", ex.getMessage());
+        // Log root cause for debugging
+        Throwable rootCause = ex.getMostSpecificCause();
+        log.error("Root cause: {}", rootCause.getMessage());
         String userFriendlyMessage = extractConstraintViolationInfo(ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new BaseResponse(HttpStatus.CONFLICT.value(), userFriendlyMessage, null));
@@ -93,34 +96,74 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Extract constraint violation info dari SQL Server error message
-     * SQL Server format: The DELETE, INSERT, UPDATE statement conflicted with a FOREIGN KEY constraint
-     * "FK_trn_pksi_document_mst_aplikasi". The conflict occurred in database "dbname", table "dbo.mst_aplikasi", column 'id'.
+     * Extract constraint violation info dari SQL Server error message.
+     * Handles FK conflicts, NOT NULL violations, UNIQUE violations, etc.
      */
     private String extractConstraintViolationInfo(DataIntegrityViolationException ex) {
         String message = ex.getMessage();
+        Throwable rootCause = ex.getMostSpecificCause();
+        String rootMessage = rootCause != null ? rootCause.getMessage() : "";
+
         if (message == null || message.isEmpty()) {
-            return "Tidak dapat menghapus data karena masih memiliki relasi dengan data lain.";
+            return "Terjadi kesalahan integritas data. Silakan cek kembali input Anda.";
         }
 
-        // Try to extract table name from SQL Server error message
-        // Pattern: table "dbo.table_name"
-        Pattern tablePattern = Pattern.compile("table\\s+\"dbo\\.([^\"]+)\"", Pattern.CASE_INSENSITIVE);
-        Matcher tableMatcher = tablePattern.matcher(message);
+        String fullMessage = message + " " + rootMessage;
 
-        String relatedTable = null;
-        if (tableMatcher.find()) {
-            relatedTable = tableMatcher.group(1).toLowerCase().trim();
-        }
-
-        // Map table names to user-friendly names
-        String friendlyTableName = mapTableToFriendlyName(relatedTable);
-
-        return String.format(
-            "Tidak dapat menghapus data ini karena masih digunakan oleh %s. " +
-            "Silakan hapus atau ubah data terkait terlebih dahulu.",
-            friendlyTableName
+        // 1) NOT NULL violation
+        // SQL Server: "Cannot insert the value NULL into column 'column_name', table 'db.dbo.table'; column does not allow nulls"
+        Pattern notNullPattern = Pattern.compile(
+            "Cannot insert the value NULL into column '([^']+)'.*?table '([^']+)'",
+            Pattern.CASE_INSENSITIVE
         );
+        Matcher notNullMatcher = notNullPattern.matcher(fullMessage);
+        if (notNullMatcher.find()) {
+            String columnName = notNullMatcher.group(1);
+            return String.format("Kolom '%s' wajib diisi dan tidak boleh kosong.", columnName);
+        }
+
+        // 2) UNIQUE constraint violation
+        // SQL Server: "Violation of UNIQUE KEY constraint 'UQ_...'. Cannot insert duplicate key"
+        Pattern uniquePattern = Pattern.compile(
+            "(?:UNIQUE KEY|unique constraint).*?'([^']+)'",
+            Pattern.CASE_INSENSITIVE
+        );
+        Matcher uniqueMatcher = uniquePattern.matcher(fullMessage);
+        if (uniqueMatcher.find()) {
+            return "Data duplikat terdeteksi. Data dengan nilai yang sama sudah ada di database.";
+        }
+
+        // 3) FK constraint violation (INSERT/UPDATE - referencing non-existent FK)
+        // SQL Server: "The INSERT statement conflicted with the FOREIGN KEY constraint"
+        Pattern fkInsertPattern = Pattern.compile(
+            "(?:INSERT|UPDATE) statement conflicted with the FOREIGN KEY constraint.*?table\\s+\"dbo\\.([^\"]+)\"",
+            Pattern.CASE_INSENSITIVE
+        );
+        Matcher fkInsertMatcher = fkInsertPattern.matcher(fullMessage);
+        if (fkInsertMatcher.find()) {
+            String relatedTable = fkInsertMatcher.group(1).toLowerCase().trim();
+            String friendlyName = mapTableToFriendlyName(relatedTable);
+            return String.format("Data referensi %s tidak ditemukan. Pastikan data terkait sudah ada.", friendlyName);
+        }
+
+        // 4) FK constraint violation (DELETE - referenced by other data)
+        Pattern fkDeletePattern = Pattern.compile(
+            "DELETE statement conflicted.*?table\\s+\"dbo\\.([^\"]+)\"",
+            Pattern.CASE_INSENSITIVE
+        );
+        Matcher fkDeleteMatcher = fkDeletePattern.matcher(fullMessage);
+        if (fkDeleteMatcher.find()) {
+            String relatedTable = fkDeleteMatcher.group(1).toLowerCase().trim();
+            String friendlyName = mapTableToFriendlyName(relatedTable);
+            return String.format(
+                "Tidak dapat menghapus data ini karena masih digunakan oleh %s. " +
+                "Silakan hapus atau ubah data terkait terlebih dahulu.",
+                friendlyName
+            );
+        }
+
+        // 5) Generic fallback - include root cause for debugging
+        return "Terjadi kesalahan integritas data: " + (rootMessage.length() > 200 ? rootMessage.substring(0, 200) + "..." : rootMessage);
     }
 
     /**
