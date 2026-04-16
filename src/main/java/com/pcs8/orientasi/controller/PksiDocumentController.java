@@ -9,9 +9,11 @@ import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.dto.PksiBulkInsertResponse;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDashboardService;
 import com.pcs8.orientasi.service.PksiDocumentService;
+import com.pcs8.orientasi.service.PksiBulkInsertService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +50,7 @@ public class PksiDocumentController {
     private final PksiDocumentService pksiDocumentService;
     private final PksiChangelogService pksiChangelogService;
     private final PksiDashboardService pksiDashboardService;
+    private final PksiBulkInsertService pksiBulkInsertService;
 
     /**
      * Create a new PKSI document.
@@ -216,6 +220,41 @@ public class PksiDocumentController {
         
         PksiDashboardResponse response = pksiDashboardService.getDashboardData(request);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
+    }
+
+    /**
+     * TEMPORARY ENDPOINT: Bulk insert PKSI documents from Excel file
+     * This endpoint is for administrative purposes only to quickly populate PKSI data
+     * 
+     * Expected Excel format (header row):
+     * no | kode_aplikasi | nama_pksi | kode_bidang | kode_skpa | team_id | iku | inhouse_outsource |
+     * timeline_phase_1_usreq | timeline_phase_1_sit | timeline_phase_1_uat | timeline_phase_1_go_live |
+     * timeline_phase_2_usreq | timeline_phase_2_sit | timeline_phase_2_uat | timeline_phase_2_go_live
+     * 
+     * Date format: yyyy-MM-dd
+     */
+    @PostMapping("/bulk-insert")
+    public ResponseEntity<BaseResponse> bulkInsertFromExcel(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new BaseResponse(HttpStatus.BAD_REQUEST.value(), "File is empty", null));
+        }
+
+        if (!file.getOriginalFilename().endsWith(".xlsx")) {
+            return ResponseEntity.badRequest()
+                    .body(new BaseResponse(HttpStatus.BAD_REQUEST.value(), "Only .xlsx files are supported", null));
+        }
+
+        try {
+            PksiBulkInsertResponse response = pksiBulkInsertService.processBulkInsert(file);
+            return ResponseEntity.ok(
+                    new BaseResponse(HttpStatus.OK.value(), "Bulk insert completed", response));
+        } catch (Exception e) {
+            log.error("Error processing bulk insert", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+                            "Error processing file: " + e.getMessage(), null));
+        }
     }
 
     private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {
