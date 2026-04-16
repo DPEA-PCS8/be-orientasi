@@ -166,11 +166,12 @@ public class Fs2FileController {
     public ResponseEntity<BaseResponse> uploadNewVersion(
             @PathVariable UUID fs2Id,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("fileType") String fileType) {
+            @RequestParam("fileType") String fileType,
+            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
         
         log.info("Uploading new version of file F.S.2 document");
         
-        Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType);
+        Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType, tanggalDokumen);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "New version uploaded successfully", response));
