@@ -166,13 +166,13 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID bidangId, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+    public Page<Fs2DocumentResponse> search(String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
         log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
             log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
-            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable)
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         }
         
@@ -189,7 +189,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
         if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, aplikasiId, statusTahapan, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
                     .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);

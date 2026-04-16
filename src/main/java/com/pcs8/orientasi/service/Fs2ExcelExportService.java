@@ -9,18 +9,19 @@ public interface Fs2ExcelExportService {
     /**
      * Export all F.S.2 documents to Excel format with optional filters
      * @param search search term
-     * @param bidangId filter by bidang
+     * @param aplikasiId filter by application ID
+     * @param statusTahapan filter by tahapan status
      * @param skpaId filter by SKPA
      * @param status filter by status
      * @param year filter by year
      * @param startMonth filter by start month
      * @param endMonth filter by end month
-     * @param userDepartment user's department for filtering
-     * @param canSeeAll whether user can see all data
+     * @param userDepartment filter by user's department
+     * @param canSeeAll whether user can see all records
      * @return ByteArrayOutputStream containing the Excel file
      */
     ByteArrayOutputStream exportAllFs2ToExcel(
-            String search, UUID bidangId, UUID skpaId, String status,
+            String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
             Integer year, Integer startMonth, Integer endMonth,
             String userDepartment, boolean canSeeAll);
     

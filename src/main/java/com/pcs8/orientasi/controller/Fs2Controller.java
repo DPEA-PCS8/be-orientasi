@@ -74,7 +74,8 @@ public class Fs2Controller {
     @GetMapping("/search")
     public ResponseEntity<BaseResponse> search(
             @RequestParam(required = false) String search,
-            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
+            @RequestParam(name = "aplikasi_id", required = false) UUID aplikasiId,
+            @RequestParam(name = "status_tahapan", required = false) String statusTahapan,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year,
@@ -99,7 +100,7 @@ public class Fs2Controller {
         
         log.info("F.S.2 Search - canSeeAll: {}", canSeeAll);
         
-        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll);
+        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll);
         
         log.info("F.S.2 Search - Results count: {}", pageResult.getTotalElements());
         
@@ -112,6 +113,7 @@ public class Fs2Controller {
             @RequestParam(name = "bidang_id", required = false) UUID bidangId,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
             @RequestParam(required = false) String progres,
+            @RequestParam(name = "progres_status", required = false) String progresStatus,
             @RequestParam(name = "fase_pengajuan", required = false) String fasePengajuan,
             @RequestParam(required = false) String mekanisme,
             @RequestParam(required = false) String pelaksanaan,
@@ -138,6 +140,7 @@ public class Fs2Controller {
                 .bidangId(bidangId)
                 .skpaId(skpaId)
                 .progres(progres)
+                .progresStatus(progresStatus)
                 .fasePengajuan(fasePengajuan)
                 .mekanisme(mekanisme)
                 .pelaksanaan(pelaksanaan)
@@ -221,7 +224,8 @@ public class Fs2Controller {
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportAllToExcel(
             @RequestParam(required = false) String search,
-            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
+            @RequestParam(name = "aplikasi_id", required = false) UUID aplikasiId,
+            @RequestParam(name = "status_tahapan", required = false) String statusTahapan,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year,
@@ -238,7 +242,7 @@ public class Fs2Controller {
                 .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
         
         ByteArrayOutputStream outputStream = fs2ExcelExportService.exportAllFs2ToExcel(
-                search, bidangId, skpaId, status, year, startMonth, endMonth, userDepartment, canSeeAll);
+                search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, userDepartment, canSeeAll);
         
         String filename = "Semua_FS2_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
         

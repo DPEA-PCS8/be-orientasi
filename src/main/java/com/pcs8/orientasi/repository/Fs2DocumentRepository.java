@@ -56,7 +56,8 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
      */
     @Query("SELECT f FROM Fs2Document f WHERE " +
            "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
+           "AND (:aplikasiId IS NULL OR f.aplikasi.id = :aplikasiId) " +
+           "AND (:statusTahapan IS NULL OR f.statusTahapan = :statusTahapan) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:status IS NULL OR f.status = :status) " +
            "AND (:year IS NULL OR YEAR(f.tanggalPengajuan) = :year) " +
@@ -65,7 +66,8 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchFs2DocumentsWithYearAndMonth(
             @Param("search") String search,
-            @Param("bidangId") UUID bidangId,
+            @Param("aplikasiId") UUID aplikasiId,
+            @Param("statusTahapan") String statusTahapan,
             @Param("skpaId") UUID skpaId,
             @Param("status") String status,
             @Param("year") Integer year,
@@ -94,6 +96,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -103,6 +106,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("bidangId") UUID bidangId,
             @Param("skpaId") UUID skpaId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -119,6 +123,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -129,6 +134,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("bidangId") UUID bidangId,
             @Param("skpaId") UUID skpaId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -145,6 +151,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -157,6 +164,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("bidangId") UUID bidangId,
             @Param("skpaId") UUID skpaId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -177,6 +185,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
                     filter.getBidangId(),
                     filter.getSkpaId(),
                     filter.getProgres(),
+                    filter.getProgresStatus(),
                     filter.getFasePengajuan(),
                     filter.getMekanisme(),
                     filter.getPelaksanaan(),
@@ -191,6 +200,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
                 filter.getBidangId(),
                 filter.getSkpaId(),
                 filter.getProgres(),
+                filter.getProgresStatus(),
                 filter.getFasePengajuan(),
                 filter.getMekanisme(),
                 filter.getPelaksanaan(),
@@ -237,7 +247,8 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
      */
     @Query("SELECT f FROM Fs2Document f WHERE " +
            "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
+           "AND (:aplikasiId IS NULL OR f.aplikasi.id = :aplikasiId) " +
+           "AND (:statusTahapan IS NULL OR f.statusTahapan = :statusTahapan) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:status IS NULL OR f.status = :status) " +
            "AND (:year IS NULL OR YEAR(f.tanggalPengajuan) = :year) " +
@@ -246,7 +257,8 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchFs2DocumentsByDepartmentWithYearAndMonth(
             @Param("search") String search,
-            @Param("bidangId") UUID bidangId,
+            @Param("aplikasiId") UUID aplikasiId,
+            @Param("statusTahapan") String statusTahapan,
             @Param("status") String status,
             @Param("userDepartment") String userDepartment,
             @Param("year") Integer year,
@@ -276,6 +288,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -284,6 +297,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("search") String search,
             @Param("bidangId") UUID bidangId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -301,6 +315,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -310,6 +325,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("search") String search,
             @Param("bidangId") UUID bidangId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -327,6 +343,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
            "AND (:progres IS NULL OR f.progres = :progres) " +
+           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -338,6 +355,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
             @Param("search") String search,
             @Param("bidangId") UUID bidangId,
             @Param("progres") String progres,
+            @Param("progresStatus") String progresStatus,
             @Param("fasePengajuan") String fasePengajuan,
             @Param("mekanisme") String mekanisme,
             @Param("pelaksanaan") String pelaksanaan,
@@ -359,6 +377,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
                     filter.getSearch(),
                     filter.getBidangId(),
                     filter.getProgres(),
+                    filter.getProgresStatus(),
                     filter.getFasePengajuan(),
                     filter.getMekanisme(),
                     filter.getPelaksanaan(),
@@ -373,6 +392,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
                 filter.getSearch(),
                 filter.getBidangId(),
                 filter.getProgres(),
+                filter.getProgresStatus(),
                 filter.getFasePengajuan(),
                 filter.getMekanisme(),
                 filter.getPelaksanaan(),

@@ -28,6 +28,9 @@ public class Fs2ApprovedSearchFilter {
 
     private String progres;
 
+    @JsonProperty("progres_status")
+    private String progresStatus;
+
     @JsonProperty("fase_pengajuan")
     private String fasePengajuan;
 

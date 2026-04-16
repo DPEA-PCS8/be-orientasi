@@ -31,13 +31,13 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
 
     @Override
     public ByteArrayOutputStream exportAllFs2ToExcel(
-            String search, UUID bidangId, UUID skpaId, String status,
+            String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
             Integer year, Integer startMonth, Integer endMonth,
             String userDepartment, boolean canSeeAll) {
         
         // Fetch all data (no pagination for export)
         Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE);
-        List<Fs2DocumentResponse> data = fs2Service.search(search, bidangId, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll).getContent();
+        List<Fs2DocumentResponse> data = fs2Service.search(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll).getContent();
         
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Semua F.S.2");
