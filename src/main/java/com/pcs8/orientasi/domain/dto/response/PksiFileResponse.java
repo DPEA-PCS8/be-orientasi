@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -29,4 +30,5 @@ public class PksiFileResponse {
     private UUID fileGroupId;
     private String displayName;
     private boolean isLatestVersion;
+    private LocalDate tanggalDokumen;
 }
