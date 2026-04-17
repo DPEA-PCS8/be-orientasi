@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -139,6 +140,9 @@ public class Fs2Document extends BaseEntity {
     private String pertumbuhanDataSesudah;
 
     // Jadwal Pelaksanaan
+    @Column(name = "target_pemrograman")
+    private LocalDate targetPemrograman;
+    
     @Column(name = "target_pengujian")
     private LocalDate targetPengujian;
     
@@ -295,4 +299,52 @@ public class Fs2Document extends BaseEntity {
     // Keterangan
     @Column(name = "keterangan", columnDefinition = "TEXT")
     private String keterangan;
+
+    // === Tahapan Status & Tanggal (for Progres Tahapan tracking) ===
+    
+    // Pengajuan
+    @Column(name = "tahapan_status_pengajuan", length = 30)
+    private String tahapanStatusPengajuan;
+    
+    @Column(name = "tanggal_pengajuan_selesai")
+    private LocalDate tanggalPengajuanSelesai;
+
+    // Asesmen
+    @Column(name = "tahapan_status_asesmen", length = 30)
+    private String tahapanStatusAsesmen;
+    
+    @Column(name = "tanggal_asesmen")
+    private LocalDate tanggalAsesmen;
+
+    // Pemrograman (Coding)
+    @Column(name = "tahapan_status_pemrograman", length = 30)
+    private String tahapanStatusPemrograman;
+    
+    @Column(name = "tanggal_pemrograman")
+    private LocalDate tanggalPemrograman;
+
+    // Pengujian
+    @Column(name = "tahapan_status_pengujian", length = 30)
+    private String tahapanStatusPengujian;
+    
+    @Column(name = "tanggal_pengujian_selesai")
+    private LocalDate tanggalPengujianSelesai;
+
+    // Deployment
+    @Column(name = "tahapan_status_deployment", length = 30)
+    private String tahapanStatusDeployment;
+    
+    @Column(name = "tanggal_deployment_selesai")
+    private LocalDate tanggalDeploymentSelesai;
+
+    // Go Live
+    @Column(name = "tahapan_status_go_live", length = 30)
+    private String tahapanStatusGoLive;
+    
+    @Column(name = "tanggal_go_live")
+    private LocalDate tanggalGoLive;
+
+    // Relationship to timelines
+    @OneToMany(mappedBy = "fs2Document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Fs2Timeline> timelines;
 }
