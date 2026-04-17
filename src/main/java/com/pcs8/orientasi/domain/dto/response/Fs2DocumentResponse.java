@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.domain.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.pcs8.orientasi.domain.dto.Fs2TimelineDto;
 import com.pcs8.orientasi.domain.dto.base.Fs2FormFieldsBase;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -73,4 +75,7 @@ public class Fs2DocumentResponse extends Fs2FormFieldsBase {
 
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
+
+    // Timelines for Progres Tahapan tracking
+    private List<Fs2TimelineDto> timelines;
 }
