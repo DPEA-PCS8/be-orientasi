@@ -217,6 +217,11 @@ public class Fs2Document extends BaseEntity {
     @JoinColumn(name = "team_id")
     private MstTeam team;
 
+    // PKSI Reference (for Desain status - auto-fill jadwal pelaksanaan)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pksi_id")
+    private PksiDocument pksi;
+
     // Dokumen Pengajuan F.S.2 reference (file ID or path)
     @Column(name = "dokumen_path", length = 500)
     private String dokumenPath;
