@@ -64,6 +64,10 @@ public class Fs2DocumentResponse extends Fs2FormFieldsBase {
     @JsonProperty("team_name")
     private String teamName;
 
+    // PKSI Reference name (for display purposes)
+    @JsonProperty("pksi_nama")
+    private String pksiNama;
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 

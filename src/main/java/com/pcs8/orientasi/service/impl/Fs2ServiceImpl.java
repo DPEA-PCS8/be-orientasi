@@ -10,6 +10,7 @@ import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
+import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
@@ -18,6 +19,7 @@ import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
+import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
@@ -53,6 +55,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final MstSkpaRepository skpaRepository;
     private final MstUserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final PksiDocumentRepository pksiDocumentRepository;
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
@@ -554,6 +557,15 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getAnggotaTimNames() != null) {
             document.setAnggotaTimNames(request.getAnggotaTimNames());
         }
+
+        // Handle PKSI reference (for Desain status - auto-fill jadwal pelaksanaan)
+        if (request.getPksiId() != null) {
+            PksiDocument pksi = pksiDocumentRepository.findById(request.getPksiId())
+                    .orElseThrow(() -> new ResourceNotFoundException("PKSI" + NOT_FOUND_WITH_ID + request.getPksiId()));
+            document.setPksi(pksi);
+        } else {
+            document.setPksi(null);
+        }
     }
 
     private Fs2DocumentResponse mapToResponse(Fs2Document document) {
@@ -654,6 +666,11 @@ public class Fs2ServiceImpl implements Fs2Service {
             builder.skpaId(document.getSkpa().getId())
                     .namaSkpa(document.getSkpa().getNamaSkpa())
                     .kodeSkpa(document.getSkpa().getKodeSkpa());
+        }
+
+        if (document.getPksi() != null) {
+            builder.pksiId(document.getPksi().getId());
+            builder.pksiNama(document.getPksi().getNamaPksi());
         }
 
         return builder.build();

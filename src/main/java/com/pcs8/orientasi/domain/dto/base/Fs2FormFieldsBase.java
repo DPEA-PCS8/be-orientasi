@@ -145,6 +145,10 @@ public abstract class Fs2FormFieldsBase {
     @JsonProperty("team_id")
     private UUID teamId;
 
+    // PKSI Reference (for Desain status - auto-fill jadwal pelaksanaan)
+    @JsonProperty("pksi_id")
+    private UUID pksiId;
+
     @JsonProperty("anggota_tim")
     private String anggotaTim;
 
