@@ -18,12 +18,12 @@ import java.util.UUID;
  * Mendukung semua field dari form frontend
  */
 @Entity
-@Table(name = "trn_pksi_document")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "trn_pksi_document")
 public class PksiDocument extends BaseEntity {
 
     @Id
@@ -330,6 +330,260 @@ public class PksiDocument extends BaseEntity {
                 .orElse(null);
     }
 
+    // ==================== NESTED PKSI (Parent-Child Relationship) ====================
+    /**
+     * Self-reference to parent PKSI.
+     * Used when status = DIKERJAKAN_DENGAN_CARA_LAIN.
+     * This PKSI will follow parent's progress, timeline, and other monitoring details.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_pksi_id")
+    private PksiDocument parentPksi;
+
+    /**
+     * List of child PKSI documents that reference this as parent.
+     */
+    @OneToMany(mappedBy = "parentPksi", fetch = FetchType.LAZY)
+    @lombok.Builder.Default
+    private List<PksiDocument> childPksiList = new ArrayList<>();
+
+    // ==================== HELPER METHODS FOR NESTED PKSI ====================
+
+    /**
+     * Check if this PKSI is a nested/child PKSI (status = DIKERJAKAN_DENGAN_CARA_LAIN).
+     */
+    public boolean isNestedPksi() {
+        return status == DocumentStatus.DIKERJAKAN_DENGAN_CARA_LAIN && parentPksi != null;
+    }
+
+    /**
+     * Check if this PKSI can be selected as a parent.
+     * A PKSI can be parent if:
+     * 1. Status is DISETUJUI
+     * 2. It's not already a child (doesn't have a parent)
+     */
+    public boolean canBeParent() {
+        return status == DocumentStatus.DISETUJUI && parentPksi == null;
+    }
+
+    /**
+     * Get effective aplikasi for monitoring.
+     * If nested, returns parent's aplikasi; otherwise returns own aplikasi.
+     */
+    public MstAplikasi getEffectiveAplikasi() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getAplikasi();
+        }
+        return aplikasi;
+    }
+
+    /**
+     * Get effective progress for monitoring.
+     * If nested, returns parent's progress; otherwise returns own progress.
+     */
+    public String getEffectiveProgress() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getProgress();
+        }
+        return progress;
+    }
+
+    /**
+     * Get effective timelines for monitoring.
+     * If nested, returns parent's timelines; otherwise returns own timelines.
+     */
+    public List<PksiTimeline> getEffectiveTimelines() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getTimelines();
+        }
+        return timelines;
+    }
+
+    /**
+     * Get effective anggaran total for monitoring.
+     * If nested, returns parent's value.
+     */
+    public String getEffectiveAnggaranTotal() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getAnggaranTotal();
+        }
+        return anggaranTotal;
+    }
+
+    /**
+     * Get effective anggaran tahun ini for monitoring.
+     * If nested, returns parent's value.
+     */
+    public String getEffectiveAnggaranTahunIni() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getAnggaranTahunIni();
+        }
+        return anggaranTahunIni;
+    }
+
+    /**
+     * Get effective anggaran tahun depan for monitoring.
+     * If nested, returns parent's value.
+     */
+    public String getEffectiveAnggaranTahunDepan() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getAnggaranTahunDepan();
+        }
+        return anggaranTahunDepan;
+    }
+
+    /**
+     * Get effective target Go Live date for monitoring.
+     * If nested, returns parent's value.
+     */
+    public LocalDate getEffectiveTargetGoLiveDate() {
+        if (isNestedPksi() && parentPksi != null) {
+            return parentPksi.getTargetGoLiveDateLastPhase();
+        }
+        return getTargetGoLiveDateLastPhase();
+    }
+
+    /**
+     * Get effective tahapan status fields for monitoring.
+     * If nested, returns parent's values.
+     */
+    public String getEffectiveTahapanStatusUsreq() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusUsreq() : tahapanStatusUsreq;
+    }
+
+    public String getEffectiveTahapanStatusPengadaan() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusPengadaan() : tahapanStatusPengadaan;
+    }
+
+    public String getEffectiveTahapanStatusDesain() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusDesain() : tahapanStatusDesain;
+    }
+
+    public String getEffectiveTahapanStatusCoding() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusCoding() : tahapanStatusCoding;
+    }
+
+    public String getEffectiveTahapanStatusUnitTest() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusUnitTest() : tahapanStatusUnitTest;
+    }
+
+    public String getEffectiveTahapanStatusSit() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusSit() : tahapanStatusSit;
+    }
+
+    public String getEffectiveTahapanStatusUat() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusUat() : tahapanStatusUat;
+    }
+
+    public String getEffectiveTahapanStatusDeployment() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusDeployment() : tahapanStatusDeployment;
+    }
+
+    public String getEffectiveTahapanStatusSelesai() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTahapanStatusSelesai() : tahapanStatusSelesai;
+    }
+
+    /**
+     * Get effective approval and monitoring fields for monitoring.
+     * If nested, returns parent's values.
+     */
+    public String getEffectivePicApproval() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getPicApproval() : picApproval;
+    }
+
+    public String getEffectivePicApprovalName() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getPicApprovalName() : picApprovalName;
+    }
+
+    public String getEffectiveAnggotaTim() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getAnggotaTim() : anggotaTim;
+    }
+
+    public String getEffectiveAnggotaTimNames() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getAnggotaTimNames() : anggotaTimNames;
+    }
+
+    public String getEffectiveIku() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getIku() : iku;
+    }
+
+    public String getEffectiveInhouseOutsource() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getInhouseOutsource() : inhouseOutsource;
+    }
+
+    public MstTeam getEffectiveTeam() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTeam() : team;
+    }
+
+    public String getEffectiveStatusT01T02() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getStatusT01T02() : statusT01T02;
+    }
+
+    public String getEffectiveBerkasT01T02() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getBerkasT01T02() : berkasT01T02;
+    }
+
+    public String getEffectiveStatusT11() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getStatusT11() : statusT11;
+    }
+
+    public String getEffectiveBerkasT11() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getBerkasT11() : berkasT11;
+    }
+
+    public String getEffectiveStatusCd() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getStatusCd() : statusCd;
+    }
+
+    public String getEffectiveNomorCd() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getNomorCd() : nomorCd;
+    }
+
+    public String getEffectiveKontrakTanggalMulai() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getKontrakTanggalMulai() : kontrakTanggalMulai;
+    }
+
+    public String getEffectiveKontrakTanggalSelesai() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getKontrakTanggalSelesai() : kontrakTanggalSelesai;
+    }
+
+    public String getEffectiveKontrakNilai() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getKontrakNilai() : kontrakNilai;
+    }
+
+    public String getEffectiveKontrakJumlahTermin() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getKontrakJumlahTermin() : kontrakJumlahTermin;
+    }
+
+    public String getEffectiveKontrakDetailPembayaran() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getKontrakDetailPembayaran() : kontrakDetailPembayaran;
+    }
+
+    public String getEffectiveBaDeploy() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getBaDeploy() : baDeploy;
+    }
+
+    public String getEffectivePicSatker() {
+        // PIC Satker tetap menggunakan data sendiri, tidak mengikuti parent
+        return picSatker;
+    }
+
+    public LocalDate getEffectiveTanggalPengadaan() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTanggalPengadaan() : tanggalPengadaan;
+    }
+
+    public LocalDate getEffectiveTanggalDesain() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTanggalDesain() : tanggalDesain;
+    }
+
+    public LocalDate getEffectiveTanggalCoding() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTanggalCoding() : tanggalCoding;
+    }
+
+    public LocalDate getEffectiveTanggalUnitTest() {
+        return isNestedPksi() && parentPksi != null ? parentPksi.getTanggalUnitTest() : tanggalUnitTest;
+    }
+
     public enum DocumentStatus {
         PENDING,
         DISETUJUI,
@@ -338,6 +592,7 @@ public class PksiDocument extends BaseEntity {
         SUBMITTED,
         APPROVED,
         REJECTED,
-        REVISION
+        REVISION,
+        DIKERJAKAN_DENGAN_CARA_LAIN
     }
 }
