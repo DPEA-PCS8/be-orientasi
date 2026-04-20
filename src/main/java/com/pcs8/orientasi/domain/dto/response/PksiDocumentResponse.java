@@ -10,6 +10,7 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Response untuk dokumen T.01 (PKSI) - extends shared fields
+ * Includes nested PKSI (parent-child relationship) fields
  */
 @Data
 @SuperBuilder
@@ -71,4 +72,62 @@ public class PksiDocumentResponse extends PksiDocumentFields {
 
     @JsonProperty("updated_at")
     private String updatedAt;
+
+    // ==================== NESTED PKSI FIELDS ====================
+
+    /**
+     * Flag indicating this PKSI is a nested/child PKSI.
+     * True when status = DIKERJAKAN_DENGAN_CARA_LAIN and has a parent.
+     */
+    @JsonProperty("is_nested_pksi")
+    private Boolean isNestedPksi;
+
+    /**
+     * Parent PKSI ID (UUID string).
+     * Set when this PKSI follows another PKSI.
+     */
+    @JsonProperty("parent_pksi_id")
+    private String parentPksiId;
+
+    /**
+     * Parent PKSI name for display purposes.
+     */
+    @JsonProperty("parent_pksi_nama")
+    private String parentPksiNama;
+
+    /**
+     * Count of child PKSI documents that follow this PKSI.
+     */
+    @JsonProperty("child_count")
+    private Integer childCount;
+
+    /**
+     * List of child PKSI documents that follow this PKSI.
+     */
+    @JsonProperty("child_pksi_list")
+    private java.util.List<ChildPksiSummary> childPksiList;
+
+    /**
+     * Summary information for child PKSI
+     */
+    @Data
+    @lombok.Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChildPksiSummary {
+        @JsonProperty("id")
+        private String id;
+
+        @JsonProperty("nama_pksi")
+        private String namaPksi;
+
+        @JsonProperty("status")
+        private String status;
+
+        @JsonProperty("nama_aplikasi")
+        private String namaAplikasi;
+
+        @JsonProperty("tanggal_pengajuan")
+        private String tanggalPengajuan;
+    }
 }

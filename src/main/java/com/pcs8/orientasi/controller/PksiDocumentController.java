@@ -6,6 +6,7 @@ import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
@@ -121,7 +122,7 @@ public class PksiDocumentController {
                 search, status, year, noInisiatif, pageable, userDepartment, canSeeAll);
         
         // Get total count for the specified status, year, and noInisiatif filter
-        long totalCount = pksiDocumentService.countDocuments(status, year, noInisiatif);
+        long totalCount = pksiDocumentService.countDocuments(status, year, noInisiatif, null, null, null, null);
         
         log.info("PKSI Search - Results count: {}, Total count: {}", pageResult.getTotalElements(), totalCount);
         
@@ -134,6 +135,68 @@ public class PksiDocumentController {
         responseData.put("has_next", pageResult.hasNext());
         responseData.put("has_previous", pageResult.hasPrevious());
         responseData.put("total_count", totalCount); // Total count filtered by year (if provided)
+        
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responseData));
+    }
+
+    /**
+     * Search PKSI documents for Monitoring page.
+     * Returns data with effective methods for nested PKSI (nested PKSI shows parent's monitoring data).
+     */
+    @GetMapping("/search/monitoring")
+    @SuppressWarnings("java:S1192") // defaultValue in annotation must be literal, cannot use constant
+    public ResponseEntity<BaseResponse> searchDocumentsForMonitoring(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false, defaultValue = "false") boolean noInisiatif,
+            @RequestParam(required = false) String timelineStage,
+            @RequestParam(required = false) Integer timelineFromMonth,
+            @RequestParam(required = false) Integer timelineToMonth,
+            @RequestParam(required = false) Integer timelineYear,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest httpRequest
+    ) {
+        // Validate sortBy to prevent injection - use whitelist approach
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
+        
+        Sort sort = "desc".equalsIgnoreCase(sortDir) 
+                ? Sort.by(safeSortBy).descending() 
+                : Sort.by(safeSortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // Extract user info from request attributes (set by AuthorizationInterceptor)
+        @SuppressWarnings("unchecked")
+        Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
+        String userDepartment = (String) httpRequest.getAttribute("department");
+        
+        // Admin and Pengembang can see all PKSI, SKPA role only sees matching department
+        boolean canSeeAll = userRoles != null && userRoles.stream()
+                .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
+        
+        // Use monitoring method with effective data for nested PKSI
+        Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocumentsForMonitoring(
+                search, status, year, noInisiatif, timelineStage, timelineFromMonth, timelineToMonth, timelineYear, 
+                pageable, userDepartment, canSeeAll);
+        
+        // Get total count for the specified status, year, noInisiatif, and timeline filters
+        long totalCount = pksiDocumentService.countDocuments(status, year, noInisiatif, 
+                timelineStage, timelineFromMonth, timelineToMonth, timelineYear);
+        
+        log.info("PKSI Search Monitoring - Results count: {}, Total count: {}", pageResult.getTotalElements(), totalCount);
+        
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("content", pageResult.getContent());
+        responseData.put("total_elements", pageResult.getTotalElements());
+        responseData.put("total_pages", pageResult.getTotalPages());
+        responseData.put("page", pageResult.getNumber());
+        responseData.put("size", pageResult.getSize());
+        responseData.put("has_next", pageResult.hasNext());
+        responseData.put("has_previous", pageResult.hasPrevious());
+        responseData.put("total_count", totalCount);
         
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, responseData));
     }
@@ -215,6 +278,37 @@ public class PksiDocumentController {
                 .build();
         
         PksiDashboardResponse response = pksiDashboardService.getDashboardData(request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
+    }
+
+    // ==================== NESTED PKSI ENDPOINTS ====================
+
+    /**
+     * Get available PKSI candidates that can be selected as parent (optimized).
+     * Returns only id, nama_pksi, and nama_aplikasi for dropdown performance.
+     * This returns PKSI with status DISETUJUI that are not already a child.
+     * Filtering is done on frontend for better UX.
+     *
+     * @param year optional filter by year (based on timeline target_date)
+     * @param excludeId optional PKSI id to exclude (the document being edited)
+     */
+    @GetMapping("/available-parents")
+    public ResponseEntity<BaseResponse> getAvailableParentPksi(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) UUID excludeId) {
+        
+        List<ParentPksiSummary> response = pksiDocumentService.getAvailableParentPksi(year, excludeId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
+    }
+
+    /**
+     * Get child PKSI documents for a given parent PKSI.
+     *
+     * @param parentId the parent PKSI id
+     */
+    @GetMapping("/{parentId}/children")
+    public ResponseEntity<BaseResponse> getChildPksi(@PathVariable UUID parentId) {
+        List<PksiDocumentResponse> response = pksiDocumentService.getChildPksi(parentId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
     }
 
