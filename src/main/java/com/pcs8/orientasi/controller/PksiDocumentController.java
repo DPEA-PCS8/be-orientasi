@@ -177,9 +177,6 @@ public class PksiDocumentController {
         boolean canSeeAll = userRoles != null && userRoles.stream()
                 .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
         
-        log.info("PKSI Search Monitoring - canSeeAll: {}, timelineStage: {}, timelineFromMonth: {}, timelineToMonth: {}, timelineYear: {}", 
-                canSeeAll, timelineStage, timelineFromMonth, timelineToMonth, timelineYear);
-        
         // Use monitoring method with effective data for nested PKSI
         Page<PksiDocumentResponse> pageResult = pksiDocumentService.searchDocumentsForMonitoring(
                 search, status, year, noInisiatif, timelineStage, timelineFromMonth, timelineToMonth, timelineYear, 
