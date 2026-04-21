@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -153,13 +154,13 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tanggalPengujianSelesai(request.getTanggalPengujianSelesai())
                 .tanggalDeploymentSelesai(request.getTanggalDeploymentSelesai())
                 .tanggalGoLive(request.getTanggalGoLive())
-                // Tahapan Statuses
-                .tahapanStatusPengajuan(request.getTahapanStatusPengajuan())
-                .tahapanStatusAsesmen(request.getTahapanStatusAsesmen())
-                .tahapanStatusPemrograman(request.getTahapanStatusPemrograman())
-                .tahapanStatusPengujian(request.getTahapanStatusPengujian())
-                .tahapanStatusDeployment(request.getTahapanStatusDeployment())
-                .tahapanStatusGoLive(request.getTahapanStatusGoLive())
+                // Tahapan Statuses (normalize incoming values to canonical format)
+                .tahapanStatusPengajuan(normalizeTahapanStatus(request.getTahapanStatusPengajuan()))
+                .tahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()))
+                .tahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()))
+                .tahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()))
+                .tahapanStatusDeployment(normalizeTahapanStatus(request.getTahapanStatusDeployment()))
+                .tahapanStatusGoLive(normalizeTahapanStatus(request.getTahapanStatusGoLive()))
                 .build();
 
         setDocumentRelations(document, request);
@@ -387,12 +388,12 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getTanggalGoLive() != null) document.setTanggalGoLive(request.getTanggalGoLive());
 
         // Tahapan Status Fields - only update if not null
-        if (request.getTahapanStatusPengajuan() != null) document.setTahapanStatusPengajuan(request.getTahapanStatusPengajuan());
-        if (request.getTahapanStatusAsesmen() != null) document.setTahapanStatusAsesmen(request.getTahapanStatusAsesmen());
-        if (request.getTahapanStatusPemrograman() != null) document.setTahapanStatusPemrograman(request.getTahapanStatusPemrograman());
-        if (request.getTahapanStatusPengujian() != null) document.setTahapanStatusPengujian(request.getTahapanStatusPengujian());
-        if (request.getTahapanStatusDeployment() != null) document.setTahapanStatusDeployment(request.getTahapanStatusDeployment());
-        if (request.getTahapanStatusGoLive() != null) document.setTahapanStatusGoLive(request.getTahapanStatusGoLive());
+        if (request.getTahapanStatusPengajuan() != null) document.setTahapanStatusPengajuan(normalizeTahapanStatus(request.getTahapanStatusPengajuan()));
+        if (request.getTahapanStatusAsesmen() != null) document.setTahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()));
+        if (request.getTahapanStatusPemrograman() != null) document.setTahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()));
+        if (request.getTahapanStatusPengujian() != null) document.setTahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()));
+        if (request.getTahapanStatusDeployment() != null) document.setTahapanStatusDeployment(normalizeTahapanStatus(request.getTahapanStatusDeployment()));
+        if (request.getTahapanStatusGoLive() != null) document.setTahapanStatusGoLive(normalizeTahapanStatus(request.getTahapanStatusGoLive()));
 
         setDocumentRelations(document, request);
 
@@ -424,6 +425,59 @@ public class Fs2ServiceImpl implements Fs2Service {
         
         // Update status
         document.setStatus(status);
+
+        // If the document is approved, derive and set per-tahapan statuses
+        // from completion dates so monitoring and detail views stay consistent.
+        if (status != null && "DISETUJUI".equalsIgnoreCase(status)) {
+            boolean foundCurrent = false;
+
+            java.time.LocalDate dPengajuan = document.getTanggalPengajuanSelesai();
+            java.time.LocalDate dAsesmen = document.getTanggalAsesmen();
+            java.time.LocalDate dPemrograman = document.getTanggalPemrograman();
+            java.time.LocalDate dPengujian = document.getTanggalPengujianSelesai();
+            java.time.LocalDate dDeployment = document.getTanggalDeploymentSelesai();
+            java.time.LocalDate dGoLive = document.getTanggalGoLive();
+
+            java.time.LocalDate[] dates = new java.time.LocalDate[] { dPengajuan, dAsesmen, dPemrograman, dPengujian, dDeployment, dGoLive };
+
+            for (int i = 0; i < dates.length; i++) {
+                boolean hasDate = dates[i] != null;
+                switch (i) {
+                    case 0:
+                        if (hasDate) document.setTahapanStatusPengajuan("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusPengajuan("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusPengajuan("BELUM_DIMULAI");
+                        break;
+                    case 1:
+                        if (hasDate) document.setTahapanStatusAsesmen("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusAsesmen("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusAsesmen("BELUM_DIMULAI");
+                        break;
+                    case 2:
+                        if (hasDate) document.setTahapanStatusPemrograman("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusPemrograman("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusPemrograman("BELUM_DIMULAI");
+                        break;
+                    case 3:
+                        if (hasDate) document.setTahapanStatusPengujian("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusPengujian("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusPengujian("BELUM_DIMULAI");
+                        break;
+                    case 4:
+                        if (hasDate) document.setTahapanStatusDeployment("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusDeployment("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusDeployment("BELUM_DIMULAI");
+                        break;
+                    case 5:
+                        if (hasDate) document.setTahapanStatusGoLive("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusGoLive("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusGoLive("BELUM_DIMULAI");
+                        break;
+                }
+            }
+            // Persist overall progres_status so Monitoring filters can match
+            document.setProgresStatus(deriveProgresStatus(document));
+        }
 
         Fs2Document saved = fs2Repository.save(document);
 
@@ -681,7 +735,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .pernyataan2(document.getPernyataan2())
                 // F.S.2 Disetujui fields
                 .progres(document.getProgres())
-                .progresStatus(document.getProgresStatus())
+                .progresStatus(deriveProgresStatus(document))
                 .tanggalProgres(document.getTanggalProgres())
                 .fasePengajuan(document.getFasePengajuan())
                 .iku(document.getIku())
@@ -777,6 +831,73 @@ public class Fs2ServiceImpl implements Fs2Service {
         builder.timelines(timelineDtos);
 
         return builder.build();
+    }
+
+    /**
+     * Derive the overall progres status when the stored `progresStatus` is null/empty.
+     * Priority: if explicit progresStatus exists, use it (lower-cased). Otherwise infer
+     * from per-stage tahapan status fields. Returns one of: "belum_dimulai", "dalam_proses", "selesai".
+     */
+    private String deriveProgresStatus(Fs2Document document) {
+        if (document == null) return null;
+
+        String stored = document.getProgresStatus();
+        if (stored != null && !stored.trim().isEmpty()) {
+            return stored.trim().toLowerCase();
+        }
+
+        String[] stages = new String[] {
+                document.getTahapanStatusPengajuan(),
+                document.getTahapanStatusAsesmen(),
+                document.getTahapanStatusPemrograman(),
+                document.getTahapanStatusPengujian(),
+                document.getTahapanStatusDeployment(),
+                document.getTahapanStatusGoLive()
+        };
+
+        boolean anyDalam = false;
+        boolean allSelesai = true;
+
+        for (String s : stages) {
+            if (s != null && s.equalsIgnoreCase("DALAM_PROSES")) {
+                anyDalam = true;
+                break;
+            }
+            if (s == null || !s.equalsIgnoreCase("SELESAI")) {
+                allSelesai = false;
+            }
+        }
+
+        if (anyDalam) return "dalam_proses";
+        if (allSelesai) return "selesai";
+        return "belum_dimulai";
+    }
+
+    /**
+     * Normalize tahapan status incoming values to canonical uppercase underscore format.
+     * Examples: 'Dalam proses', 'dalam proses', 'dalam_proses' -> 'DALAM_PROSES'
+     */
+    private String normalizeTahapanStatus(String status) {
+        if (status == null) return null;
+        String s = status.trim();
+        if (s.isEmpty()) return s;
+        String lower = s.toLowerCase(Locale.ROOT);
+        if (lower.contains("dalam") && lower.contains("proses")) return "DALAM_PROSES";
+        if (lower.contains("belum") && (lower.contains("mulai") || lower.contains("dimulai"))) return "BELUM_DIMULAI";
+        if (lower.contains("selesai")) return "SELESAI";
+
+        String normalized = lower.replace(" ", "_").replace("-", "_");
+        normalized = normalized.replaceAll("[^a-z0-9_]", "");
+        switch (normalized) {
+            case "dalam_proses":
+                return "DALAM_PROSES";
+            case "belum_dimulai":
+                return "BELUM_DIMULAI";
+            case "selesai":
+                return "SELESAI";
+            default:
+                return s.toUpperCase().replace(" ", "_");
+        }
     }
 
     /**
