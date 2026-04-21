@@ -101,7 +101,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
@@ -135,7 +135,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
@@ -170,7 +170,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
@@ -314,7 +314,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
@@ -348,7 +348,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
@@ -383,7 +383,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
            "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
            "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
-           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) = 'dalam_proses')" +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
            ")) " +
            "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
