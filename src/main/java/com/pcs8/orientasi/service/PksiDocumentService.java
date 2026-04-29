@@ -5,6 +5,7 @@ import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiHistorisResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -79,4 +80,14 @@ public interface PksiDocumentService {
      * @return list of child PKSI documents
      */
     List<PksiDocumentResponse> getChildPksi(UUID parentId);
+
+    /**
+     * Get all PKSI historis (ringkasan) by aplikasi id, sorted by the given sort spec.
+     *
+     * @param aplikasiId the aplikasi id
+     * @param sortBy     field name to sort by
+     * @param sortDir    "asc" or "desc"
+     * @return full list of PKSI historis for that aplikasi
+     */
+    List<PksiHistorisResponse> getHistorisByAplikasi(UUID aplikasiId);
 }

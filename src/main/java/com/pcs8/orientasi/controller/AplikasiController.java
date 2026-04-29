@@ -4,6 +4,7 @@ import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
+import com.pcs8.orientasi.domain.dto.response.AplikasiListResponse;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.service.AplikasiExcelExportService;
@@ -59,7 +60,7 @@ public class AplikasiController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<AplikasiResponse> pageResult = aplikasiService.search(search, bidangId, skpaId, status, pageable);
+        Page<AplikasiListResponse> pageResult = aplikasiService.searchLight(search, bidangId, skpaId, status, pageable);
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());

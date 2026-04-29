@@ -7,9 +7,11 @@ import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiHistorisResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
@@ -27,12 +29,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -885,11 +891,50 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     @Transactional(readOnly = true)
     public List<PksiDocumentResponse> getChildPksi(UUID parentId) {
         log.info("Fetching child PKSI for parent: {}", parentId);
-        
+
         return pksiDocumentRepository.findChildPksiByParentId(parentId).stream()
                 .map(this::initializeLazyRelations)
                 .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PksiHistorisResponse> getHistorisByAplikasi(UUID aplikasiId) {
+        log.info("Fetching PKSI historis for aplikasi: {}", aplikasiId);
+
+        return pksiDocumentRepository.findAllByAplikasiId(aplikasiId, Sort.by("tanggalPengajuan").descending()).stream()
+                .map(doc -> {
+                    String tahun = extractPksiMultiYear(doc);
+                    return PksiHistorisResponse.builder()
+                            .id(doc.getId().toString())
+                            .namaPksi(doc.getNamaPksi())
+                            .tahun(tahun)
+                            .ruangLingkup(doc.getRuangLingkup())
+                            .status(doc.getStatus() != null ? doc.getStatus().name() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String extractPksiMultiYear(PksiDocument document) {
+        // Check if pksi multi year or not based on timelines
+        List<PksiTimeline> timelines = document.getTimelines();
+        if (timelines != null && !timelines.isEmpty()) {
+            Set<Integer> years = timelines.stream()
+                    .map(PksiTimeline::getTargetDate)
+                    .filter(Objects::nonNull)
+                    .map(LocalDate::getYear)
+                    .collect(Collectors.toSet());
+            if (years.size() == 1) {
+                return years.iterator().next().toString();
+            } else if (years.size() > 1) {
+                return years.stream().sorted().map(String::valueOf).collect(Collectors.joining(", "));
+            }
+        }
+        // Fallback to extracting year from tanggal pengajuan
+        Integer year = extractPksiYear(document);
+        return year != null ? year.toString() : "N/A";
     }
 }
