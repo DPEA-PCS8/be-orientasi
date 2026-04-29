@@ -4,6 +4,7 @@ import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -269,6 +270,17 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
      */
     @Query("SELECT COUNT(p) FROM PksiDocument p WHERE p.parentPksi.id = :parentId")
     long countChildPksiByParentId(@Param("parentId") UUID parentId);
+
+    /**
+     * Find PKSI documents by aplikasi id with pagination support.
+     * FETCH JOIN + Pageable requires a separate count query to avoid HHH90003004.
+     */
+    @Query(value = "SELECT p FROM PksiDocument p WHERE p.aplikasi.id = :aplikasiId",
+           countQuery = "SELECT COUNT(p) FROM PksiDocument p WHERE p.aplikasi.id = :aplikasiId")
+    Page<PksiDocument> findByAplikasiId(@Param("aplikasiId") UUID aplikasiId, Pageable pageable);
+
+    @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.timelines WHERE p.aplikasi.id = :aplikasiId")
+    List<PksiDocument> findAllByAplikasiId(@Param("aplikasiId") UUID aplikasiId, Sort sort);
 
     /**
      * Find PKSI document by ID with parent PKSI eagerly fetched.

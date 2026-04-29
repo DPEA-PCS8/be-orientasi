@@ -10,6 +10,7 @@ import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.dto.response.PksiChangelogResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiHistorisResponse;
 import com.pcs8.orientasi.service.PksiChangelogService;
 import com.pcs8.orientasi.service.PksiDashboardService;
 import com.pcs8.orientasi.service.PksiDocumentService;
@@ -310,6 +311,15 @@ public class PksiDocumentController {
     public ResponseEntity<BaseResponse> getChildPksi(@PathVariable UUID parentId) {
         List<PksiDocumentResponse> response = pksiDocumentService.getChildPksi(parentId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, response));
+    }
+
+    /**
+     * Get all PKSI historis (ringkasan) by aplikasi id.
+     */
+    @GetMapping("/by-aplikasi/{aplikasiId}")
+    public ResponseEntity<BaseResponse> getHistorisByAplikasi(@PathVariable UUID aplikasiId) {
+        List<PksiHistorisResponse> result = pksiDocumentService.getHistorisByAplikasi(aplikasiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), SUCCESS_MESSAGE, result));
     }
 
     private UUID extractUserIdFromRequest(HttpServletRequest httpRequest) {

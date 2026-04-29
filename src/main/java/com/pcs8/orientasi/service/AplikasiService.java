@@ -2,6 +2,7 @@ package com.pcs8.orientasi.service;
 
 import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
+import com.pcs8.orientasi.domain.dto.response.AplikasiListResponse;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,8 @@ public interface AplikasiService {
     List<AplikasiResponse> getAll();
 
     Page<AplikasiResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable);
+
+    Page<AplikasiListResponse> searchLight(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable);
 
     List<AplikasiResponse> searchList(String search, UUID bidangId, UUID skpaId, String status);
 
