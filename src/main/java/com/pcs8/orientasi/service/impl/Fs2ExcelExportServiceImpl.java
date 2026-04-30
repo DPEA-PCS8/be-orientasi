@@ -43,10 +43,11 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             Sheet sheet = workbook.createSheet("Semua F.S.2");
             
             // Create styles
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle dataStyle = createDataStyle(workbook);
-            CellStyle dateStyle = createDateStyle(workbook);
-            CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+            Styles styles = createStyles(workbook);
+            CellStyle headerStyle = styles.headerStyle;
+            CellStyle dataStyle = styles.dataStyle;
+            CellStyle dateStyle = styles.dateStyle;
+            CellStyle hyperlinkStyle = styles.hyperlinkStyle;
             
             // Create header row
             // Move 'Kode Aplikasi' after 'Nama Aplikasi' and place 'Nama FS2' after it
@@ -69,14 +70,8 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 createCell(row, 2, item.getKodeAplikasi(), dataStyle);
                 // Nama FS2 moved to column 3
                 createCell(row, 3, item.getNamaFs2(), dataStyle);
-                // SKPA: include kode_skpa if available, otherwise fall back to nama_skpa
-                String skpaValue = "-";
-                if (item.getKodeSkpa() != null && !item.getKodeSkpa().isBlank()) {
-                    skpaValue = item.getKodeSkpa() + (item.getNamaSkpa() != null ? " - " + item.getNamaSkpa() : "");
-                } else if (item.getNamaSkpa() != null && !item.getNamaSkpa().isBlank()) {
-                    skpaValue = item.getNamaSkpa();
-                }
-                createCell(row, 4, skpaValue, dataStyle);
+                // SKPA display
+                createCell(row, 4, buildSkpaDisplay(item), dataStyle);
                 // Bidang
                 createCell(row, 5, item.getNamaBidang(), dataStyle);
                 createCell(row, 6, formatStatusTahapan(item.getStatusTahapan()), dataStyle);
@@ -94,28 +89,11 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             // Auto-size columns
             autoSizeColumns(sheet, headers.length);
 
-            // Ensure 'Nama FS2' column (index 3) is at least as wide as 'Nama Aplikasi' (index 1)
-            try {
-                int namaAplikasiCol = 1;
-                int namaFs2Col = 3;
-                int widthAplikasi = sheet.getColumnWidth(namaAplikasiCol);
-                int widthFs2 = sheet.getColumnWidth(namaFs2Col);
-                if (widthFs2 < widthAplikasi) {
-                    sheet.setColumnWidth(namaFs2Col, widthAplikasi);
-                }
-            } catch (Exception ex) {
-                // Non-fatal: fallback to defaults if anything goes wrong while adjusting widths
-                log.warn("Failed to adjust Nama FS2 column width, continuing with auto-sized widths", ex);
-            }
+            // Ensure 'Nama FS2' column is at least as wide as 'Nama Aplikasi'
+            ensureNamaFs2ColumnWidth(sheet, 1, 3, "Failed to adjust Nama FS2 column width, continuing with auto-sized widths");
 
             // Apply custom width adjustments for 'Semua F.S.2' export per request
-            try {
-                sheet.setColumnWidth(0, 2000);   // No (narrow)
-                sheet.setColumnWidth(2, 3500);   // Kode Aplikasi (narrow)
-                sheet.setColumnWidth(3, 15000);  // Nama FS2 (widen)
-            } catch (Exception ex) {
-                log.warn("Failed to apply custom column widths for all FS2 export", ex);
-            }
+            applyCustomColumnWidths(sheet, new int[][]{{0,2000},{2,3500},{3,15000}});
 
             return writeWorkbookToStream(workbook);
             
@@ -152,10 +130,11 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             Sheet sheet = workbook.createSheet("Monitoring F.S.2");
             
             // Create styles
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle dataStyle = createDataStyle(workbook);
-            CellStyle dateStyle = createDateStyle(workbook);
-            CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+            Styles styles = createStyles(workbook);
+            CellStyle headerStyle = styles.headerStyle;
+            CellStyle dataStyle = styles.dataStyle;
+            CellStyle dateStyle = styles.dateStyle;
+            CellStyle hyperlinkStyle = styles.hyperlinkStyle;
             
             // Create header row for Monitoring F.S.2
             // Removed "Bidang" column and moved "Kode Aplikasi" after "Nama Aplikasi"
@@ -190,14 +169,8 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 createCell(row, 2, item.getKodeAplikasi(), dataStyle);
                 // Nama FS2 moves to index 3
                 createCell(row, 3, item.getNamaFs2(), dataStyle);
-                // SKPA: include kode_skpa if available, otherwise fall back to nama_skpa
-                String skpaValue = "-";
-                if (item.getKodeSkpa() != null && !item.getKodeSkpa().isBlank()) {
-                    skpaValue = item.getKodeSkpa() + (item.getNamaSkpa() != null ? " - " + item.getNamaSkpa() : "");
-                } else if (item.getNamaSkpa() != null && !item.getNamaSkpa().isBlank()) {
-                    skpaValue = item.getNamaSkpa();
-                }
-                createCell(row, 4, skpaValue, dataStyle);
+                // SKPA display
+                createCell(row, 4, buildSkpaDisplay(item), dataStyle);
                 // Derive progress display: prefer explicit progres field, otherwise infer from tahapan statuses
                 createCell(row, 5, deriveProgresDisplay(item), dataStyle);
                 createCell(row, 6, formatProgresStatus(item.getProgresStatus()), dataStyle);
@@ -238,33 +211,11 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             // Auto-size columns
             autoSizeColumns(sheet, headers.length);
 
-            // Ensure 'Nama FS2' column (index 2) is at least as wide as 'Nama Aplikasi' (index 1)
-            try {
-                int namaAplikasiCol = 1;
-                int namaFs2Col = 2;
-                int widthAplikasi = sheet.getColumnWidth(namaAplikasiCol);
-                int widthFs2 = sheet.getColumnWidth(namaFs2Col);
-                if (widthFs2 < widthAplikasi) {
-                    sheet.setColumnWidth(namaFs2Col, widthAplikasi);
-                }
-            } catch (Exception ex) {
-                log.warn("Failed to adjust Nama FS2 column width for approved export, continuing with auto-sized widths", ex);
-            }
+            // Ensure 'Nama FS2' column is at least as wide as 'Nama Aplikasi'
+            ensureNamaFs2ColumnWidth(sheet, 1, 2, "Failed to adjust Nama FS2 column width for approved export, continuing with auto-sized widths");
 
-            // Apply custom column width adjustments per request:
-            // - Make 'No' column narrower
-            // - Reduce 'Kode Aplikasi' column width
-            // - Expand 'Nama FS2' column significantly
-            // - Reduce 'Tanggal Berkas CD Prinsip Persetujuan FS2' column width
-            try {
-                // Column indices based on headers array
-                sheet.setColumnWidth(0, 2000);   // No
-                sheet.setColumnWidth(2, 3500);   // Kode Aplikasi
-                sheet.setColumnWidth(3, 15000);  // Nama FS2 (widen)
-                sheet.setColumnWidth(26, 2000);  // Tanggal Berkas CD Prinsip Persetujuan FS2
-            } catch (Exception ex) {
-                log.warn("Failed to apply custom column widths for approved export", ex);
-            }
+            // Apply custom column width adjustments per request
+            applyCustomColumnWidths(sheet, new int[][]{{0,2000},{2,3500},{3,15000},{26,2000}});
 
             return writeWorkbookToStream(workbook);
             
@@ -313,6 +264,64 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         return outputStream;
+    }
+
+    // Helper holder for styles to avoid creating duplicate style setup code
+    private static class Styles {
+        final CellStyle headerStyle;
+        final CellStyle dataStyle;
+        final CellStyle dateStyle;
+        final CellStyle hyperlinkStyle;
+
+        Styles(CellStyle headerStyle, CellStyle dataStyle, CellStyle dateStyle, CellStyle hyperlinkStyle) {
+            this.headerStyle = headerStyle;
+            this.dataStyle = dataStyle;
+            this.dateStyle = dateStyle;
+            this.hyperlinkStyle = hyperlinkStyle;
+        }
+    }
+
+    private Styles createStyles(Workbook workbook) {
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle dataStyle = createDataStyle(workbook);
+        CellStyle dateStyle = createDateStyle(workbook);
+        CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+        return new Styles(headerStyle, dataStyle, dateStyle, hyperlinkStyle);
+    }
+
+    private String buildSkpaDisplay(Fs2DocumentResponse item) {
+        if (item == null) return "-";
+        if (item.getKodeSkpa() != null && !item.getKodeSkpa().isBlank()) {
+            return item.getKodeSkpa() + (item.getNamaSkpa() != null ? " - " + item.getNamaSkpa() : "");
+        }
+        if (item.getNamaSkpa() != null && !item.getNamaSkpa().isBlank()) {
+            return item.getNamaSkpa();
+        }
+        return "-";
+    }
+
+    private void ensureNamaFs2ColumnWidth(Sheet sheet, int namaAplikasiCol, int namaFs2Col, String warnMessage) {
+        try {
+            int widthAplikasi = sheet.getColumnWidth(namaAplikasiCol);
+            int widthFs2 = sheet.getColumnWidth(namaFs2Col);
+            if (widthFs2 < widthAplikasi) {
+                sheet.setColumnWidth(namaFs2Col, widthAplikasi);
+            }
+        } catch (Exception ex) {
+            log.warn(warnMessage, ex);
+        }
+    }
+
+    private void applyCustomColumnWidths(Sheet sheet, int[][] widths) {
+        try {
+            for (int[] pair : widths) {
+                if (pair != null && pair.length == 2) {
+                    sheet.setColumnWidth(pair[0], pair[1]);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to apply custom column widths", ex);
+        }
     }
     
     private void createCell(Row row, int col, Object value, CellStyle style) {
