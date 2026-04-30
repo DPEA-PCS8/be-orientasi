@@ -2,15 +2,18 @@ package com.pcs8.orientasi.service;
 
 import com.pcs8.orientasi.domain.dto.request.BatchKepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
+import com.pcs8.orientasi.domain.dto.request.ProgramGroupRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiAnalyticsRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.BatchKepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.InisiatifGroupDropdownResponse;
 import com.pcs8.orientasi.domain.dto.response.InisiatifGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.ProgramGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiAnalyticsResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
@@ -47,6 +50,17 @@ public interface RbsiService {
     void deleteInisiatif(UUID inisiatifId);
 
     List<InisiatifGroupResponse> getInisiatifGroups(UUID rbsiId);
+
+    List<InisiatifGroupDropdownResponse> getInisiatifGroupsDropdown(UUID rbsiId);
+
+    // ProgramGroup methods — TODO: review each method signature before wiring FE
+    List<ProgramGroupResponse> getProgramGroups(UUID rbsiId);
+
+    ProgramGroupResponse createProgramGroup(ProgramGroupRequest request);
+
+    ProgramGroupResponse updateProgramGroup(UUID groupId, ProgramGroupRequest request);
+
+    void deleteProgramGroup(UUID groupId);
 
     List<RbsiProgramResponse> getProgramsByRbsiAndTahun(UUID rbsiId, Integer tahun);
 

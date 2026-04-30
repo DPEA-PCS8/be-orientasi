@@ -28,8 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -51,57 +53,56 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
     public RbsiDashboardResponse getDashboardData(UUID rbsiId, RbsiDashboardRequest request) {
         log.info("Getting dashboard data for RBSI: {}, tahun: {}", rbsiId, request.getTahun());
 
-        // Get RBSI
         Rbsi rbsi = rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        // Get available years from KEP progress based on kepId filter
+        // All initiative groups for this RBSI
+        List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdAndIsDeletedFalseOrderByCreatedAtAsc(rbsiId);
+        List<UUID> groupIds = groups.stream().map(InisiatifGroup::getId).collect(Collectors.toList());
+
+        // Available years = from KEP progress (drives the year selector)
         List<Integer> availableYears = request.getKepId() != null ?
                 kepProgressRepository.findDistinctTahunByRbsiIdAndKepId(rbsiId, request.getKepId()) :
                 kepProgressRepository.findDistinctTahunByRbsiId(rbsiId);
 
-        Integer selectedTahun = request.getTahun() != null ? request.getTahun() : 
+        Integer selectedTahun = request.getTahun() != null ? request.getTahun() :
                 (availableYears.isEmpty() ? LocalDate.now().getYear() : availableYears.get(availableYears.size() - 1));
-
         Integer comparisonTahun = request.getComparisonYear() != null ? request.getComparisonYear() : selectedTahun - 1;
 
-        // Get all initiative groups for this RBSI
-        List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId);
-        List<UUID> groupIds = groups.stream().map(InisiatifGroup::getId).collect(Collectors.toList());
-
-        // Get all inisiatifs for selected year
-        List<RbsiInisiatif> inisiatifs = getInisiatifsByYearFromGroups(groups, selectedTahun);
-
-        // Get PKSI documents linked to these initiative groups
+        // PKSIs in selectedTahun: filtered by timeline year (includes PKSIs with no inisiatif group)
         String pksiStatusFilter = request.getPksiStatus();
         List<PksiDocument> pksiDocuments = groupIds.isEmpty() ? new ArrayList<>() :
-                (pksiStatusFilter == null || pksiStatusFilter.isEmpty() ?
-                        pksiDocumentRepository.findByInisiatifGroupIdIn(groupIds) :
-                        pksiDocumentRepository.findByInisiatifGroupIdInAndStatus(groupIds, pksiStatusFilter));
+                pksiDocumentRepository.findByGroupIdsOrNullGroupAndTimelineYear(
+                        groupIds, selectedTahun, pksiStatusFilter);
+
+        // Build pksiId → set<year> map for ALL timeline years of these PKSIs (for year-range display)
+        List<UUID> pksiIds = pksiDocuments.stream().map(PksiDocument::getId).collect(Collectors.toList());
+        Map<UUID, Set<Integer>> pksiTimelineYears = pksiIds.isEmpty() ?
+                new HashMap<>() : buildPksiTimelineYearsMapByPksiIds(pksiIds);
 
         // Group PKSI by initiative group
         Map<UUID, List<PksiDocument>> pksiByGroup = pksiDocuments.stream()
                 .filter(p -> p.getInisiatifGroup() != null)
                 .collect(Collectors.groupingBy(p -> p.getInisiatifGroup().getId()));
 
-        // Get KEP progress for comparison (filter by kepId if provided)
+        // KEP progress for comparison (filter by kepId if provided)
         List<KepProgress> allKepProgress = request.getKepId() != null ?
                 kepProgressRepository.findByRbsiIdAndKepId(rbsiId, request.getKepId()) :
                 kepProgressRepository.findAllByRbsiId(rbsiId);
         Map<UUID, Map<Integer, KepProgress>> kepProgressByGroupAndYear = buildKepProgressMap(allKepProgress);
 
-        // Build initiative details
+        // Build initiative details — iterate ALL groups (program/inisiatif from KEP context)
         List<InisiatifPksiDetail> initiativeDetails = buildInitiativeDetails(
-                inisiatifs, groups, pksiByGroup, kepProgressByGroupAndYear, selectedTahun, comparisonTahun, availableYears
+                groups, pksiByGroup, pksiTimelineYears, kepProgressByGroupAndYear,
+                selectedTahun, comparisonTahun, availableYears
         );
 
-        // Calculate summary stats
+        // Summary stats
         int totalInisiatif = initiativeDetails.size();
         int withPksi = (int) initiativeDetails.stream().filter(InisiatifPksiDetail::getHasPksi).count();
         int withoutPksi = totalInisiatif - withPksi;
         double percentage = totalInisiatif > 0 ? (withPksi * 100.0 / totalInisiatif) : 0;
 
-        // Calculate KEP expected vs actual for selected year
         int kepExpectedWithPksi = 0;
         int kepRealizedWithPksi = 0;
         int kepMissingPksi = 0;
@@ -114,14 +115,10 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
                 if (yearStatus != null) {
                     boolean kepExpects = !"none".equalsIgnoreCase(yearStatus.getKepStatus());
                     boolean actuallyHasPksi = Boolean.TRUE.equals(yearStatus.getHasPksiInYear());
-                    
                     if (kepExpects) {
                         kepExpectedWithPksi++;
-                        if (actuallyHasPksi) {
-                            kepRealizedWithPksi++;
-                        } else {
-                            kepMissingPksi++;
-                        }
+                        if (actuallyHasPksi) kepRealizedWithPksi++;
+                        else kepMissingPksi++;
                     } else if (actuallyHasPksi) {
                         kepUnexpectedPksi++;
                     }
@@ -154,16 +151,17 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
                 .build();
     }
 
-    private List<RbsiInisiatif> getInisiatifsByYearFromGroups(List<InisiatifGroup> groups, Integer tahun) {
-        List<RbsiInisiatif> result = new ArrayList<>();
-        for (InisiatifGroup group : groups) {
-            if (group.getInisiatifs() != null) {
-                for (RbsiInisiatif inisiatif : group.getInisiatifs()) {
-                    if (tahun.equals(inisiatif.getTahun()) && !Boolean.TRUE.equals(inisiatif.getIsDeleted())) {
-                        result.add(inisiatif);
-                    }
-                }
-            }
+    /**
+     * Build pksiId → set-of-years map from pksi IDs (all timeline years for those PKSIs).
+     * Used to show full year range (isMultiyear, tahunAwal/Akhir) after PKSIs are already fetched.
+     */
+    private Map<UUID, Set<Integer>> buildPksiTimelineYearsMapByPksiIds(List<UUID> pksiIds) {
+        Map<UUID, Set<Integer>> result = new HashMap<>();
+        List<Object[]> rows = pksiDocumentRepository.findPksiIdAndTimelineYearsByPksiIds(pksiIds);
+        for (Object[] row : rows) {
+            UUID pksiId = (UUID) row[0];
+            Integer year = ((Number) row[1]).intValue();
+            result.computeIfAbsent(pksiId, k -> new HashSet<>()).add(year);
         }
         return result;
     }
@@ -178,10 +176,15 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
         return result;
     }
 
+    /**
+     * Iterate over ALL groups (not year-filtered RbsiInisiatif instances).
+     * Program/inisiatif display info: pick the year-specific RbsiInisiatif if available,
+     * otherwise fall back to the group's latest non-deleted instance.
+     */
     private List<InisiatifPksiDetail> buildInitiativeDetails(
-            List<RbsiInisiatif> inisiatifs,
             List<InisiatifGroup> groups,
             Map<UUID, List<PksiDocument>> pksiByGroup,
+            Map<UUID, Set<Integer>> pksiTimelineYears,
             Map<UUID, Map<Integer, KepProgress>> kepProgressByGroupAndYear,
             Integer selectedTahun,
             Integer comparisonTahun,
@@ -189,35 +192,32 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
     ) {
         List<InisiatifPksiDetail> details = new ArrayList<>();
 
-        for (RbsiInisiatif inisiatif : inisiatifs) {
-            UUID groupId = inisiatif.getGroup().getId();
-            
+        for (InisiatifGroup group : groups) {
+            UUID groupId = group.getId();
             List<PksiDocument> groupPksi = pksiByGroup.getOrDefault(groupId, new ArrayList<>());
-            // boolean hasPksi = !groupPksi.isEmpty();
 
-            // Check if any PKSI covers the selected year (for multiyear)
-            boolean hasPksiInSelectedYear = hasPksiInYear(groupPksi, selectedTahun);
+            boolean hasPksiInSelectedYear = hasPksiInYear(groupPksi, selectedTahun, pksiTimelineYears);
 
-            // Build PKSI info list - only include PKSI that covers the selected year
             List<PksiInfo> pksiList = groupPksi.stream()
-                    .filter(pksi -> isPksiCoveringYear(pksi, selectedTahun))
-                    .map(this::mapToPksiInfo)
+                    .filter(pksi -> isPksiCoveringYear(pksi, selectedTahun, pksiTimelineYears))
+                    .map(pksi -> mapToPksiInfo(pksi, pksiTimelineYears))
                     .collect(Collectors.toList());
 
-            // Build KEP progress comparison
             KepProgressComparison kepComparison = buildKepProgressComparison(
-                    groupId, kepProgressByGroupAndYear, selectedTahun, comparisonTahun, 
-                    availableYears, hasPksiInSelectedYear, groupPksi
+                    groupId, kepProgressByGroupAndYear, selectedTahun, comparisonTahun,
+                    availableYears, hasPksiInSelectedYear, groupPksi, pksiTimelineYears
             );
 
-            // Get program name from inisiatif
-            String programNama = inisiatif.getProgram() != null ? 
-                    inisiatif.getProgram().getNamaProgram() : "";
+            // Pick representative RbsiInisiatif for display (prefer selectedTahun, else latest)
+            RbsiInisiatif rep = getRepresentativeInisiatif(group, selectedTahun);
+            String namaInisiatif = rep != null ? rep.getNamaInisiatif() : group.getNamaInisiatif();
+            String nomorInisiatif = rep != null ? rep.getNomorInisiatif() : "";
+            String programNama = (rep != null && rep.getProgram() != null) ? rep.getProgram().getNamaProgram() : "";
 
             details.add(InisiatifPksiDetail.builder()
                     .groupId(groupId)
-                    .namaInisiatif(inisiatif.getNamaInisiatif())
-                    .nomorInisiatif(inisiatif.getNomorInisiatif())
+                    .namaInisiatif(namaInisiatif)
+                    .nomorInisiatif(nomorInisiatif)
                     .programNama(programNama)
                     .hasPksi(hasPksiInSelectedYear)
                     .pksiList(pksiList)
@@ -225,40 +225,62 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
                     .build());
         }
 
-        // Sort by nomor inisiatif with numeric-aware comparison
-        details.sort((a, b) -> {
-            String nomorA = a.getNomorInisiatif();
-            String nomorB = b.getNomorInisiatif();
-            return NomorComparator.compare(nomorA, nomorB);
-        });
+        details.sort((a, b) -> NomorComparator.compare(a.getNomorInisiatif(), b.getNomorInisiatif()));
 
         return details;
     }
 
-    private boolean hasPksiInYear(List<PksiDocument> pksiList, Integer year) {
-        return pksiList.stream().anyMatch(pksi -> isPksiCoveringYear(pksi, year));
+    /**
+     * Pick the best RbsiInisiatif to represent a group for display purposes.
+     * Prefer the instance matching selectedTahun; fall back to latest non-deleted.
+     */
+    private RbsiInisiatif getRepresentativeInisiatif(InisiatifGroup group, Integer selectedTahun) {
+        if (group.getInisiatifs() == null || group.getInisiatifs().isEmpty()) return null;
+        List<RbsiInisiatif> active = group.getInisiatifs().stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
+                .collect(Collectors.toList());
+        if (active.isEmpty()) return null;
+        // Prefer exact year match
+        return active.stream()
+                .filter(i -> selectedTahun.equals(i.getTahun()))
+                .findFirst()
+                .orElseGet(() -> active.stream()
+                        .reduce((a, b) -> a.getTahun() >= b.getTahun() ? a : b)
+                        .orElse(null));
     }
 
-    private boolean isPksiCoveringYear(PksiDocument pksi, Integer year) {
-        // Get start and end years from PKSI
+    private boolean hasPksiInYear(List<PksiDocument> pksiList, Integer year, Map<UUID, Set<Integer>> pksiTimelineYears) {
+        return pksiList.stream().anyMatch(pksi -> isPksiCoveringYear(pksi, year, pksiTimelineYears));
+    }
+
+    /**
+     * A PKSI covers a year if any of its timeline dates fall in that year.
+     * Falls back to legacy date range if no timelines exist.
+     */
+    private boolean isPksiCoveringYear(PksiDocument pksi, Integer year, Map<UUID, Set<Integer>> pksiTimelineYears) {
+        Set<Integer> timelineYears = pksiTimelineYears.get(pksi.getId());
+        if (timelineYears != null && !timelineYears.isEmpty()) {
+            return timelineYears.contains(year);
+        }
+        // Legacy fallback: use targetUsreq → targetGoLive range
         Integer startYear = pksi.getTargetUsreq() != null ? pksi.getTargetUsreq().getYear() : null;
         Integer endYear = pksi.getTargetGoLive() != null ? pksi.getTargetGoLive().getYear() : null;
-
         if (startYear == null && endYear == null) {
-            // If no dates, use tanggalPengajuan year
-            return pksi.getTanggalPengajuan() != null && 
+            return pksi.getTanggalPengajuan() != null &&
                     pksi.getTanggalPengajuan().getYear() == year;
         }
-
         if (startYear == null) startYear = year;
         if (endYear == null) endYear = year;
-
         return year >= startYear && year <= endYear;
     }
 
-    private PksiInfo mapToPksiInfo(PksiDocument pksi) {
-        Integer startYear = pksi.getTargetUsreq() != null ? pksi.getTargetUsreq().getYear() : null;
-        Integer endYear = pksi.getTargetGoLive() != null ? pksi.getTargetGoLive().getYear() : null;
+    private PksiInfo mapToPksiInfo(PksiDocument pksi, Map<UUID, Set<Integer>> pksiTimelineYears) {
+        Set<Integer> years = pksiTimelineYears.get(pksi.getId());
+        Integer startYear = years != null && !years.isEmpty() ? years.stream().min(Integer::compareTo).orElse(null) : null;
+        Integer endYear   = years != null && !years.isEmpty() ? years.stream().max(Integer::compareTo).orElse(null) : null;
+        // Fall back to legacy fields if no timelines
+        if (startYear == null) startYear = pksi.getTargetUsreq() != null ? pksi.getTargetUsreq().getYear() : null;
+        if (endYear == null)   endYear   = pksi.getTargetGoLive() != null ? pksi.getTargetGoLive().getYear() : null;
         boolean isMultiyear = startYear != null && endYear != null && !startYear.equals(endYear);
 
         return PksiInfo.builder()
@@ -278,7 +300,8 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
             Integer comparisonTahun,
             List<Integer> availableYears,
             boolean hasPksiInSelectedYear,
-            List<PksiDocument> groupPksi
+            List<PksiDocument> groupPksi,
+            Map<UUID, Set<Integer>> pksiTimelineYears
     ) {
         Map<Integer, YearlyKepStatus> yearlyStatus = new HashMap<>();
         Map<Integer, KepProgress> groupProgress = kepProgressByGroupAndYear.getOrDefault(groupId, new HashMap<>());
@@ -287,7 +310,7 @@ public class RbsiDashboardServiceImpl implements RbsiDashboardService {
         for (Integer year : availableYears) {
             KepProgress kp = groupProgress.get(year);
             String kepStatus = kp != null ? kp.getStatus().name() : "none";
-            boolean hasPksiInYear = hasPksiInYear(groupPksi, year);
+            boolean hasPksiInYear = hasPksiInYear(groupPksi, year, pksiTimelineYears);
             boolean isSelectedYear = year.equals(selectedTahun);
 
             // Detect discrepancies

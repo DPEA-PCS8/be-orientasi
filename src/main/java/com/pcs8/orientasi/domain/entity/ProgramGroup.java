@@ -13,18 +13,18 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * InisiatifGroup represents the logical entity of an inisiatif across different years.
- * Multiple RbsiInisiatif instances (across different years) can belong to the same group,
- * allowing KepProgress to be shared across all instances of the same logical inisiatif.
+ * ProgramGroup represents the logical entity of a program across different years.
+ * Multiple RbsiProgram instances (across different years) can belong to the same group,
+ * mirroring the same pattern used by InisiatifGroup for trn_rbsi_inisiatif.
  */
 @Entity
-@Table(name = "mst_inisiatif_group")
+@Table(name = "mst_program_group")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InisiatifGroup extends BaseEntity {
+public class ProgramGroup extends BaseEntity {
 
     @Id
     @UuidGenerator
@@ -35,8 +35,8 @@ public class InisiatifGroup extends BaseEntity {
     @JoinColumn(name = "rbsi_id", nullable = false)
     private Rbsi rbsi;
 
-    @Column(name = "nama_inisiatif", nullable = false, length = 255)
-    private String namaInisiatif;
+    @Column(name = "nama_program", nullable = false, length = 255)
+    private String namaProgram;
 
     @Column(name = "keterangan", length = 500)
     private String keterangan;
@@ -45,11 +45,7 @@ public class InisiatifGroup extends BaseEntity {
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BIT DEFAULT 0")
     private Boolean isDeleted = false;
 
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "programGroup", cascade = CascadeType.ALL)
     @lombok.Builder.Default
-    private List<RbsiInisiatif> inisiatifs = new ArrayList<>();
-
-    @OneToMany(mappedBy = "inisiatifGroup", cascade = CascadeType.ALL)
-    @lombok.Builder.Default
-    private List<KepProgress> kepProgresses = new ArrayList<>();
+    private List<RbsiProgram> programs = new ArrayList<>();
 }

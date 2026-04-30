@@ -28,4 +28,7 @@ public interface RbsiInisiatifRepository extends JpaRepository<RbsiInisiatif, UU
     // Find inisiatif by group ID (latest version)
     @Query("SELECT i FROM RbsiInisiatif i WHERE i.group.id IN :groupIds AND i.isDeleted = false")
     List<RbsiInisiatif> findByGroupIdIn(@Param("groupIds") List<UUID> groupIds);
+
+    @Query("SELECT i.group.id, i.nomorInisiatif FROM RbsiInisiatif i WHERE i.group.id IN :groupIds AND i.isDeleted = false AND i.tahun = (SELECT MAX(i2.tahun) FROM RbsiInisiatif i2 WHERE i2.group.id = i.group.id AND i2.isDeleted = false)")
+    List<Object[]> findLatestNomorInisiatifByGroupId(@Param("groupIds") List<UUID> groupIds);
 }

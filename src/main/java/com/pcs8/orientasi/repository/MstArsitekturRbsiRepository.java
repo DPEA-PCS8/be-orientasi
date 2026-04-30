@@ -18,10 +18,8 @@ public interface MstArsitekturRbsiRepository extends JpaRepository<MstArsitektur
     @Query("SELECT a FROM MstArsitekturRbsi a " +
            "LEFT JOIN FETCH a.rbsi " +
            "LEFT JOIN FETCH a.subKategori " +
-           "LEFT JOIN FETCH a.aplikasiBaseline " +
-           "LEFT JOIN FETCH a.aplikasiTarget " +
-           "LEFT JOIN FETCH a.inisiatif i " +
-           "LEFT JOIN FETCH i.program " +
+           "LEFT JOIN FETCH a.aplikasi " +
+           "LEFT JOIN FETCH a.inisiatifGroup " +
            "LEFT JOIN FETCH a.skpa " +
            "WHERE a.rbsi.id = :rbsiId " +
            "ORDER BY a.createdAt ASC")
@@ -30,10 +28,8 @@ public interface MstArsitekturRbsiRepository extends JpaRepository<MstArsitektur
     @Query("SELECT a FROM MstArsitekturRbsi a " +
            "LEFT JOIN FETCH a.rbsi " +
            "LEFT JOIN FETCH a.subKategori " +
-           "LEFT JOIN FETCH a.aplikasiBaseline " +
-           "LEFT JOIN FETCH a.aplikasiTarget " +
-           "LEFT JOIN FETCH a.inisiatif i " +
-           "LEFT JOIN FETCH i.program " +
+           "LEFT JOIN FETCH a.aplikasi " +
+           "LEFT JOIN FETCH a.inisiatifGroup " +
            "LEFT JOIN FETCH a.skpa " +
            "WHERE a.id = :id")
     Optional<MstArsitekturRbsi> findByIdWithRelations(@Param("id") UUID id);

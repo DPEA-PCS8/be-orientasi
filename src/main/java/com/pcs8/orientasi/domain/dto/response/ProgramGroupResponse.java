@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InisiatifGroupResponse {
+public class ProgramGroupResponse {
 
     @JsonProperty("id")
     private UUID id;
@@ -21,17 +21,20 @@ public class InisiatifGroupResponse {
     @JsonProperty("rbsi_id")
     private UUID rbsiId;
 
-    @JsonProperty("nama_inisiatif")
-    private String namaInisiatif;
+    @JsonProperty("nama_program")
+    private String namaProgram;
 
     @JsonProperty("keterangan")
     private String keterangan;
 
+    // TODO: review — decide whether to include tahun_list + nomor_program_by_year here
+    //       (same as InisiatifGroupResponse.tahunList / nomorInisiatifByYear).
+    //       Useful for the FE to know which years this program group spans.
     @JsonProperty("tahun_list")
-    private List<Integer> tahunList; // Years where this initiative exists
+    private List<Integer> tahunList;
 
-    @JsonProperty("nomor_inisiatif_by_year")
-    private List<YearNomor> nomorInisiatifByYear; // Nomor per year
+    @JsonProperty("nomor_program_by_year")
+    private List<YearNomor> nomorProgramByYear;
 
     @Data
     @Builder
@@ -41,13 +44,7 @@ public class InisiatifGroupResponse {
         @JsonProperty("tahun")
         private Integer tahun;
 
-        @JsonProperty("nomor_inisiatif")
-        private String nomorInisiatif;
-
-        @JsonProperty("program_nomor")
-        private String programNomor;
-
-        @JsonProperty("program_name")
-        private String programName;
+        @JsonProperty("nomor_program")
+        private String nomorProgram;
     }
 }

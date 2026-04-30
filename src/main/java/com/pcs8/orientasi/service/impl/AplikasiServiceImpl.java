@@ -253,6 +253,37 @@ public class AplikasiServiceImpl implements AplikasiService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AplikasiResponse> getAllForDropdown() {
+        return aplikasiRepository.findAllWithSkpaAndSubKategori()
+                .stream()
+                .map(a -> {
+                    AplikasiResponse.AplikasiResponseBuilder builder = AplikasiResponse.builder()
+                            .id(a.getId())
+                            .kodeAplikasi(a.getKodeAplikasi())
+                            .namaAplikasi(a.getNamaAplikasi())
+                            .statusAplikasi(a.getStatusAplikasi());
+                    if (a.getSkpa() != null) {
+                        builder.skpa(SkpaInfo.builder()
+                                .id(a.getSkpa().getId())
+                                .kodeSkpa(a.getSkpa().getKodeSkpa())
+                                .namaSkpa(a.getSkpa().getNamaSkpa())
+                                .build());
+                    }
+                    if (a.getSubKategori() != null) {
+                        builder.subKategori(SubKategoriInfo.builder()
+                                .id(a.getSubKategori().getId())
+                                .kode(a.getSubKategori().getKode())
+                                .nama(a.getSubKategori().getNama())
+                                .categoryCode(a.getSubKategori().getCategoryCode())
+                                .build());
+                    }
+                    return builder.build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<AplikasiResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable) {
         return aplikasiRepository.searchAplikasi(search, bidangId, skpaId, status, pageable)
                 .map(this::mapToResponse);

@@ -20,6 +20,8 @@ public interface AplikasiService {
 
     List<AplikasiResponse> getAll();
 
+    List<AplikasiResponse> getAllForDropdown();
+
     Page<AplikasiResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable);
 
     Page<AplikasiListResponse> searchLight(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable);

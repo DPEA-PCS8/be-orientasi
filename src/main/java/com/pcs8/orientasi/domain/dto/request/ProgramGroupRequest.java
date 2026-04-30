@@ -1,37 +1,27 @@
 package com.pcs8.orientasi.domain.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RbsiProgramRequest {
+public class ProgramGroupRequest {
 
-    @JsonProperty("kep_id")
-    @NotNull(message = "Kep id is required")
-    private UUID kepId;
-
-    @JsonProperty("nomor_program")
-    @NotBlank(message = "Nomor program is required")
-    private String nomorProgram;
+    @JsonProperty("rbsi_id")
+    @NotNull(message = "Rbsi id is required")
+    private UUID rbsiId;
 
     @JsonProperty("nama_program")
     @NotBlank(message = "Nama program is required")
     private String namaProgram;
 
-    @JsonProperty("group_id")
-    private UUID groupId;
-
-    @JsonProperty("inisiatifs")
-    @Valid
-    private List<RbsiInisiatifItemRequest> inisiatifs;
+    @JsonProperty("keterangan")
+    private String keterangan;
 }
