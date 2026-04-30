@@ -3,6 +3,7 @@ package com.pcs8.orientasi.service.impl;
 import com.pcs8.orientasi.config.UserContext;
 import com.pcs8.orientasi.domain.dto.request.BatchKepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
+import com.pcs8.orientasi.domain.dto.request.ProgramGroupRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiAnalyticsRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifItemRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
@@ -10,9 +11,11 @@ import com.pcs8.orientasi.domain.dto.request.RbsiKepRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.BatchKepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.InisiatifGroupDropdownResponse;
 import com.pcs8.orientasi.domain.dto.response.InisiatifGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.ProgramGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiAnalyticsResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiInisiatifResponse;
@@ -22,6 +25,7 @@ import com.pcs8.orientasi.domain.dto.response.RbsiProgramResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiResponse;
 import com.pcs8.orientasi.domain.entity.InisiatifGroup;
 import com.pcs8.orientasi.domain.entity.KepProgress;
+import com.pcs8.orientasi.domain.entity.ProgramGroup;
 import com.pcs8.orientasi.domain.entity.Rbsi;
 import com.pcs8.orientasi.domain.entity.RbsiInisiatif;
 import com.pcs8.orientasi.domain.entity.RbsiKep;
@@ -30,6 +34,7 @@ import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.KepProgressRepository;
+import com.pcs8.orientasi.repository.ProgramGroupRepository;
 import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.RbsiKepRepository;
 import com.pcs8.orientasi.repository.RbsiProgramRepository;
@@ -66,6 +71,7 @@ public class RbsiServiceImpl implements RbsiService {
     private final RbsiProgramRepository programRepository;
     private final RbsiInisiatifRepository inisiatifRepository;
     private final InisiatifGroupRepository inisiatifGroupRepository;
+    private final ProgramGroupRepository programGroupRepository;
     private final RbsiKepRepository kepRepository;
     private final KepProgressRepository kepProgressRepository;
     private final AuditService auditService;
@@ -152,54 +158,54 @@ public class RbsiServiceImpl implements RbsiService {
         
         // Audit log
         RbsiResponse newValue = mapToRbsiResponse(saved, null);
-        auditService.logUpdate(ENTITY_NAME_RBSI, id, oldValue, newValue, userId, username);
-        
-        return newValue;
-    }
+                auditService.logUpdate(ENTITY_NAME_RBSI, id, oldValue, newValue, userId, username);
+                return newValue;
+        }
 
-    @Override
-    @Transactional
-    public void deleteRbsi(UUID id) {
-        // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
-        String username = userContext.getCurrentUsername();
+        @Override
+        @Transactional
+        public void deleteRbsi(UUID id) {
+                UUID userId = userContext.getCurrentUserId();
+                String username = userContext.getCurrentUsername();
+
+                Rbsi rbsi = rbsiRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+                // Perform physical delete; cascade handled by JPA mappings
+                rbsiRepository.delete(rbsi);
+                auditService.logDelete(ENTITY_NAME_RBSI, id, mapToRbsiResponse(rbsi, null), userId, username);
+        }
+
         
-        Rbsi rbsi = rbsiRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
-        
-        // Capture old value untuk audit sebelum delete
-        RbsiResponse oldValue = mapToRbsiResponse(rbsi, null);
-        
-        rbsiRepository.delete(rbsi);
-        log.info("RBSI deleted: {}", id);
-        
-        // Audit log
-        auditService.logDelete(ENTITY_NAME_RBSI, id, oldValue, userId, username);
-    }
 
     @Override
     @Transactional
     public RbsiProgramResponse createOrUpdateProgram(RbsiProgramRequest request) {
-        // Get user info di main thread sebelum async audit
         UUID userId = userContext.getCurrentUserId();
         String username = userContext.getCurrentUsername();
-        
-        Rbsi rbsi = rbsiRepository.findById(request.getRbsiId())
-                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        RbsiProgram existingProgram = programRepository
-                .findByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(request.getRbsiId(), request.getTahun(), request.getNomorProgram())
-                .orElse(null);
-        
+        RbsiKep kep = kepRepository.findById(request.getKepId())
+                .orElseThrow(() -> new ResourceNotFoundException("KEP tidak ditemukan"));
+
+        Rbsi rbsi = kep.getRbsi();
+        Integer tahun = kep.getTahunPelaporan();
+
+        ProgramGroup programGroup = resolveProgramGroup(request, rbsi, null);
+
+        RbsiProgram existingProgram = null;
         boolean isNew = (existingProgram == null);
         RbsiProgramResponse oldValue = isNew ? null : mapToProgramResponse(existingProgram, false);
-        
+
         RbsiProgram program = existingProgram != null ? existingProgram : RbsiProgram.builder()
-                .rbsi(rbsi)
-                .tahun(request.getTahun())
+                .kep(kep)
+                .programGroup(programGroup)
+                .tahun(tahun)
                 .nomorProgram(request.getNomorProgram())
                 .build();
 
+        program.setKep(kep);
+        program.setProgramGroup(programGroup);
+        program.setTahun(tahun);
         program.setNamaProgram(request.getNamaProgram());
         RbsiProgram savedProgram = programRepository.save(program);
 
@@ -208,56 +214,63 @@ public class RbsiServiceImpl implements RbsiService {
         }
 
         log.info("Program saved: {}", savedProgram.getId());
-        
-        // Audit log
+
         RbsiProgramResponse response = mapToProgramResponse(savedProgram, true);
         if (isNew) {
             auditService.logCreate(ENTITY_NAME_PROGRAM, savedProgram.getId(), response, userId, username);
         } else {
             auditService.logUpdate(ENTITY_NAME_PROGRAM, savedProgram.getId(), oldValue, response, userId, username);
         }
-        
+
         return response;
     }
 
     @Override
     @Transactional
     public RbsiProgramResponse updateProgram(UUID programId, RbsiProgramRequest request) {
-        // Get user info di main thread sebelum async audit
         UUID userId = userContext.getCurrentUserId();
         String username = userContext.getCurrentUsername();
-        
+
         RbsiProgram program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
 
-        // Capture old value untuk audit
         RbsiProgramResponse oldValue = mapToProgramResponse(program, false);
 
-        if (!program.getRbsi().getId().equals(request.getRbsiId())) {
-            throw new BadRequestException("Rbsi id tidak sesuai dengan program");
+        RbsiKep kep = kepRepository.findById(request.getKepId())
+                .orElseThrow(() -> new ResourceNotFoundException("KEP tidak ditemukan"));
+
+        Rbsi rbsi = kep.getRbsi();
+        Integer tahun = kep.getTahunPelaporan();
+
+        // Validate KEP belongs to same RBSI as program's current group
+        if (!rbsi.getId().equals(program.getProgramGroup().getRbsi().getId())) {
+            throw new BadRequestException("KEP tidak sesuai dengan RBSI program");
         }
 
         if (!program.getNomorProgram().equals(request.getNomorProgram())
-                || !program.getTahun().equals(request.getTahun())) {
+                || !program.getTahun().equals(tahun)) {
             boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(
-                    request.getRbsiId(), request.getTahun(), request.getNomorProgram()
+                    rbsi.getId(), tahun, request.getNomorProgram()
             );
             if (exists) {
                 throw new BadRequestException("Nomor program sudah digunakan di tahun tersebut");
             }
         }
 
+        ProgramGroup programGroup = resolveProgramGroup(request, rbsi, program.getProgramGroup());
         Integer previousTahun = program.getTahun();
-        program.setTahun(request.getTahun());
+        program.setKep(kep);
+        program.setProgramGroup(programGroup);
+        program.setTahun(tahun);
         program.setNomorProgram(request.getNomorProgram());
         program.setNamaProgram(request.getNamaProgram());
         RbsiProgram savedProgram = programRepository.save(program);
 
-        if (!previousTahun.equals(request.getTahun())) {
+        if (!previousTahun.equals(tahun)) {
             List<RbsiInisiatif> inisiatifs = inisiatifRepository
                     .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(savedProgram.getId(), previousTahun);
             for (RbsiInisiatif inisiatif : inisiatifs) {
-                inisiatif.setTahun(request.getTahun());
+                inisiatif.setTahun(tahun);
                 inisiatifRepository.save(inisiatif);
             }
         }
@@ -267,11 +280,10 @@ public class RbsiServiceImpl implements RbsiService {
         }
 
         log.info("Program updated: {}", savedProgram.getId());
-        
-        // Audit log
+
         RbsiProgramResponse newValue = mapToProgramResponse(savedProgram, true);
         auditService.logUpdate(ENTITY_NAME_PROGRAM, programId, oldValue, newValue, userId, username);
-        
+
         return newValue;
     }
 
@@ -279,7 +291,7 @@ public class RbsiServiceImpl implements RbsiService {
     @Transactional
     public void deleteProgram(UUID programId) {
         // Get user info di main thread sebelum async audit
-        UUID userId = userContext.getCurrentUserId();
+        UUID userId = userContext.getCurrentUserId();   
         String username = userContext.getCurrentUsername();
         
         RbsiProgram program = programRepository.findById(programId)
@@ -293,19 +305,46 @@ public class RbsiServiceImpl implements RbsiService {
         // Capture old value untuk audit sebelum delete
         RbsiProgramResponse oldValue = mapToProgramResponse(program, false);
         
-        // Soft delete all child inisiatifs
+        // Soft delete all child inisiatifs and check their groups
         List<RbsiInisiatif> inisiatifs = inisiatifRepository.findByProgramIdAndIsDeletedFalse(programId);
+        Set<UUID> affectedInisiatifGroupIds = new HashSet<>();
         for (RbsiInisiatif inisiatif : inisiatifs) {
             inisiatif.setIsDeleted(true);
             inisiatifRepository.save(inisiatif);
+            if (inisiatif.getGroup() != null) {
+                affectedInisiatifGroupIds.add(inisiatif.getGroup().getId());
+            }
             log.info("Inisiatif soft deleted (cascade): {}", inisiatif.getId());
         }
-        
+
         // Soft delete the program
         program.setIsDeleted(true);
         programRepository.save(program);
         log.info("Program soft deleted: {} with {} inisiatifs", programId, inisiatifs.size());
-        
+
+        // Soft delete ProgramGroup if it has no remaining active programs
+        ProgramGroup programGroup = program.getProgramGroup();
+        if (programGroup != null) {
+            long remaining = programGroupRepository.countActiveByGroupId(programGroup.getId());
+            if (remaining == 0) {
+                programGroup.setIsDeleted(true);
+                programGroupRepository.save(programGroup);
+                log.info("ProgramGroup soft deleted (no active programs): {}", programGroup.getId());
+            }
+        }
+
+        // Soft delete InisiatifGroups that have no remaining active inisiatifs
+        for (UUID groupId : affectedInisiatifGroupIds) {
+            long remaining = inisiatifGroupRepository.countActiveByGroupId(groupId);
+            if (remaining == 0) {
+                inisiatifGroupRepository.findById(groupId).ifPresent(group -> {
+                    group.setIsDeleted(true);
+                    inisiatifGroupRepository.save(group);
+                    log.info("InisiatifGroup soft deleted (no active inisiatifs): {}", group.getId());
+                });
+            }
+        }
+
         // Audit log
         auditService.logDelete(ENTITY_NAME_PROGRAM, programId, oldValue, userId, username);
     }
@@ -343,13 +382,13 @@ public class RbsiServiceImpl implements RbsiService {
                         .orElseThrow(() -> new ResourceNotFoundException("Inisiatif group tidak ditemukan"));
                 
                 // Validate group belongs to same RBSI
-                if (!group.getRbsi().getId().equals(program.getRbsi().getId())) {
+                if (!group.getRbsi().getId().equals(program.getProgramGroup().getRbsi().getId())) {
                     throw new BadRequestException("Inisiatif group tidak sesuai dengan RBSI");
                 }
             } else {
                 // Create new group
                 group = InisiatifGroup.builder()
-                        .rbsi(program.getRbsi())
+                        .rbsi(program.getProgramGroup().getRbsi())
                         .namaInisiatif(request.getNamaInisiatif())
                         .build();
                 group = inisiatifGroupRepository.save(group);
@@ -426,7 +465,7 @@ public class RbsiServiceImpl implements RbsiService {
                 // Frontend sent null -> create new group (separate from any existing group)
                 RbsiProgram program = inisiatif.getProgram();
                 InisiatifGroup newGroup = InisiatifGroup.builder()
-                        .rbsi(program.getRbsi())
+                        .rbsi(program.getProgramGroup().getRbsi())
                         .namaInisiatif(request.getNamaInisiatif())
                         .build();
                 newGroup = inisiatifGroupRepository.save(newGroup);
@@ -464,11 +503,24 @@ public class RbsiServiceImpl implements RbsiService {
         
         // Capture old value untuk audit sebelum delete
         RbsiInisiatifResponse oldValue = mapToInisiatifResponse(inisiatif);
-        
-        // Hard delete the inisiatif
-        inisiatifRepository.delete(inisiatif);
-        log.info("Inisiatif hard deleted: {}", inisiatifId);
-        
+
+        InisiatifGroup group = inisiatif.getGroup();
+
+        // Soft delete the inisiatif
+        inisiatif.setIsDeleted(true);
+        inisiatifRepository.save(inisiatif);
+        log.info("Inisiatif soft deleted: {}", inisiatifId);
+
+        // Soft delete InisiatifGroup if it has no remaining active inisiatifs
+        if (group != null) {
+            long remaining = inisiatifGroupRepository.countActiveByGroupId(group.getId());
+            if (remaining == 0) {
+                group.setIsDeleted(true);
+                inisiatifGroupRepository.save(group);
+                log.info("InisiatifGroup soft deleted (no active inisiatifs): {}", group.getId());
+            }
+        }
+
         // Audit log
         auditService.logDelete(ENTITY_NAME_INISIATIF, inisiatifId, oldValue, userId, username);
     }
@@ -481,8 +533,9 @@ public class RbsiServiceImpl implements RbsiService {
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
         List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId);
-        
+
         return groups.stream()
+                .filter(group -> !Boolean.TRUE.equals(group.getIsDeleted()))
                 .map(group -> {
                     // Get all initiatives in this group (sorted by year)
                     List<RbsiInisiatif> inisiatifs = group.getInisiatifs().stream()
@@ -516,6 +569,79 @@ public class RbsiServiceImpl implements RbsiService {
                 })
                 .toList();
     }
+
+@Override
+@Transactional(readOnly = true)
+public List<InisiatifGroupDropdownResponse> getInisiatifGroupsDropdown(UUID rbsiId) {
+    rbsiRepository.findById(rbsiId)
+            .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+    List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId).stream()
+            .filter(g -> !Boolean.TRUE.equals(g.getIsDeleted()))
+            .collect(Collectors.toList());
+
+    if (groups.isEmpty()) return List.of();
+
+    List<UUID> groupIds = groups.stream().map(InisiatifGroup::getId).toList();
+    List<RbsiInisiatif> inisiatifs = inisiatifRepository.findByGroupIdIn(groupIds);
+
+    // latest inisiatif per group (highest tahun)
+    Map<UUID, RbsiInisiatif> latestByGroup = inisiatifs.stream()
+            .collect(Collectors.toMap(
+                    i -> i.getGroup().getId(),
+                    i -> i,
+                    (i1, i2) -> i1.getTahun() >= i2.getTahun() ? i1 : i2
+            ));
+
+    Map<String, InisiatifGroupDropdownResponse> pgMap = new java.util.LinkedHashMap<>();
+
+    for (InisiatifGroup group : groups) {
+        RbsiInisiatif latest = latestByGroup.get(group.getId());
+        RbsiProgram latestProgram = latest != null ? latest.getProgram() : null;
+        ProgramGroup pg = latestProgram != null ? latestProgram.getProgramGroup() : null;
+
+        String pgId = pg != null ? pg.getId().toString() : null;
+        String pgName = pg != null ? pg.getNamaProgram() : (latestProgram != null ? latestProgram.getNamaProgram() : null);
+        String pgNomor = latestProgram != null ? latestProgram.getNomorProgram() : null;
+
+        String latestNomor = latest != null ? latest.getNomorInisiatif() : null;
+
+        InisiatifGroupDropdownResponse.InisiatifDropdownItem item =
+                new InisiatifGroupDropdownResponse.InisiatifDropdownItem(
+                        group.getId().toString(),
+                        group.getNamaInisiatif(),
+                        latestNomor
+                );
+
+        InisiatifGroupDropdownResponse container = pgMap.get(pgId);
+        if (container == null) {
+            container = InisiatifGroupDropdownResponse.builder()
+                    .programGroupId(pgId)
+                    .programGroupName(pgName)
+                    .programGroupNomor(pgNomor)
+                    .inisiatifGroups(new ArrayList<>())
+                    .build();
+            pgMap.put(pgId, container);
+        }
+        container.getInisiatifGroups().add(item);
+    }
+
+    // sort inisiatif groups by nomor (natural)
+    for (InisiatifGroupDropdownResponse resp : pgMap.values()) {
+        resp.getInisiatifGroups().sort(Comparator.comparing(
+                InisiatifGroupDropdownResponse.InisiatifDropdownItem::getInisiatifGroupNomor,
+                (a, b) -> NomorComparator.compare(a == null ? "" : a, b == null ? "" : b)
+        ));
+    }
+
+    List<InisiatifGroupDropdownResponse> result = new ArrayList<>(pgMap.values());
+    result.sort(Comparator.comparing(
+            r -> r.getProgramGroupNomor() == null ? "" : r.getProgramGroupNomor(),
+            NomorComparator::compare
+    ));
+
+    return result;
+}
 
     @Override
     @Transactional(readOnly = true)
@@ -577,12 +703,16 @@ public class RbsiServiceImpl implements RbsiService {
             throw new BadRequestException("Tidak ada program di tahun " + fromTahun + " untuk disalin.");
         }
 
+        RbsiKep targetKep = kepRepository.findByRbsiIdAndTahunPelaporan(rbsiId, toTahun)
+                .orElseThrow(() -> new BadRequestException("Belum ada KEP untuk tahun " + toTahun + ". Buat KEP terlebih dahulu."));
+
         List<RbsiProgramResponse> copiedPrograms = new ArrayList<>();
 
         for (RbsiProgram sourceProgram : sourcePrograms) {
             // Create new program
             RbsiProgram newProgram = RbsiProgram.builder()
-                    .rbsi(rbsi)
+                    .programGroup(sourceProgram.getProgramGroup())
+                    .kep(targetKep)
                     .tahun(toTahun)
                     .nomorProgram(sourceProgram.getNomorProgram())
                     .namaProgram(sourceProgram.getNamaProgram())
@@ -617,8 +747,8 @@ public class RbsiServiceImpl implements RbsiService {
         RbsiProgram sourceProgram = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program tidak ditemukan"));
 
-        Rbsi rbsi = sourceProgram.getRbsi();
-        
+        Rbsi rbsi = sourceProgram.getProgramGroup().getRbsi();
+
         // Use new number if provided, otherwise use source number
         String targetNomorProgram = newNomorProgram != null ? newNomorProgram : sourceProgram.getNomorProgram();
 
@@ -626,13 +756,17 @@ public class RbsiServiceImpl implements RbsiService {
         boolean exists = programRepository.existsByRbsiIdAndTahunAndNomorProgramAndIsDeletedFalse(
                 rbsi.getId(), toTahun, targetNomorProgram);
         if (exists) {
-            throw new BadRequestException("Program dengan nomor " + targetNomorProgram + 
+            throw new BadRequestException("Program dengan nomor " + targetNomorProgram +
                     " sudah ada di tahun " + toTahun);
         }
 
+        RbsiKep targetKep = kepRepository.findByRbsiIdAndTahunPelaporan(rbsi.getId(), toTahun)
+                .orElseThrow(() -> new BadRequestException("Belum ada KEP untuk tahun " + toTahun + ". Buat KEP terlebih dahulu."));
+
         // Create new program
         RbsiProgram newProgram = RbsiProgram.builder()
-                .rbsi(rbsi)
+                .programGroup(sourceProgram.getProgramGroup())
+                .kep(targetKep)
                 .tahun(toTahun)
                 .nomorProgram(targetNomorProgram)
                 .namaProgram(sourceProgram.getNamaProgram())
@@ -707,6 +841,124 @@ public class RbsiServiceImpl implements RbsiService {
                 .build();
         RbsiInisiatif savedInisiatif = inisiatifRepository.save(newInisiatif);
         return mapToInisiatifResponse(savedInisiatif);
+    }
+
+    // ==================== ProgramGroup Methods ====================
+
+    // TODO: review — getProgramGroups mirrors getInisiatifGroups. Decide if tahun_list
+    //       and nomor_program_by_year fields in ProgramGroupResponse are needed by the FE.
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProgramGroupResponse> getProgramGroups(UUID rbsiId) {
+        rbsiRepository.findById(rbsiId)
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        List<ProgramGroup> groups = programGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId);
+
+        return groups.stream()
+                .filter(group -> !Boolean.TRUE.equals(group.getIsDeleted()))
+                .map(group -> {
+                    List<RbsiProgram> programs = group.getPrograms().stream()
+                            .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
+                            .sorted(Comparator.comparing(RbsiProgram::getTahun))
+                            .toList();
+
+                    List<Integer> tahunList = programs.stream()
+                            .map(RbsiProgram::getTahun)
+                            .distinct()
+                            .sorted()
+                            .toList();
+
+                    List<ProgramGroupResponse.YearNomor> nomorByYear = programs.stream()
+                            .map(p -> ProgramGroupResponse.YearNomor.builder()
+                                    .tahun(p.getTahun())
+                                    .nomorProgram(p.getNomorProgram())
+                                    .build())
+                            .toList();
+
+                    return ProgramGroupResponse.builder()
+                            .id(group.getId())
+                            .rbsiId(group.getRbsi().getId())
+                            .namaProgram(group.getNamaProgram())
+                            .keterangan(group.getKeterangan())
+                            .tahunList(tahunList)
+                            .nomorProgramByYear(nomorByYear)
+                            .build();
+                })
+                .toList();
+    }
+
+    // TODO: review — createProgramGroup creates a standalone group without assigning any program yet.
+    //       The FE will need a separate call (createOrUpdateProgram with groupId) to link programs.
+    //       Consider whether to auto-link a program on creation or keep it decoupled.
+    @Override
+    @Transactional
+    public ProgramGroupResponse createProgramGroup(ProgramGroupRequest request) {
+        Rbsi rbsi = rbsiRepository.findById(request.getRbsiId())
+                .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
+
+        ProgramGroup group = ProgramGroup.builder()
+                .rbsi(rbsi)
+                .namaProgram(request.getNamaProgram())
+                .keterangan(request.getKeterangan())
+                .build();
+
+        ProgramGroup saved = programGroupRepository.save(group);
+        log.info("ProgramGroup created: {} for RBSI {}", saved.getId(), request.getRbsiId());
+
+        return mapToProgramGroupResponse(saved);
+    }
+
+    // TODO: review — updateProgramGroup updates name/keterangan on the group master.
+    //       Decide if namaProgram on the group should sync to all linked RbsiProgram.namaProgram
+    //       (like updateInisiatif syncs group.namaInisiatif), or stay independent.
+    @Override
+    @Transactional
+    public ProgramGroupResponse updateProgramGroup(UUID groupId, ProgramGroupRequest request) {
+        ProgramGroup group = programGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program group tidak ditemukan"));
+
+        if (!group.getRbsi().getId().equals(request.getRbsiId())) {
+            throw new BadRequestException("Rbsi id tidak sesuai dengan program group");
+        }
+
+        group.setNamaProgram(request.getNamaProgram());
+        group.setKeterangan(request.getKeterangan());
+
+        ProgramGroup saved = programGroupRepository.save(group);
+        log.info("ProgramGroup updated: {}", groupId);
+
+        return mapToProgramGroupResponse(saved);
+    }
+
+    // TODO: review — deleteProgramGroup hard-deletes the group row.
+    //       Decide: should this also null-out program_group_id on linked programs (unlink),
+    //       or block deletion when programs are still linked?
+    @Override
+    @Transactional
+    public void deleteProgramGroup(UUID groupId) {
+        ProgramGroup group = programGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program group tidak ditemukan"));
+
+        boolean hasLinkedPrograms = group.getPrograms().stream()
+                .anyMatch(p -> !Boolean.TRUE.equals(p.getIsDeleted()));
+        if (hasLinkedPrograms) {
+            throw new BadRequestException("Program group masih memiliki program aktif. Hapus atau unlink program terlebih dahulu.");
+        }
+
+        programGroupRepository.delete(group);
+        log.info("ProgramGroup deleted: {}", groupId);
+    }
+
+    private ProgramGroupResponse mapToProgramGroupResponse(ProgramGroup group) {
+        return ProgramGroupResponse.builder()
+                .id(group.getId())
+                .rbsiId(group.getRbsi().getId())
+                .namaProgram(group.getNamaProgram())
+                .keterangan(group.getKeterangan())
+                .tahunList(List.of())
+                .nomorProgramByYear(List.of())
+                .build();
     }
 
     // ==================== KEP Methods ====================
@@ -1045,7 +1297,9 @@ public class RbsiServiceImpl implements RbsiService {
 
         return RbsiProgramResponse.builder()
                 .id(program.getId())
-                .rbsiId(program.getRbsi().getId())
+                .rbsiId(program.getProgramGroup() != null ? program.getProgramGroup().getRbsi().getId() : null)
+                .kepId(program.getKep() != null ? program.getKep().getId() : null)
+                .groupId(program.getProgramGroup() != null ? program.getProgramGroup().getId() : null)
                 .tahun(program.getTahun())
                 .nomorProgram(program.getNomorProgram())
                 .namaProgram(program.getNamaProgram())
@@ -1054,6 +1308,28 @@ public class RbsiServiceImpl implements RbsiService {
                 .inisiatifs(inisiatifs)
                 .build();
     }
+
+        private ProgramGroup resolveProgramGroup(RbsiProgramRequest request, Rbsi rbsi, ProgramGroup currentGroup) {
+                ProgramGroup group;
+                if (request.getGroupId() != null) {
+                        group = programGroupRepository.findById(request.getGroupId())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Program group tidak ditemukan"));
+
+                        if (!group.getRbsi().getId().equals(rbsi.getId())) {
+                                throw new BadRequestException("Program group tidak sesuai dengan RBSI");
+                        }
+                } else if (currentGroup != null) {
+                        group = currentGroup;
+                } else {
+                        group = ProgramGroup.builder()
+                                        .rbsi(rbsi)
+                                        .namaProgram(request.getNamaProgram())
+                                        .build();
+                }
+
+                group.setNamaProgram(request.getNamaProgram());
+                return programGroupRepository.save(group);
+        }
 
     private RbsiInisiatifResponse mapToInisiatifResponse(RbsiInisiatif inisiatif) {
         return RbsiInisiatifResponse.builder()

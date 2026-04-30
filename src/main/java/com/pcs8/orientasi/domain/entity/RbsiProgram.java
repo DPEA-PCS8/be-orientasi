@@ -27,9 +27,15 @@ public class RbsiProgram extends BaseEntity {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
+    // TODO: review — program_group_id is nullable for now to support migration of existing data.
+    //       Once all existing programs are backfilled with a group, consider making it NOT NULL.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rbsi_id", nullable = false)
-    private Rbsi rbsi;
+    @JoinColumn(name = "program_group_id", nullable = true)
+    private ProgramGroup programGroup;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kep_id", nullable = false)
+    private RbsiKep kep;
 
     @Column(name = "tahun", nullable = false)
     private Integer tahun;

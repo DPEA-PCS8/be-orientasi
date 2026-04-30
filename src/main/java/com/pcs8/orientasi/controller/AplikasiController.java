@@ -50,6 +50,12 @@ public class AplikasiController {
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
+    @GetMapping("/dropdown")
+    public ResponseEntity<BaseResponse> getAllForDropdown() {
+        List<AplikasiResponse> responses = aplikasiService.getAllForDropdown();
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<BaseResponse> search(
             @RequestParam(required = false) String search,
