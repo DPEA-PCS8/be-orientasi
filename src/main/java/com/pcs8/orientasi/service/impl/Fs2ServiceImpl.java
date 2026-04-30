@@ -148,14 +148,12 @@ public class Fs2ServiceImpl implements Fs2Service {
                 // Monitoring Fields - Keterangan
                 .keterangan(request.getKeterangan())
                 // Tahapan Completion Dates
-                .tanggalPengajuanSelesai(request.getTanggalPengajuanSelesai())
                 .tanggalAsesmen(request.getTanggalAsesmen())
                 .tanggalPemrograman(request.getTanggalPemrograman())
                 .tanggalPengujianSelesai(request.getTanggalPengujianSelesai())
                 .tanggalDeploymentSelesai(request.getTanggalDeploymentSelesai())
                 .tanggalGoLive(request.getTanggalGoLive())
                 // Tahapan Statuses (normalize incoming values to canonical format)
-                .tahapanStatusPengajuan(normalizeTahapanStatus(request.getTahapanStatusPengajuan()))
                 .tahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()))
                 .tahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()))
                 .tahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()))
@@ -190,14 +188,14 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
+    public Page<Fs2DocumentResponse> search(String search, UUID aplikasiId, UUID bidangId, String statusTahapan, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', bidangId: {}, year: {}, month range: {}-{}", canSeeAll, userDepartment, bidangId, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
-            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable)
-                    .map(this::mapToResponse);
+            log.info("User can see all - fetching all F.S.2 documents with bidang filter: {}, year: {}, month range: {}-{}", bidangId, year, startMonth, endMonth);
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable)
+                .map(this::mapToResponse);
         }
         
         // SKPA users: if department is empty, return empty result (security)
@@ -211,10 +209,10 @@ public class Fs2ServiceImpl implements Fs2Service {
         
         // Find SKPA UUID for the user's department
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
-        if (userSkpa.isPresent()) {
+            if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, aplikasiId, statusTahapan, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
-                    .map(this::mapToResponse);
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, aplikasiId, statusTahapan, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
+                .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
             return Page.empty(pageable);
@@ -380,7 +378,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getKeterangan() != null) document.setKeterangan(request.getKeterangan());
 
         // Tahapan Completion Date Fields - only update if not null
-        if (request.getTanggalPengajuanSelesai() != null) document.setTanggalPengajuanSelesai(request.getTanggalPengajuanSelesai());
         if (request.getTanggalAsesmen() != null) document.setTanggalAsesmen(request.getTanggalAsesmen());
         if (request.getTanggalPemrograman() != null) document.setTanggalPemrograman(request.getTanggalPemrograman());
         if (request.getTanggalPengujianSelesai() != null) document.setTanggalPengujianSelesai(request.getTanggalPengujianSelesai());
@@ -388,7 +385,6 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getTanggalGoLive() != null) document.setTanggalGoLive(request.getTanggalGoLive());
 
         // Tahapan Status Fields - only update if not null
-        if (request.getTahapanStatusPengajuan() != null) document.setTahapanStatusPengajuan(normalizeTahapanStatus(request.getTahapanStatusPengajuan()));
         if (request.getTahapanStatusAsesmen() != null) document.setTahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()));
         if (request.getTahapanStatusPemrograman() != null) document.setTahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()));
         if (request.getTahapanStatusPengujian() != null) document.setTahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()));
@@ -428,47 +424,47 @@ public class Fs2ServiceImpl implements Fs2Service {
 
         // If the document is approved, derive and set per-tahapan statuses
         // from completion dates so monitoring and detail views stay consistent.
+        // NOTE: We intentionally treat "Pengajuan" as a non-displayed stage
+        // for Monitoring; the first visible active stage should be "Asesmen".
         if (status != null && "DISETUJUI".equalsIgnoreCase(status)) {
             boolean foundCurrent = false;
 
-            java.time.LocalDate dPengajuan = document.getTanggalPengajuanSelesai();
             java.time.LocalDate dAsesmen = document.getTanggalAsesmen();
             java.time.LocalDate dPemrograman = document.getTanggalPemrograman();
             java.time.LocalDate dPengujian = document.getTanggalPengujianSelesai();
             java.time.LocalDate dDeployment = document.getTanggalDeploymentSelesai();
             java.time.LocalDate dGoLive = document.getTanggalGoLive();
 
-            java.time.LocalDate[] dates = new java.time.LocalDate[] { dPengajuan, dAsesmen, dPemrograman, dPengujian, dDeployment, dGoLive };
+            // NOTE: Pengajuan is not shown as a separate active stage anymore;
+            // determine per-stage statuses starting from Asesmen.
+
+            // Determine active stage starting from Asesmen (skip Pengajuan as active by default)
+            java.time.LocalDate[] dates = new java.time.LocalDate[] { dAsesmen, dPemrograman, dPengujian, dDeployment, dGoLive };
 
             for (int i = 0; i < dates.length; i++) {
                 boolean hasDate = dates[i] != null;
                 switch (i) {
                     case 0:
-                        if (hasDate) document.setTahapanStatusPengajuan("SELESAI");
-                        else if (!foundCurrent) { document.setTahapanStatusPengajuan("DALAM_PROSES"); foundCurrent = true; }
-                        else document.setTahapanStatusPengajuan("BELUM_DIMULAI");
-                        break;
-                    case 1:
                         if (hasDate) document.setTahapanStatusAsesmen("SELESAI");
                         else if (!foundCurrent) { document.setTahapanStatusAsesmen("DALAM_PROSES"); foundCurrent = true; }
                         else document.setTahapanStatusAsesmen("BELUM_DIMULAI");
                         break;
-                    case 2:
+                    case 1:
                         if (hasDate) document.setTahapanStatusPemrograman("SELESAI");
                         else if (!foundCurrent) { document.setTahapanStatusPemrograman("DALAM_PROSES"); foundCurrent = true; }
                         else document.setTahapanStatusPemrograman("BELUM_DIMULAI");
                         break;
-                    case 3:
+                    case 2:
                         if (hasDate) document.setTahapanStatusPengujian("SELESAI");
                         else if (!foundCurrent) { document.setTahapanStatusPengujian("DALAM_PROSES"); foundCurrent = true; }
                         else document.setTahapanStatusPengujian("BELUM_DIMULAI");
                         break;
-                    case 4:
+                    case 3:
                         if (hasDate) document.setTahapanStatusDeployment("SELESAI");
                         else if (!foundCurrent) { document.setTahapanStatusDeployment("DALAM_PROSES"); foundCurrent = true; }
                         else document.setTahapanStatusDeployment("BELUM_DIMULAI");
                         break;
-                    case 5:
+                    case 4:
                         if (hasDate) document.setTahapanStatusGoLive("SELESAI");
                         else if (!foundCurrent) { document.setTahapanStatusGoLive("DALAM_PROSES"); foundCurrent = true; }
                         else document.setTahapanStatusGoLive("BELUM_DIMULAI");
@@ -604,14 +600,13 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 .keterangan(document.getKeterangan())
                 // Tahapan Completion Dates
-                .tanggalPengajuanSelesai(document.getTanggalPengajuanSelesai())
                 .tanggalAsesmen(document.getTanggalAsesmen())
                 .tanggalPemrograman(document.getTanggalPemrograman())
                 .tanggalPengujianSelesai(document.getTanggalPengujianSelesai())
                 .tanggalDeploymentSelesai(document.getTanggalDeploymentSelesai())
                 .tanggalGoLive(document.getTanggalGoLive())
                 // Tahapan Statuses
-                .tahapanStatusPengajuan(document.getTahapanStatusPengajuan())
+                
                 .tahapanStatusAsesmen(document.getTahapanStatusAsesmen())
                 .tahapanStatusPemrograman(document.getTahapanStatusPemrograman())
                 .tahapanStatusPengujian(document.getTahapanStatusPengujian())
@@ -781,9 +776,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 // Monitoring Fields - Keterangan
                 .keterangan(document.getKeterangan())
-                // Tahapan Status & Tanggal fields
-                .tahapanStatusPengajuan(document.getTahapanStatusPengajuan())
-                .tanggalPengajuanSelesai(document.getTanggalPengajuanSelesai())
+                // Tahapan Status & Tanggal fields (Pengajuan removed)
                 .tahapanStatusAsesmen(document.getTahapanStatusAsesmen())
                 .tanggalAsesmen(document.getTanggalAsesmen())
                 .tahapanStatusPemrograman(document.getTahapanStatusPemrograman())
@@ -847,12 +840,11 @@ public class Fs2ServiceImpl implements Fs2Service {
         }
 
         String[] stages = new String[] {
-                document.getTahapanStatusPengajuan(),
-                document.getTahapanStatusAsesmen(),
-                document.getTahapanStatusPemrograman(),
-                document.getTahapanStatusPengujian(),
-                document.getTahapanStatusDeployment(),
-                document.getTahapanStatusGoLive()
+            document.getTahapanStatusAsesmen(),
+            document.getTahapanStatusPemrograman(),
+            document.getTahapanStatusPengujian(),
+            document.getTahapanStatusDeployment(),
+            document.getTahapanStatusGoLive()
         };
 
         boolean anyDalam = false;

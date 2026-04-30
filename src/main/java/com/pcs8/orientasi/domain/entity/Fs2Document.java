@@ -303,11 +303,7 @@ public class Fs2Document extends BaseEntity {
     // === Tahapan Status & Tanggal (for Progres Tahapan tracking) ===
     
     // Pengajuan
-    @Column(name = "tahapan_status_pengajuan", length = 30)
-    private String tahapanStatusPengajuan;
-    
-    @Column(name = "tanggal_pengajuan_selesai")
-    private LocalDate tanggalPengajuanSelesai;
+    // NOTE: Pengajuan tahapan DB columns removed (now folded into Asesmen display)
 
     // Asesmen
     @Column(name = "tahapan_status_asesmen", length = 30)
