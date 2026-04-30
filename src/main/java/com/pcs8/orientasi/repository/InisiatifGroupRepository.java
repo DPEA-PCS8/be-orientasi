@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface InisiatifGroupRepository extends JpaRepository<InisiatifGroup, UUID> {
 
-    List<InisiatifGroup> findByRbsiIdOrderByCreatedAtAsc(UUID rbsiId);
+    List<InisiatifGroup> findByRbsiIdAndIsDeletedFalseOrderByCreatedAtAsc(UUID rbsiId);
 
     @Query("SELECT COUNT(i) FROM RbsiInisiatif i WHERE i.group.id = :groupId AND i.isDeleted = false")
     long countActiveByGroupId(@Param("groupId") UUID groupId);

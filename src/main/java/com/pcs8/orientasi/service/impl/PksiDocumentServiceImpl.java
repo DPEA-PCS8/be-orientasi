@@ -15,6 +15,7 @@ import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
+import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
@@ -59,6 +60,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
+    private final InisiatifGroupRepository inisiatifGroupRepository;
     private final PksiChangelogService pksiChangelogService;
     private final TeamRepository teamRepository;
     private final UserContext userContext;
@@ -530,7 +532,6 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 UUID inisiatifId = UUID.fromString(request.getInisiatifId());
                 rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
                     document.setInisiatif(inisiatif);
-                    // Also set the group for dashboard/analytics purposes
                     if (inisiatif.getGroup() != null) {
                         document.setInisiatifGroup(inisiatif.getGroup());
                     }
@@ -538,8 +539,17 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
             }
+        } else if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+            try {
+                UUID groupId = UUID.fromString(request.getInisiatifGroupId());
+                inisiatifGroupRepository.findById(groupId).ifPresent(group -> {
+                    document.setInisiatif(null);
+                    document.setInisiatifGroup(group);
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid inisiatif_group_id format: {}", request.getInisiatifGroupId());
+            }
         } else if (allowClear && request.getInisiatifId() != null && request.getInisiatifId().isEmpty()) {
-            // Clear the inisiatif if explicitly set to empty string
             document.setInisiatif(null);
             document.setInisiatifGroup(null);
         }
@@ -827,6 +837,12 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         if (document.getInisiatifGroup() != null) {
             Hibernate.initialize(document.getInisiatifGroup());
+            Hibernate.initialize(document.getInisiatifGroup().getInisiatifs());
+            if (document.getInisiatifGroup().getInisiatifs() != null) {
+                document.getInisiatifGroup().getInisiatifs().forEach(i -> {
+                    if (i.getProgram() != null) Hibernate.initialize(i.getProgram());
+                });
+            }
         }
         if (document.getTeam() != null) {
             Hibernate.initialize(document.getTeam());

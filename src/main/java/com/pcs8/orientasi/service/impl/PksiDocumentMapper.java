@@ -47,6 +47,8 @@ public interface PksiDocumentMapper {
     @Mapping(target = "inisiatifNomor", expression = "java(extractInisiatifNomor(document))")
     @Mapping(target = "inisiatifNama", expression = "java(extractInisiatifNama(document))")
     @Mapping(target = "inisiatifTahun", expression = "java(extractInisiatifTahun(document))")
+    @Mapping(target = "programNomor", expression = "java(extractProgramNomor(document))")
+    @Mapping(target = "programNama", expression = "java(extractProgramNama(document))")
     @Mapping(target = "teamId", expression = "java(extractTeamId(document))")
     @Mapping(target = "teamName", expression = "java(extractTeamName(document))")
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
@@ -113,6 +115,8 @@ public interface PksiDocumentMapper {
     @Mapping(target = "inisiatifNomor", expression = "java(extractInisiatifNomor(document))")
     @Mapping(target = "inisiatifNama", expression = "java(extractInisiatifNama(document))")
     @Mapping(target = "inisiatifTahun", expression = "java(extractInisiatifTahun(document))")
+    @Mapping(target = "programNomor", expression = "java(extractProgramNomor(document))")
+    @Mapping(target = "programNama", expression = "java(extractProgramNama(document))")
     @Mapping(target = "teamId", expression = "java(extractTeamIdOriginal(document))")
     @Mapping(target = "teamName", expression = "java(extractTeamNameOriginal(document))")
     @Mapping(target = "tanggalPengajuan", expression = "java(formatDate(document.getTanggalPengajuan()))")
@@ -268,6 +272,13 @@ public interface PksiDocumentMapper {
         if (document.getInisiatif() != null) {
             return document.getInisiatif().getNomorInisiatif();
         }
+        // Fallback: use first inisiatif of the group
+        if (document.getInisiatifGroup() != null && document.getInisiatifGroup().getInisiatifs() != null) {
+            return document.getInisiatifGroup().getInisiatifs().stream()
+                    .filter(i -> Boolean.FALSE.equals(i.getIsDeleted()))
+                    .map(i -> i.getNomorInisiatif())
+                    .findFirst().orElse(null);
+        }
         return null;
     }
 
@@ -275,12 +286,41 @@ public interface PksiDocumentMapper {
         if (document.getInisiatif() != null) {
             return document.getInisiatif().getNamaInisiatif();
         }
+        if (document.getInisiatifGroup() != null) {
+            return document.getInisiatifGroup().getNamaInisiatif();
+        }
         return null;
     }
 
     default Integer extractInisiatifTahun(PksiDocument document) {
         if (document.getInisiatif() != null) {
             return document.getInisiatif().getTahun();
+        }
+        return null;
+    }
+
+    default String extractProgramNomor(PksiDocument document) {
+        if (document.getInisiatif() != null && document.getInisiatif().getProgram() != null) {
+            return document.getInisiatif().getProgram().getNomorProgram();
+        }
+        if (document.getInisiatifGroup() != null && document.getInisiatifGroup().getInisiatifs() != null) {
+            return document.getInisiatifGroup().getInisiatifs().stream()
+                    .filter(i -> Boolean.FALSE.equals(i.getIsDeleted()) && i.getProgram() != null)
+                    .map(i -> i.getProgram().getNomorProgram())
+                    .findFirst().orElse(null);
+        }
+        return null;
+    }
+
+    default String extractProgramNama(PksiDocument document) {
+        if (document.getInisiatif() != null && document.getInisiatif().getProgram() != null) {
+            return document.getInisiatif().getProgram().getNamaProgram();
+        }
+        if (document.getInisiatifGroup() != null && document.getInisiatifGroup().getInisiatifs() != null) {
+            return document.getInisiatifGroup().getInisiatifs().stream()
+                    .filter(i -> Boolean.FALSE.equals(i.getIsDeleted()) && i.getProgram() != null)
+                    .map(i -> i.getProgram().getNamaProgram())
+                    .findFirst().orElse(null);
         }
         return null;
     }

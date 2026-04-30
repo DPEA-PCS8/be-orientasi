@@ -109,6 +109,46 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
     List<PksiDocument> findByInisiatifGroupIdIn(@Param("groupIds") List<UUID> groupIds);
 
     /**
+     * Get distinct years from PKSI timelines for given group IDs.
+     * A PKSI belongs to a year if any of its timeline dates fall in that year.
+     */
+    @Query("SELECT DISTINCT YEAR(pt.targetDate) FROM PksiTimeline pt " +
+           "WHERE pt.pksiDocument.inisiatifGroup.id IN :groupIds " +
+           "ORDER BY 1")
+    List<Integer> findDistinctTimelineYearsByGroupIds(@Param("groupIds") List<UUID> groupIds);
+
+    /**
+     * Get all (pksiId, year) pairs from timelines for given group IDs.
+     * Used to efficiently check which year(s) each PKSI covers.
+     */
+    @Query("SELECT pt.pksiDocument.id, YEAR(pt.targetDate) FROM PksiTimeline pt " +
+           "WHERE pt.pksiDocument.inisiatifGroup.id IN :groupIds")
+    List<Object[]> findPksiIdAndTimelineYearsByGroupIds(@Param("groupIds") List<UUID> groupIds);
+
+    /**
+     * Get all (pksiId, year) pairs from timelines for given pksi IDs.
+     * Used to get full year range for already-fetched PKSIs.
+     */
+    @Query("SELECT pt.pksiDocument.id, YEAR(pt.targetDate) FROM PksiTimeline pt " +
+           "WHERE pt.pksiDocument.id IN :pksiIds")
+    List<Object[]> findPksiIdAndTimelineYearsByPksiIds(@Param("pksiIds") List<UUID> pksiIds);
+
+    /**
+     * Find PKSIs in a given year (any timeline date falls in that year),
+     * scoped to the given group IDs or with no group assigned.
+     * Status filter is optional.
+     */
+    @Query("SELECT DISTINCT p FROM PksiDocument p " +
+           "JOIN PksiTimeline pt ON pt.pksiDocument = p " +
+           "WHERE (p.inisiatifGroup.id IN :groupIds OR p.inisiatifGroup IS NULL) " +
+           "AND YEAR(pt.targetDate) = :year " +
+           "AND (:status IS NULL OR :status = '' OR CAST(p.status AS string) = :status)")
+    List<PksiDocument> findByGroupIdsOrNullGroupAndTimelineYear(
+            @Param("groupIds") List<UUID> groupIds,
+            @Param("year") Integer year,
+            @Param("status") String status);
+
+    /**
      * Find PKSI documents by inisiatif group IDs with status filter
      */
     @Query("SELECT p FROM PksiDocument p WHERE p.inisiatifGroup.id IN :groupIds " +

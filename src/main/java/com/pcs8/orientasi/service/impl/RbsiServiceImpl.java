@@ -532,7 +532,7 @@ public class RbsiServiceImpl implements RbsiService {
         rbsiRepository.findById(rbsiId)
                 .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-        List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId);
+        List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdAndIsDeletedFalseOrderByCreatedAtAsc(rbsiId);
 
         return groups.stream()
                 .filter(group -> !Boolean.TRUE.equals(group.getIsDeleted()))
@@ -576,9 +576,7 @@ public List<InisiatifGroupDropdownResponse> getInisiatifGroupsDropdown(UUID rbsi
     rbsiRepository.findById(rbsiId)
             .orElseThrow(() -> new ResourceNotFoundException("RBSI tidak ditemukan"));
 
-    List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdOrderByCreatedAtAsc(rbsiId).stream()
-            .filter(g -> !Boolean.TRUE.equals(g.getIsDeleted()))
-            .collect(Collectors.toList());
+    List<InisiatifGroup> groups = inisiatifGroupRepository.findByRbsiIdAndIsDeletedFalseOrderByCreatedAtAsc(rbsiId);
 
     if (groups.isEmpty()) return List.of();
 

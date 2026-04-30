@@ -49,6 +49,12 @@ public class PksiDocumentResponse extends PksiDocumentFields {
     @JsonProperty("inisiatif_tahun")
     private Integer inisiatifTahun;
 
+    @JsonProperty("program_nomor")
+    private String programNomor;
+
+    @JsonProperty("program_nama")
+    private String programNama;
+
     @JsonProperty("team_name")
     private String teamName;
 
