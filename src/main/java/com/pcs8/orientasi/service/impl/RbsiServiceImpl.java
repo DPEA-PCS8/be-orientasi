@@ -464,6 +464,21 @@ public class RbsiServiceImpl implements RbsiService {
         
         // Capture old value untuk audit sebelum delete
         RbsiInisiatifResponse oldValue = mapToInisiatifResponse(inisiatif);
+
+        // Renumbering inisiatif on the same program and year with higher nomor_inisiatif
+        List<RbsiInisiatif> inisiatifsToRenumber = inisiatifRepository
+                .findByProgramIdAndTahunAndIsDeletedFalseOrderByNomorInisiatifAsc(
+                        inisiatif.getProgram().getId(), inisiatif.getTahun())
+                .stream()
+                .filter(ini -> NomorComparator.compare(ini.getNomorInisiatif(), inisiatif.getNomorInisiatif()) > 0)
+                .toList();
+
+        for (RbsiInisiatif ini : inisiatifsToRenumber) {
+            String newNomor = NomorComparator.decrement(ini.getNomorInisiatif());
+            ini.setNomorInisiatif(newNomor);
+            inisiatifRepository.save(ini);
+            log.info("Renumbered inisiatif {} from {} to {}", ini.getId(), ini.getNomorInisiatif(), newNomor);
+        }
         
         // Hard delete the inisiatif
         inisiatifRepository.delete(inisiatif);
