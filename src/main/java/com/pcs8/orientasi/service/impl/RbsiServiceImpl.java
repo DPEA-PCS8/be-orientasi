@@ -535,7 +535,7 @@ public class RbsiServiceImpl implements RbsiService {
                 log.info("InisiatifGroup soft deleted (no active inisiatifs): {}", group.getId());
             }
         }
-        log.info("Inisiatif hard deleted: {}", inisiatifId);
+        log.info("Inisiatif soft deleted: {}", inisiatifId);
         
         // Audit log
         auditService.logDelete(ENTITY_NAME_INISIATIF, inisiatifId, oldValue, userId, username);
