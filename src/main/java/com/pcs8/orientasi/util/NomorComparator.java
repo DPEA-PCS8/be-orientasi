@@ -55,4 +55,48 @@ public class NomorComparator {
         
         return 0;
     }
+
+    /**
+     * Decrement the last numeric segment of a dotted nomor string.
+     *
+     * Examples:
+     * - "3.2.2" -> "3.2.1"
+     * - "3.2a" -> "3.1a"
+     */
+    public static String decrement(String nomor) {
+        if (nomor == null || nomor.isBlank()) {
+            throw new IllegalArgumentException("Nomor is null or blank");
+        }
+
+        String[] parts = nomor.split("\\.");
+        int lastIndex = parts.length - 1;
+        String lastPart = parts[lastIndex];
+
+        String prefix = "";
+        String suffix = "";
+        int i = 0;
+        while (i < lastPart.length() && Character.isDigit(lastPart.charAt(i))) {
+            i++;
+        }
+        prefix = lastPart.substring(0, i);
+        suffix = lastPart.substring(i);
+
+        if (prefix.isEmpty()) {
+            throw new IllegalArgumentException("Nomor last segment is not numeric");
+        }
+
+        int value;
+        try {
+            value = Integer.parseInt(prefix);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Nomor last segment is not numeric", e);
+        }
+
+        if (value <= 1) {
+            throw new IllegalArgumentException("Nomor last segment cannot be decremented");
+        }
+
+        parts[lastIndex] = (value - 1) + suffix;
+        return String.join(".", parts);
+    }
 }
