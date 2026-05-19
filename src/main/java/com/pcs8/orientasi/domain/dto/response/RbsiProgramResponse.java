@@ -23,6 +23,12 @@ public class RbsiProgramResponse {
     @JsonProperty("rbsi_id")
     private UUID rbsiId;
 
+    @JsonProperty("kep_id")
+    private UUID kepId;
+
+    @JsonProperty("group_id")
+    private UUID groupId;
+
     @JsonProperty("tahun")
     private Integer tahun;
 

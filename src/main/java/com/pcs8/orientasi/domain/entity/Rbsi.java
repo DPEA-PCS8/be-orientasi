@@ -34,5 +34,5 @@ public class Rbsi extends BaseEntity {
 
     @OneToMany(mappedBy = "rbsi", cascade = CascadeType.ALL, orphanRemoval = true)
     @Default
-    private List<RbsiProgram> programs = new ArrayList<>();
+    private List<ProgramGroup> programGroups = new ArrayList<>();
 }

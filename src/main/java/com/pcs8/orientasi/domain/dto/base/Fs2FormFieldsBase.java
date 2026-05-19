@@ -231,13 +231,8 @@ public abstract class Fs2FormFieldsBase {
     private String keterangan;
 
     // === Tahapan Status & Tanggal (for Progres Tahapan tracking) ===
+    // NOTE: Pengajuan tahapan fields removed from DTOs (DB columns dropped)
     
-    @JsonProperty("tahapan_status_pengajuan")
-    private String tahapanStatusPengajuan;
-    
-    @JsonProperty("tanggal_pengajuan_selesai")
-    private LocalDate tanggalPengajuanSelesai;
-
     @JsonProperty("tahapan_status_asesmen")
     private String tahapanStatusAsesmen;
     

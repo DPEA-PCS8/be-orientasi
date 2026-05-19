@@ -1,6 +1,6 @@
 package com.pcs8.orientasi.repository;
 
-import com.pcs8.orientasi.domain.entity.InisiatifGroup;
+import com.pcs8.orientasi.domain.entity.ProgramGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface InisiatifGroupRepository extends JpaRepository<InisiatifGroup, UUID> {
+public interface ProgramGroupRepository extends JpaRepository<ProgramGroup, UUID> {
 
-    List<InisiatifGroup> findByRbsiIdAndIsDeletedFalseOrderByCreatedAtAsc(UUID rbsiId);
+    List<ProgramGroup> findByRbsiIdOrderByCreatedAtAsc(UUID rbsiId);
 
-    @Query("SELECT COUNT(i) FROM RbsiInisiatif i WHERE i.group.id = :groupId AND i.isDeleted = false")
+    @Query("SELECT COUNT(p) FROM RbsiProgram p WHERE p.programGroup.id = :groupId AND p.isDeleted = false")
     long countActiveByGroupId(@Param("groupId") UUID groupId);
 }

@@ -21,7 +21,7 @@ public interface Fs2ExcelExportService {
      * @return ByteArrayOutputStream containing the Excel file
      */
     ByteArrayOutputStream exportAllFs2ToExcel(
-            String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
+            String search, UUID bidangId, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
             Integer year, Integer startMonth, Integer endMonth,
             String userDepartment, boolean canSeeAll);
     

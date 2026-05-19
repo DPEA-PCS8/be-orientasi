@@ -71,9 +71,10 @@ public class Fs2Controller {
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<BaseResponse> search(
+        @GetMapping("/search")
+        public ResponseEntity<BaseResponse> search(
             @RequestParam(required = false) String search,
+            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
             @RequestParam(name = "aplikasi_id", required = false) UUID aplikasiId,
             @RequestParam(name = "status_tahapan", required = false) String statusTahapan,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
@@ -84,7 +85,7 @@ public class Fs2Controller {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest
-    ) {
+        ) {
         Pageable pageable = PageRequest.of(page, size);
         
         // Extract user info from request attributes (set by AuthorizationInterceptor)
@@ -100,7 +101,7 @@ public class Fs2Controller {
         
         log.info("F.S.2 Search - canSeeAll: {}", canSeeAll);
         
-        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll);
+        Page<Fs2DocumentResponse> pageResult = fs2Service.search(search, aplikasiId, bidangId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll);
         
         log.info("F.S.2 Search - Results count: {}", pageResult.getTotalElements());
         
@@ -222,8 +223,9 @@ public class Fs2Controller {
      * Export all F.S.2 documents to Excel
      */
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportAllToExcel(
+        public ResponseEntity<byte[]> exportAllToExcel(
             @RequestParam(required = false) String search,
+            @RequestParam(name = "bidang_id", required = false) UUID bidangId,
             @RequestParam(name = "aplikasi_id", required = false) UUID aplikasiId,
             @RequestParam(name = "status_tahapan", required = false) String statusTahapan,
             @RequestParam(name = "skpa_id", required = false) UUID skpaId,
@@ -232,7 +234,7 @@ public class Fs2Controller {
             @RequestParam(name = "start_month", required = false) Integer startMonth,
             @RequestParam(name = "end_month", required = false) Integer endMonth,
             HttpServletRequest httpRequest
-    ) {
+        ) {
         // Extract user info from request attributes
         @SuppressWarnings("unchecked")
         Set<String> userRoles = (Set<String>) httpRequest.getAttribute("user_roles");
@@ -242,7 +244,7 @@ public class Fs2Controller {
                 .anyMatch(role -> "admin".equalsIgnoreCase(role) || "pengembang".equalsIgnoreCase(role));
         
         ByteArrayOutputStream outputStream = fs2ExcelExportService.exportAllFs2ToExcel(
-                search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, userDepartment, canSeeAll);
+            search, bidangId, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, userDepartment, canSeeAll);
         
         String filename = "Semua_FS2_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
         
