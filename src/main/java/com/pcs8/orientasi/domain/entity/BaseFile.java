@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -55,4 +56,7 @@ public abstract class BaseFile extends BaseEntity {
 
     @Column(name = "display_name", length = 512)
     private String displayName;
+
+    @Column(name = "tanggal_dokumen")
+    private LocalDate tanggalDokumen;
 }

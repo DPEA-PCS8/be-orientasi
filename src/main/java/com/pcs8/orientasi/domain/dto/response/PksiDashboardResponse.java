@@ -89,8 +89,8 @@ public class PksiDashboardResponse {
         @JsonProperty("total_disetujui")
         private Integer totalDisetujui;
 
-        @JsonProperty("total_pending")
-        private Integer totalPending;
+        @JsonProperty("total_dikerjakan_dengan_cara_lain")
+        private Integer totalDikerjakanDenganCaraLain;
 
         @JsonProperty("total_ditolak")
         private Integer totalDitolak;

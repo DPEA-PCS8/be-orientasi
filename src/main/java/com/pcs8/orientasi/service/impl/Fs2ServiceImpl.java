@@ -1,23 +1,28 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.config.UserContext;
+import com.pcs8.orientasi.domain.dto.Fs2TimelineDto;
 import com.pcs8.orientasi.domain.dto.request.Fs2DocumentRequest;
 import com.pcs8.orientasi.domain.dto.response.Fs2DocumentResponse;
 import com.pcs8.orientasi.domain.entity.Fs2Document;
 import com.pcs8.orientasi.domain.entity.Fs2File;
+import com.pcs8.orientasi.domain.entity.Fs2Timeline;
 import com.pcs8.orientasi.domain.entity.MstAplikasi;
 import com.pcs8.orientasi.domain.entity.MstBidang;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstTeam;
 import com.pcs8.orientasi.domain.entity.MstUser;
+import com.pcs8.orientasi.domain.entity.PksiDocument;
 import com.pcs8.orientasi.exception.DataIntegrityViolationException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.Fs2DocumentRepository;
 import com.pcs8.orientasi.repository.Fs2FileRepository;
+import com.pcs8.orientasi.repository.Fs2TimelineRepository;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
 import com.pcs8.orientasi.repository.MstBidangRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
+import com.pcs8.orientasi.repository.PksiDocumentRepository;
 import com.pcs8.orientasi.repository.TeamRepository;
 import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
@@ -37,6 +42,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,11 +55,13 @@ public class Fs2ServiceImpl implements Fs2Service {
 
     private final Fs2DocumentRepository fs2Repository;
     private final Fs2FileRepository fs2FileRepository;
+    private final Fs2TimelineRepository fs2TimelineRepository;
     private final MstAplikasiRepository aplikasiRepository;
     private final MstBidangRepository bidangRepository;
     private final MstSkpaRepository skpaRepository;
     private final MstUserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final PksiDocumentRepository pksiDocumentRepository;
     private final AuditService auditService;
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
@@ -94,6 +103,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .aksesBersamaanSesudah(request.getAksesBersamaanSesudah())
                 .pertumbuhanDataSebelum(request.getPertumbuhanDataSebelum())
                 .pertumbuhanDataSesudah(request.getPertumbuhanDataSesudah())
+                .targetPemrograman(request.getTargetPemrograman())
                 .targetPengujian(request.getTargetPengujian())
                 .targetDeployment(request.getTargetDeployment())
                 .targetGoLive(request.getTargetGoLive())
@@ -137,6 +147,18 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .tanggalBerkasNdBa(request.getTanggalBerkasNdBa())
                 // Monitoring Fields - Keterangan
                 .keterangan(request.getKeterangan())
+                // Tahapan Completion Dates
+                .tanggalAsesmen(request.getTanggalAsesmen())
+                .tanggalPemrograman(request.getTanggalPemrograman())
+                .tanggalPengujianSelesai(request.getTanggalPengujianSelesai())
+                .tanggalDeploymentSelesai(request.getTanggalDeploymentSelesai())
+                .tanggalGoLive(request.getTanggalGoLive())
+                // Tahapan Statuses (normalize incoming values to canonical format)
+                .tahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()))
+                .tahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()))
+                .tahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()))
+                .tahapanStatusDeployment(normalizeTahapanStatus(request.getTahapanStatusDeployment()))
+                .tahapanStatusGoLive(normalizeTahapanStatus(request.getTahapanStatusGoLive()))
                 .build();
 
         setDocumentRelations(document, request);
@@ -166,14 +188,14 @@ public class Fs2ServiceImpl implements Fs2Service {
     }
 
     @Override
-    public Page<Fs2DocumentResponse> search(String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
-        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', year: {}, month range: {}-{}", canSeeAll, userDepartment, year, startMonth, endMonth);
+    public Page<Fs2DocumentResponse> search(String search, UUID aplikasiId, UUID bidangId, String statusTahapan, UUID skpaId, String status, Integer year, Integer startMonth, Integer endMonth, Pageable pageable, String userDepartment, boolean canSeeAll) {
+        log.info("Searching F.S.2 documents - canSeeAll: {}, userDepartment: '{}', bidangId: {}, year: {}, month range: {}-{}", canSeeAll, userDepartment, bidangId, year, startMonth, endMonth);
         
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
-            log.info("User can see all - fetching all F.S.2 documents with year filter: {}, month range: {}-{}", year, startMonth, endMonth);
-            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable)
-                    .map(this::mapToResponse);
+            log.info("User can see all - fetching all F.S.2 documents with bidang filter: {}, year: {}, month range: {}-{}", bidangId, year, startMonth, endMonth);
+            return fs2Repository.searchFs2DocumentsWithYearAndMonth(search, bidangId, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable)
+                .map(this::mapToResponse);
         }
         
         // SKPA users: if department is empty, return empty result (security)
@@ -187,10 +209,10 @@ public class Fs2ServiceImpl implements Fs2Service {
         
         // Find SKPA UUID for the user's department
         Optional<MstSkpa> userSkpa = skpaRepository.findByKodeSkpa(userDepartment.trim().toUpperCase());
-        if (userSkpa.isPresent()) {
+            if (userSkpa.isPresent()) {
             log.info("Found SKPA for department '{}': UUID = {}", userDepartment, userSkpa.get().getId());
-            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, aplikasiId, statusTahapan, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
-                    .map(this::mapToResponse);
+            return fs2Repository.searchFs2DocumentsByDepartmentWithYearAndMonth(search, bidangId, aplikasiId, statusTahapan, status, userDepartment.trim(), year, startMonth, endMonth, pageable)
+                .map(this::mapToResponse);
         } else {
             log.warn("No SKPA found for department '{}' - user will see no F.S.2", userDepartment);
             return Page.empty(pageable);
@@ -304,6 +326,7 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getAksesBersamaanSesudah() != null) document.setAksesBersamaanSesudah(request.getAksesBersamaanSesudah());
         if (request.getPertumbuhanDataSebelum() != null) document.setPertumbuhanDataSebelum(request.getPertumbuhanDataSebelum());
         if (request.getPertumbuhanDataSesudah() != null) document.setPertumbuhanDataSesudah(request.getPertumbuhanDataSesudah());
+        if (request.getTargetPemrograman() != null) document.setTargetPemrograman(request.getTargetPemrograman());
         if (request.getTargetPengujian() != null) document.setTargetPengujian(request.getTargetPengujian());
         if (request.getTargetDeployment() != null) document.setTargetDeployment(request.getTargetDeployment());
         if (request.getTargetGoLive() != null) document.setTargetGoLive(request.getTargetGoLive());
@@ -354,6 +377,20 @@ public class Fs2ServiceImpl implements Fs2Service {
         // Monitoring Fields - Keterangan - only update if not null
         if (request.getKeterangan() != null) document.setKeterangan(request.getKeterangan());
 
+        // Tahapan Completion Date Fields - only update if not null
+        if (request.getTanggalAsesmen() != null) document.setTanggalAsesmen(request.getTanggalAsesmen());
+        if (request.getTanggalPemrograman() != null) document.setTanggalPemrograman(request.getTanggalPemrograman());
+        if (request.getTanggalPengujianSelesai() != null) document.setTanggalPengujianSelesai(request.getTanggalPengujianSelesai());
+        if (request.getTanggalDeploymentSelesai() != null) document.setTanggalDeploymentSelesai(request.getTanggalDeploymentSelesai());
+        if (request.getTanggalGoLive() != null) document.setTanggalGoLive(request.getTanggalGoLive());
+
+        // Tahapan Status Fields - only update if not null
+        if (request.getTahapanStatusAsesmen() != null) document.setTahapanStatusAsesmen(normalizeTahapanStatus(request.getTahapanStatusAsesmen()));
+        if (request.getTahapanStatusPemrograman() != null) document.setTahapanStatusPemrograman(normalizeTahapanStatus(request.getTahapanStatusPemrograman()));
+        if (request.getTahapanStatusPengujian() != null) document.setTahapanStatusPengujian(normalizeTahapanStatus(request.getTahapanStatusPengujian()));
+        if (request.getTahapanStatusDeployment() != null) document.setTahapanStatusDeployment(normalizeTahapanStatus(request.getTahapanStatusDeployment()));
+        if (request.getTahapanStatusGoLive() != null) document.setTahapanStatusGoLive(normalizeTahapanStatus(request.getTahapanStatusGoLive()));
+
         setDocumentRelations(document, request);
 
         Fs2Document saved = fs2Repository.save(document);
@@ -384,6 +421,59 @@ public class Fs2ServiceImpl implements Fs2Service {
         
         // Update status
         document.setStatus(status);
+
+        // If the document is approved, derive and set per-tahapan statuses
+        // from completion dates so monitoring and detail views stay consistent.
+        // NOTE: We intentionally treat "Pengajuan" as a non-displayed stage
+        // for Monitoring; the first visible active stage should be "Asesmen".
+        if (status != null && "DISETUJUI".equalsIgnoreCase(status)) {
+            boolean foundCurrent = false;
+
+            java.time.LocalDate dAsesmen = document.getTanggalAsesmen();
+            java.time.LocalDate dPemrograman = document.getTanggalPemrograman();
+            java.time.LocalDate dPengujian = document.getTanggalPengujianSelesai();
+            java.time.LocalDate dDeployment = document.getTanggalDeploymentSelesai();
+            java.time.LocalDate dGoLive = document.getTanggalGoLive();
+
+            // NOTE: Pengajuan is not shown as a separate active stage anymore;
+            // determine per-stage statuses starting from Asesmen.
+
+            // Determine active stage starting from Asesmen (skip Pengajuan as active by default)
+            java.time.LocalDate[] dates = new java.time.LocalDate[] { dAsesmen, dPemrograman, dPengujian, dDeployment, dGoLive };
+
+            for (int i = 0; i < dates.length; i++) {
+                boolean hasDate = dates[i] != null;
+                switch (i) {
+                    case 0:
+                        if (hasDate) document.setTahapanStatusAsesmen("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusAsesmen("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusAsesmen("BELUM_DIMULAI");
+                        break;
+                    case 1:
+                        if (hasDate) document.setTahapanStatusPemrograman("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusPemrograman("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusPemrograman("BELUM_DIMULAI");
+                        break;
+                    case 2:
+                        if (hasDate) document.setTahapanStatusPengujian("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusPengujian("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusPengujian("BELUM_DIMULAI");
+                        break;
+                    case 3:
+                        if (hasDate) document.setTahapanStatusDeployment("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusDeployment("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusDeployment("BELUM_DIMULAI");
+                        break;
+                    case 4:
+                        if (hasDate) document.setTahapanStatusGoLive("SELESAI");
+                        else if (!foundCurrent) { document.setTahapanStatusGoLive("DALAM_PROSES"); foundCurrent = true; }
+                        else document.setTahapanStatusGoLive("BELUM_DIMULAI");
+                        break;
+                }
+            }
+            // Persist overall progres_status so Monitoring filters can match
+            document.setProgresStatus(deriveProgresStatus(document));
+        }
 
         Fs2Document saved = fs2Repository.save(document);
 
@@ -471,6 +561,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .aksesBersamaanSesudah(document.getAksesBersamaanSesudah())
                 .pertumbuhanDataSebelum(document.getPertumbuhanDataSebelum())
                 .pertumbuhanDataSesudah(document.getPertumbuhanDataSesudah())
+                .targetPemrograman(document.getTargetPemrograman())
                 .targetPengujian(document.getTargetPengujian())
                 .targetDeployment(document.getTargetDeployment())
                 .targetGoLive(document.getTargetGoLive())
@@ -508,6 +599,19 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .berkasNdBaDeployment(document.getBerkasNdBaDeployment())
                 .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 .keterangan(document.getKeterangan())
+                // Tahapan Completion Dates
+                .tanggalAsesmen(document.getTanggalAsesmen())
+                .tanggalPemrograman(document.getTanggalPemrograman())
+                .tanggalPengujianSelesai(document.getTanggalPengujianSelesai())
+                .tanggalDeploymentSelesai(document.getTanggalDeploymentSelesai())
+                .tanggalGoLive(document.getTanggalGoLive())
+                // Tahapan Statuses
+                
+                .tahapanStatusAsesmen(document.getTahapanStatusAsesmen())
+                .tahapanStatusPemrograman(document.getTahapanStatusPemrograman())
+                .tahapanStatusPengujian(document.getTahapanStatusPengujian())
+                .tahapanStatusDeployment(document.getTahapanStatusDeployment())
+                .tahapanStatusGoLive(document.getTahapanStatusGoLive())
                 .build();
     }
 
@@ -554,9 +658,40 @@ public class Fs2ServiceImpl implements Fs2Service {
         if (request.getAnggotaTimNames() != null) {
             document.setAnggotaTimNames(request.getAnggotaTimNames());
         }
+
+        // Handle PKSI reference (for Desain status - auto-fill jadwal pelaksanaan)
+        if (request.getPksiId() != null) {
+            PksiDocument pksi = pksiDocumentRepository.findById(request.getPksiId())
+                    .orElseThrow(() -> new ResourceNotFoundException("PKSI" + NOT_FOUND_WITH_ID + request.getPksiId()));
+            document.setPksi(pksi);
+        } else {
+            document.setPksi(null);
+        }
     }
 
     private Fs2DocumentResponse mapToResponse(Fs2Document document) {
+        // Query latest file dates for ND and CD to derive tanggal_nd and tanggal_cd
+        LocalDate latestNdFileDate = null;
+        LocalDate latestCdFileDate = null;
+        
+        if (document.getId() != null) {
+            // Get latest ND file date
+            Optional<Fs2File> latestNdFile = fs2FileRepository.findFirstByFs2DocumentIdAndFileTypeOrderByVersionDesc(
+                document.getId(), "ND"
+            );
+            if (latestNdFile.isPresent() && latestNdFile.get().getTanggalDokumen() != null) {
+                latestNdFileDate = latestNdFile.get().getTanggalDokumen();
+            }
+            
+            // Get latest CD file date
+            Optional<Fs2File> latestCdFile = fs2FileRepository.findFirstByFs2DocumentIdAndFileTypeOrderByVersionDesc(
+                document.getId(), "CD"
+            );
+            if (latestCdFile.isPresent() && latestCdFile.get().getTanggalDokumen() != null) {
+                latestCdFileDate = latestCdFile.get().getTanggalDokumen();
+            }
+        }
+        
         Fs2DocumentResponse.Fs2DocumentResponseBuilder builder = Fs2DocumentResponse.builder()
                 .id(document.getId())
                 .userId(document.getUserId())
@@ -587,6 +722,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .aksesBersamaanSesudah(document.getAksesBersamaanSesudah())
                 .pertumbuhanDataSebelum(document.getPertumbuhanDataSebelum())
                 .pertumbuhanDataSesudah(document.getPertumbuhanDataSesudah())
+                .targetPemrograman(document.getTargetPemrograman())
                 .targetPengujian(document.getTargetPengujian())
                 .targetDeployment(document.getTargetDeployment())
                 .targetGoLive(document.getTargetGoLive())
@@ -594,7 +730,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .pernyataan2(document.getPernyataan2())
                 // F.S.2 Disetujui fields
                 .progres(document.getProgres())
-                .progresStatus(document.getProgresStatus())
+                .progresStatus(deriveProgresStatus(document))
                 .tanggalProgres(document.getTanggalProgres())
                 .fasePengajuan(document.getFasePengajuan())
                 .iku(document.getIku())
@@ -611,31 +747,46 @@ public class Fs2ServiceImpl implements Fs2Service {
                 .anggotaTimNames(document.getAnggotaTimNames())
                 .dokumenPath(getFileUrl(document.getId(), "FS2"))
                 // Monitoring Fields - Dokumen Pengajuan F.S.2
+                // Use latest file date for tanggalNd instead of storing it separately
                 .nomorNd(document.getNomorNd())
-                .tanggalNd(document.getTanggalNd())
+                .tanggalNd(latestNdFileDate)
                 .berkasNd(getFileUrl(document.getId(), "ND"))
                 .berkasFs2(getFileUrl(document.getId(), "FS2"))
                 .tanggalBerkasFs2(document.getTanggalBerkasFs2())
                 // Monitoring Fields - CD Prinsip
+                // Use latest file date for tanggalCd instead of storing it separately
                 .nomorCd(document.getNomorCd())
-                .tanggalCd(document.getTanggalCd())
+                .tanggalCd(latestCdFileDate)
                 .berkasCd(getFileUrl(document.getId(), "CD"))
                 .berkasFs2a(getFileUrl(document.getId(), "FS2A"))
                 .tanggalBerkasFs2a(document.getTanggalBerkasFs2a())
                 .berkasFs2b(getFileUrl(document.getId(), "FS2B"))
                 .tanggalBerkasFs2b(document.getTanggalBerkasFs2b())
                 // Monitoring Fields - Pengujian
-                .realisasiPengujian(document.getRealisasiPengujian())
+                // Use tanggalPengujianSelesai for realisasiPengujian (Poin 3)
+                .realisasiPengujian(document.getTanggalPengujianSelesai())
                 .berkasF45(getFileUrl(document.getId(), "F45"))
                 .tanggalBerkasF45(document.getTanggalBerkasF45())
                 .berkasF46(getFileUrl(document.getId(), "F46"))
                 .tanggalBerkasF46(document.getTanggalBerkasF46())
                 // Monitoring Fields - Deployment
-                .realisasiDeployment(document.getRealisasiDeployment())
+                // Use tanggalDeploymentSelesai for realisasiDeployment (Poin 3)
+                .realisasiDeployment(document.getTanggalDeploymentSelesai())
                 .berkasNdBaDeployment(getFileUrl(document.getId(), "NDBA"))
                 .tanggalBerkasNdBa(document.getTanggalBerkasNdBa())
                 // Monitoring Fields - Keterangan
                 .keterangan(document.getKeterangan())
+                // Tahapan Status & Tanggal fields (Pengajuan removed)
+                .tahapanStatusAsesmen(document.getTahapanStatusAsesmen())
+                .tanggalAsesmen(document.getTanggalAsesmen())
+                .tahapanStatusPemrograman(document.getTahapanStatusPemrograman())
+                .tanggalPemrograman(document.getTanggalPemrograman())
+                .tahapanStatusPengujian(document.getTahapanStatusPengujian())
+                .tanggalPengujianSelesai(document.getTanggalPengujianSelesai())
+                .tahapanStatusDeployment(document.getTahapanStatusDeployment())
+                .tanggalDeploymentSelesai(document.getTanggalDeploymentSelesai())
+                .tahapanStatusGoLive(document.getTahapanStatusGoLive())
+                .tanggalGoLive(document.getTanggalGoLive())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt());
 
@@ -656,7 +807,89 @@ public class Fs2ServiceImpl implements Fs2Service {
                     .kodeSkpa(document.getSkpa().getKodeSkpa());
         }
 
+        if (document.getPksi() != null) {
+            builder.pksiId(document.getPksi().getId());
+            builder.pksiNama(document.getPksi().getNamaPksi());
+        }
+
+        // Map timelines for Progres Tahapan tracking
+        List<Fs2Timeline> timelines = fs2TimelineRepository.findByFs2DocumentIdOrderByStageAscPhaseAsc(document.getId());
+        List<Fs2TimelineDto> timelineDtos = timelines.stream()
+                .map(timeline -> Fs2TimelineDto.builder()
+                        .phase(timeline.getPhase())
+                        .targetDate(timeline.getTargetDate().toString())
+                        .stage(timeline.getStage().name())
+                        .build())
+                .collect(Collectors.toList());
+        builder.timelines(timelineDtos);
+
         return builder.build();
+    }
+
+    /**
+     * Derive the overall progres status when the stored `progresStatus` is null/empty.
+     * Priority: if explicit progresStatus exists, use it (lower-cased). Otherwise infer
+     * from per-stage tahapan status fields. Returns one of: "belum_dimulai", "dalam_proses", "selesai".
+     */
+    private String deriveProgresStatus(Fs2Document document) {
+        if (document == null) return null;
+
+        String stored = document.getProgresStatus();
+        if (stored != null && !stored.trim().isEmpty()) {
+            return stored.trim().toLowerCase();
+        }
+
+        String[] stages = new String[] {
+            document.getTahapanStatusAsesmen(),
+            document.getTahapanStatusPemrograman(),
+            document.getTahapanStatusPengujian(),
+            document.getTahapanStatusDeployment(),
+            document.getTahapanStatusGoLive()
+        };
+
+        boolean anyDalam = false;
+        boolean allSelesai = true;
+
+        for (String s : stages) {
+            if (s != null && s.equalsIgnoreCase("DALAM_PROSES")) {
+                anyDalam = true;
+                break;
+            }
+            if (s == null || !s.equalsIgnoreCase("SELESAI")) {
+                allSelesai = false;
+            }
+        }
+
+        if (anyDalam) return "dalam_proses";
+        if (allSelesai) return "selesai";
+        return "belum_dimulai";
+    }
+
+    /**
+     * Normalize tahapan status incoming values to canonical uppercase underscore format.
+     * Examples: 'Dalam proses', 'dalam proses', 'dalam_proses' -> 'DALAM_PROSES'
+     */
+    private String normalizeTahapanStatus(String status) {
+        if (status == null) return null;
+        String s = status.trim();
+        if (s.isEmpty()) return s;
+        String lower = s.toLowerCase(Locale.ROOT);
+        if (lower.contains("dalam") && lower.contains("proses")) return "DALAM_PROSES";
+        if (lower.contains("belum") && (lower.contains("mulai") || lower.contains("dimulai"))) return "BELUM_DIMULAI";
+        if (lower.contains("selesai")) return "SELESAI";
+
+        String normalized = lower.replace(" ", "_").replace("-", "_");
+        normalized = normalized.replaceAll("[^a-z0-9_]", "");
+        switch (normalized) {
+            case "dalam_proses":
+                return "DALAM_PROSES";
+            case "belum_dimulai":
+                return "BELUM_DIMULAI";
+            case "selesai":
+                return "SELESAI";
+            default:
+                return s.toUpperCase().replace(" ", "_");
+        }
     }
 
     /**

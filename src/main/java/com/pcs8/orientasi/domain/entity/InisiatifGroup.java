@@ -41,6 +41,10 @@ public class InisiatifGroup extends BaseEntity {
     @Column(name = "keterangan", length = 500)
     private String keterangan;
 
+    @lombok.Builder.Default
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BIT DEFAULT 0")
+    private Boolean isDeleted = false;
+
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     @lombok.Builder.Default
     private List<RbsiInisiatif> inisiatifs = new ArrayList<>();

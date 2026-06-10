@@ -1,32 +1,18 @@
 package com.pcs8.orientasi.domain.dto.response;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class PksiFileResponse {
-    private UUID id;
+@EqualsAndHashCode(callSuper = true)
+public class PksiFileResponse extends BaseFileResponse {
     private UUID pksiId;
-    private String fileName;
-    private String originalName;
-    private String contentType;
-    private Long fileSize;
-    private String blobUrl;
-    private String fileType; // T01 = Rencana PKSI, T11 = Spesifikasi Kebutuhan, T01_ND, T11_ND
-    private LocalDateTime createdAt;
-    private Integer version;
-    private UUID fileGroupId;
-    private String displayName;
-    private boolean isLatestVersion;
 }

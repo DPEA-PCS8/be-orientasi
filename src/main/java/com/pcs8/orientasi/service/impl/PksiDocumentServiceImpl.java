@@ -5,13 +5,17 @@ import com.pcs8.orientasi.domain.dto.ApprovalFields;
 import com.pcs8.orientasi.domain.dto.request.PksiDocumentRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateApprovalRequest;
 import com.pcs8.orientasi.domain.dto.request.UpdateStatusRequest;
+import com.pcs8.orientasi.domain.dto.response.ParentPksiSummary;
 import com.pcs8.orientasi.domain.dto.response.PksiDocumentResponse;
+import com.pcs8.orientasi.domain.dto.response.PksiHistorisResponse;
 import com.pcs8.orientasi.domain.entity.MstSkpa;
 import com.pcs8.orientasi.domain.entity.MstUser;
 import com.pcs8.orientasi.domain.entity.PksiDocument;
+import com.pcs8.orientasi.domain.entity.PksiTimeline;
 import com.pcs8.orientasi.exception.BadRequestException;
 import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstAplikasiRepository;
+import com.pcs8.orientasi.repository.InisiatifGroupRepository;
 import com.pcs8.orientasi.repository.RbsiInisiatifRepository;
 import com.pcs8.orientasi.repository.MstSkpaRepository;
 import com.pcs8.orientasi.repository.MstUserRepository;
@@ -26,12 +30,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -52,6 +60,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
     private final MstAplikasiRepository aplikasiRepository;
     private final MstSkpaRepository skpaRepository;
     private final RbsiInisiatifRepository rbsiInisiatifRepository;
+    private final InisiatifGroupRepository inisiatifGroupRepository;
     private final PksiChangelogService pksiChangelogService;
     private final TeamRepository teamRepository;
     private final UserContext userContext;
@@ -86,7 +95,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         log.info("PKSI document created successfully");
 
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(saved)));
+        return enrichWithSkpaNames(mapper.mapToResponseOriginal(initializeLazyRelations(saved)));
     }
 
     @Override
@@ -97,7 +106,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument document = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
 
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(document)));
+        return enrichWithSkpaNames(mapper.mapToResponseOriginal(initializeLazyRelations(document)));
     }
 
     @Override
@@ -107,7 +116,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findAllWithUser().stream()
                 .map(this::initializeLazyRelations)
-                .map(mapper::mapToResponse)
+                .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
@@ -119,7 +128,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.findByUserUuid(userId).stream()
                 .map(this::initializeLazyRelations)
-                .map(mapper::mapToResponse)
+                .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames)
                 .collect(Collectors.toList());
     }
@@ -135,7 +144,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
                 .map(this::initializeLazyRelations)
-                .map(mapper::mapToResponse)
+                .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames);
     }
 
@@ -153,7 +162,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             log.info("User can see all - fetching all documents");
             return pksiDocumentRepository.searchDocuments(searchPattern, sanitizedStatus, pageable)
                     .map(this::initializeLazyRelations)
-                    .map(mapper::mapToResponse)
+                    .map(mapper::mapToResponseOriginal)
                     .map(this::enrichWithSkpaNames);
         }
         
@@ -176,7 +185,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartment(searchPattern, sanitizedStatus, userDepartment.trim(), pageable)
                 .map(this::initializeLazyRelations)
-                .map(mapper::mapToResponse)
+                .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames);
         
         log.info("Search result: {} documents found for department '{}'", result.getTotalElements(), userDepartment);
@@ -194,9 +203,11 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         // Admin/Pengembang can see all documents
         if (canSeeAll) {
             log.info("User can see all - fetching all documents with filters (year: {})", year);
-            return pksiDocumentRepository.searchDocumentsWithFilters(searchPattern, sanitizedStatus, year, noInisiatif, pageable)
+            return pksiDocumentRepository.searchDocumentsWithFilters(
+                    searchPattern, sanitizedStatus, year, noInisiatif, 
+                    null, null, null, null, pageable)
                     .map(this::initializeLazyRelations)
-                    .map(mapper::mapToResponse)
+                    .map(mapper::mapToResponseOriginal)
                     .map(this::enrichWithSkpaNames);
         }
         
@@ -210,9 +221,10 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         log.info("User is SKPA - filtering by department: '{}' (year: {})", userDepartment, year);
         
         Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
-                searchPattern, sanitizedStatus, year, noInisiatif, userDepartment.trim(), pageable)
+                searchPattern, sanitizedStatus, year, noInisiatif, 
+                null, null, null, null, userDepartment.trim(), pageable)
                 .map(this::initializeLazyRelations)
-                .map(mapper::mapToResponse)
+                .map(mapper::mapToResponseOriginal)
                 .map(this::enrichWithSkpaNames);
         
         log.info("Search result with filters: {} documents found (year: {})", result.getTotalElements(), year);
@@ -222,9 +234,58 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
     @Override
     @Transactional(readOnly = true)
-    public long countDocuments(String status, Integer year, boolean noInisiatif) {
+    public Page<PksiDocumentResponse> searchDocumentsForMonitoring(String search, String status, Integer year, boolean noInisiatif, 
+            String timelineStage, Integer timelineFromMonth, Integer timelineToMonth, Integer timelineYear,
+            Pageable pageable, String userDepartment, boolean canSeeAll) {
+        // Sanitize and format search input with wildcards
+        String searchPattern = formatSearchPattern(search);
         String sanitizedStatus = sanitizeSearchInput(status);
-        return pksiDocumentRepository.countByStatusYearAndNoInisiatif(sanitizedStatus, year, noInisiatif);
+        String sanitizedTimelineStage = sanitizeSearchInput(timelineStage);
+        
+        // Admin/Pengembang can see all documents
+        if (canSeeAll) {
+            log.info("User can see all - fetching monitoring documents with filters (year: {}, timelineStage: {}, timelineFromMonth: {}, timelineToMonth: {}, timelineYear: {})", 
+                    year, sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear);
+            return pksiDocumentRepository.searchDocumentsWithFilters(
+                    searchPattern, sanitizedStatus, year, noInisiatif, 
+                    sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear, pageable)
+                    .map(this::initializeLazyRelations)
+                    .map(mapper::mapToResponseForMonitoring)
+                    .map(this::enrichWithSkpaNames);
+        }
+        
+        // SKPA users: if department is empty, return empty result (security)
+        if (userDepartment == null || userDepartment.trim().isEmpty()) {
+            log.warn("SKPA user has no department set - returning empty result for security");
+            return Page.empty(pageable);
+        }
+        
+        // SKPA users only see documents where SKPA kode matches their department
+        log.info("User is SKPA - filtering monitoring by department: '{}' (year: {}, timelineStage: {}, timelineFromMonth: {}, timelineToMonth: {}, timelineYear: {})", 
+                userDepartment, year, sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear);
+        
+        Page<PksiDocumentResponse> result = pksiDocumentRepository.searchDocumentsByDepartmentWithFilters(
+                searchPattern, sanitizedStatus, year, noInisiatif, 
+                sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear, userDepartment.trim(), pageable)
+                .map(this::initializeLazyRelations)
+                .map(mapper::mapToResponseForMonitoring)
+                .map(this::enrichWithSkpaNames);
+        
+        log.info("Monitoring search result with filters: {} documents found (year: {}, timelineStage: {}, timelineFromMonth: {}, timelineToMonth: {}, timelineYear: {})", 
+                result.getTotalElements(), year, sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear);
+        
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countDocuments(String status, Integer year, boolean noInisiatif, 
+            String timelineStage, Integer timelineFromMonth, Integer timelineToMonth, Integer timelineYear) {
+        String sanitizedStatus = sanitizeSearchInput(status);
+        String sanitizedTimelineStage = sanitizeSearchInput(timelineStage);
+        return pksiDocumentRepository.countByStatusYearAndNoInisiatif(
+                sanitizedStatus, year, noInisiatif, 
+                sanitizedTimelineStage, timelineFromMonth, timelineToMonth, timelineYear);
     }
     
     /**
@@ -282,7 +343,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             pksiChangelogService.trackChanges(updated, oldSnapshot, updatedBy);
         }
 
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
+        return enrichWithSkpaNames(mapper.mapToResponseOriginal(initializeLazyRelations(updated)));
     }
 
     @Override
@@ -312,6 +373,11 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         PksiDocument.DocumentStatus newStatus = parseDocumentStatus(request.getStatus(), id);
         document.setStatus(newStatus);
 
+        // Handle DIKERJAKAN_DENGAN_CARA_LAIN status - validate and set parent PKSI
+        if (newStatus == PksiDocument.DocumentStatus.DIKERJAKAN_DENGAN_CARA_LAIN) {
+            handleNestedPksiStatus(document, request);
+        }
+
         // Save approval fields if status is DISETUJUI (both for new approval and editing existing)
         if (newStatus == PksiDocument.DocumentStatus.DISETUJUI) {
             applyApprovalFields(document, request);
@@ -326,7 +392,74 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
 
         log.info("PKSI document status updated successfully");
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
+        return enrichWithSkpaNames(mapper.mapToResponseOriginal(initializeLazyRelations(updated)));
+    }
+
+    /**
+     * Handle nested PKSI status (DIKERJAKAN_DENGAN_CARA_LAIN).
+     * Validates and sets the parent PKSI reference.
+     */
+    private void handleNestedPksiStatus(PksiDocument document, UpdateStatusRequest request) {
+        // Validate that parent_pksi_id is provided
+        if (request.getParentPksiId() == null || request.getParentPksiId().trim().isEmpty()) {
+            throw new BadRequestException("Parent PKSI ID is required when status is DIKERJAKAN_DENGAN_CARA_LAIN");
+        }
+
+        UUID parentPksiId;
+        try {
+            parentPksiId = UUID.fromString(request.getParentPksiId());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid parent PKSI ID format");
+        }
+
+        // Prevent self-reference
+        if (document.getId().equals(parentPksiId)) {
+            throw new BadRequestException("PKSI cannot reference itself as parent");
+        }
+
+        // Find and validate parent PKSI
+        PksiDocument parentPksi = pksiDocumentRepository.findByIdWithUser(parentPksiId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent PKSI not found"));
+
+        // Validate parent PKSI status is DISETUJUI
+        if (parentPksi.getStatus() != PksiDocument.DocumentStatus.DISETUJUI) {
+            throw new BadRequestException("Parent PKSI must have status DISETUJUI");
+        }
+
+        // Validate parent is not already a child (max 1 level nesting)
+        if (parentPksi.getParentPksi() != null) {
+            throw new BadRequestException("Cannot nest to a PKSI that is already a child of another PKSI. Maximum nesting level is 1.");
+        }
+
+        // Validate parent PKSI is from the same year (based on timeline)
+        if (!isSameYearPksi(document, parentPksi)) {
+            log.warn("Parent PKSI is from a different year - allowing but logging warning");
+        }
+
+        document.setParentPksi(parentPksi);
+        log.info("Set parent PKSI reference: {} -> {}", document.getId(), parentPksiId);
+    }
+
+    /**
+     * Check if two PKSI documents are from the same year based on their timelines.
+     */
+    private boolean isSameYearPksi(PksiDocument doc1, PksiDocument doc2) {
+        Integer year1 = extractPksiYear(doc1);
+        Integer year2 = extractPksiYear(doc2);
+        return year1 != null && year1.equals(year2);
+    }
+
+    /**
+     * Extract the year from PKSI based on timeline GO_LIVE date.
+     */
+    private Integer extractPksiYear(PksiDocument document) {
+        if (document.getTargetGoLiveDateLastPhase() != null) {
+            return document.getTargetGoLiveDateLastPhase().getYear();
+        }
+        if (document.getTanggalPengajuan() != null) {
+            return document.getTanggalPengajuan().getYear();
+        }
+        return null;
     }
 
     private PksiDocument.DocumentStatus parseDocumentStatus(String status, UUID documentId) {
@@ -399,7 +532,6 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
                 UUID inisiatifId = UUID.fromString(request.getInisiatifId());
                 rbsiInisiatifRepository.findById(inisiatifId).ifPresent(inisiatif -> {
                     document.setInisiatif(inisiatif);
-                    // Also set the group for dashboard/analytics purposes
                     if (inisiatif.getGroup() != null) {
                         document.setInisiatifGroup(inisiatif.getGroup());
                     }
@@ -407,8 +539,17 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid inisiatif ID format: {}", request.getInisiatifId());
             }
+        } else if (request.getInisiatifGroupId() != null && !request.getInisiatifGroupId().isEmpty()) {
+            try {
+                UUID groupId = UUID.fromString(request.getInisiatifGroupId());
+                inisiatifGroupRepository.findById(groupId).ifPresent(group -> {
+                    document.setInisiatif(null);
+                    document.setInisiatifGroup(group);
+                });
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid inisiatif_group_id format: {}", request.getInisiatifGroupId());
+            }
         } else if (allowClear && request.getInisiatifId() != null && request.getInisiatifId().isEmpty()) {
-            // Clear the inisiatif if explicitly set to empty string
             document.setInisiatif(null);
             document.setInisiatifGroup(null);
         }
@@ -680,7 +821,7 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         // Re-fetch to ensure all lazy relations are loaded
         PksiDocument updated = pksiDocumentRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException(PKSI_NOT_FOUND));
-        return enrichWithSkpaNames(mapper.mapToResponse(initializeLazyRelations(updated)));
+        return enrichWithSkpaNames(mapper.mapToResponseOriginal(initializeLazyRelations(updated)));
     }
 
     /**
@@ -696,6 +837,12 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         }
         if (document.getInisiatifGroup() != null) {
             Hibernate.initialize(document.getInisiatifGroup());
+            Hibernate.initialize(document.getInisiatifGroup().getInisiatifs());
+            if (document.getInisiatifGroup().getInisiatifs() != null) {
+                document.getInisiatifGroup().getInisiatifs().forEach(i -> {
+                    if (i.getProgram() != null) Hibernate.initialize(i.getProgram());
+                });
+            }
         }
         if (document.getTeam() != null) {
             Hibernate.initialize(document.getTeam());
@@ -703,6 +850,13 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
         // Initialize timelines
         if (document.getTimelines() != null) {
             Hibernate.initialize(document.getTimelines());
+        }
+        // Initialize nested PKSI relations
+        if (document.getParentPksi() != null) {
+            Hibernate.initialize(document.getParentPksi());
+        }
+        if (document.getChildPksiList() != null) {
+            Hibernate.initialize(document.getChildPksiList());
         }
         return document;
     }
@@ -737,5 +891,66 @@ public class PksiDocumentServiceImpl implements PksiDocumentService {
 
         response.setPicSatkerNames(resolvedNames.isEmpty() ? null : resolvedNames);
         return response;
+    }
+
+    // ==================== NESTED PKSI METHODS ====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParentPksiSummary> getAvailableParentPksi(Integer year, UUID excludeId) {
+        log.info("Fetching available parent PKSI for nesting - year: {}, excludeId: {}", year, excludeId);
+        
+        return pksiDocumentRepository.findAvailableParentPksi(year, excludeId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PksiDocumentResponse> getChildPksi(UUID parentId) {
+        log.info("Fetching child PKSI for parent: {}", parentId);
+
+        return pksiDocumentRepository.findChildPksiByParentId(parentId).stream()
+                .map(this::initializeLazyRelations)
+                .map(mapper::mapToResponseOriginal)
+                .map(this::enrichWithSkpaNames)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PksiHistorisResponse> getHistorisByAplikasi(UUID aplikasiId) {
+        log.info("Fetching PKSI historis for aplikasi: {}", aplikasiId);
+
+        return pksiDocumentRepository.findAllByAplikasiId(aplikasiId, Sort.by("tanggalPengajuan").descending()).stream()
+                .map(doc -> {
+                    String tahun = extractPksiMultiYear(doc);
+                    return PksiHistorisResponse.builder()
+                            .id(doc.getId().toString())
+                            .namaPksi(doc.getNamaPksi())
+                            .tahun(tahun)
+                            .ruangLingkup(doc.getRuangLingkup())
+                            .status(doc.getStatus() != null ? doc.getStatus().name() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String extractPksiMultiYear(PksiDocument document) {
+        // Check if pksi multi year or not based on timelines
+        List<PksiTimeline> timelines = document.getTimelines();
+        if (timelines != null && !timelines.isEmpty()) {
+            Set<Integer> years = timelines.stream()
+                    .map(PksiTimeline::getTargetDate)
+                    .filter(Objects::nonNull)
+                    .map(LocalDate::getYear)
+                    .collect(Collectors.toSet());
+            if (years.size() == 1) {
+                return years.iterator().next().toString();
+            } else if (years.size() > 1) {
+                return years.stream().sorted().map(String::valueOf).collect(Collectors.joining(", "));
+            }
+        }
+        // Fallback to extracting year from tanggal pengajuan
+        Integer year = extractPksiYear(document);
+        return year != null ? year.toString() : "N/A";
     }
 }

@@ -27,6 +27,9 @@ public interface MstAplikasiRepository extends JpaRepository<MstAplikasi, UUID> 
     @Query("SELECT a FROM MstAplikasi a ORDER BY a.kodeAplikasi ASC")
     List<MstAplikasi> findAllLightweightList();
 
+    @Query("SELECT a FROM MstAplikasi a LEFT JOIN FETCH a.skpa LEFT JOIN FETCH a.subKategori ORDER BY a.kodeAplikasi ASC")
+    List<MstAplikasi> findAllWithSkpaAndSubKategori();
+
     @Query("SELECT a FROM MstAplikasi a WHERE " +
            "(:search IS NULL OR LOWER(a.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(a.kodeAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +

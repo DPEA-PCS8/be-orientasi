@@ -4,6 +4,7 @@ import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.ArsitekturRbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.ArsitekturRbsiResponse;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
+import com.pcs8.orientasi.domain.dto.response.SnapshotArsitekturRbsiResponse;
 import com.pcs8.orientasi.service.ArsitekturRbsiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,5 +65,20 @@ public class ArsitekturRbsiController {
     public ResponseEntity<BaseResponse> deleteByRbsiId(@PathVariable UUID rbsiId) {
         arsitekturRbsiService.deleteByRbsiId(rbsiId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Arsitektur RBSI berhasil dihapus untuk RBSI ini", null));
+    }
+
+    // Snapshot state saat ini + sinkronisasi year_status tahun ini dengan status aplikasi aktual
+    @PostMapping("/update-data/{rbsiId}")
+    public ResponseEntity<BaseResponse> updateData(@PathVariable UUID rbsiId) {
+        List<ArsitekturRbsiResponse> responses = arsitekturRbsiService.updateData(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(),
+                "Data arsitektur berhasil diperbarui dan disinkronisasi", responses));
+    }
+
+    // Riwayat snapshot, dikelompokkan per tanggal
+    @GetMapping("/snapshots/{rbsiId}")
+    public ResponseEntity<BaseResponse> getSnapshots(@PathVariable UUID rbsiId) {
+        List<SnapshotArsitekturRbsiResponse.SnapshotGroup> groups = arsitekturRbsiService.getSnapshots(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", groups));
     }
 }

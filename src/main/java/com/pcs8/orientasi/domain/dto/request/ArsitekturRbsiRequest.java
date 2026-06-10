@@ -18,15 +18,22 @@ public class ArsitekturRbsiRequest {
     @NotNull(message = "RBSI ID is required")
     private UUID rbsiId;
 
+    // Aplikasi yang dipilih user — menjadi sumber auto-fill sub_kategori & skpa
+    @JsonProperty("aplikasi_id")
+    private UUID aplikasiId;
+
+    // Auto-filled dari aplikasi, tapi editable oleh user
     @JsonProperty("sub_kategori_id")
-    @NotNull(message = "Sub Kategori ID is required")
     private UUID subKategoriId;
 
-    @JsonProperty("aplikasi_baseline_id")
-    private UUID aplikasiBaselineId;
+    @JsonProperty("skpa_id")
+    private UUID skpaId;
 
-    @JsonProperty("aplikasi_target_id")
-    private UUID aplikasiTargetId;
+    @JsonProperty("aplikasi_baseline")
+    private String aplikasiBaseline;
+
+    @JsonProperty("aplikasi_target")
+    private String aplikasiTarget;
 
     @JsonProperty("action")
     @Size(max = 50, message = "Action max 50 characters")
@@ -36,9 +43,10 @@ public class ArsitekturRbsiRequest {
     @Size(max = 500, message = "Year statuses max 500 characters")
     private String yearStatuses;
 
-    @JsonProperty("inisiatif_id")
-    private UUID inisiatifId;
+    // Relasi ke InisiatifGroup (bukan RbsiInisiatif)
+    @JsonProperty("inisiatif_group_id")
+    private UUID inisiatifGroupId;
 
-    @JsonProperty("skpa_id")
-    private UUID skpaId;
+    @JsonProperty("keterangan")
+    private String keterangan;
 }

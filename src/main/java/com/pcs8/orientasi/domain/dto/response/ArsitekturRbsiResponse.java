@@ -28,11 +28,15 @@ public class ArsitekturRbsiResponse {
     @JsonProperty("sub_kategori")
     private SubKategoriResponse subKategori;
 
+    // Aplikasi yang dipilih sebagai referensi utama
+    @JsonProperty("aplikasi")
+    private AplikasiResponse aplikasi;
+
     @JsonProperty("aplikasi_baseline")
-    private AplikasiResponse aplikasiBaseline;
+    private String aplikasiBaseline;
 
     @JsonProperty("aplikasi_target")
-    private AplikasiResponse aplikasiTarget;
+    private String aplikasiTarget;
 
     @JsonProperty("action")
     private String action;
@@ -40,11 +44,14 @@ public class ArsitekturRbsiResponse {
     @JsonProperty("year_statuses")
     private String yearStatuses;
 
-    @JsonProperty("inisiatif")
-    private InisiatifSimpleResponse inisiatif;
+    @JsonProperty("inisiatif_group")
+    private InisiatifGroupSimpleResponse inisiatifGroup;
 
     @JsonProperty("skpa")
     private SkpaResponse skpa;
+
+    @JsonProperty("keterangan")
+    private String keterangan;
 
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
@@ -57,19 +64,13 @@ public class ArsitekturRbsiResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class InisiatifSimpleResponse {
+    public static class InisiatifGroupSimpleResponse {
         private UUID id;
-
-        @JsonProperty("nomor_inisiatif")
-        private String nomorInisiatif;
 
         @JsonProperty("nama_inisiatif")
         private String namaInisiatif;
 
-        @JsonProperty("program_id")
-        private UUID programId;
-
-        @JsonProperty("nama_program")
-        private String namaProgram;
+        @JsonProperty("keterangan")
+        private String keterangan;
     }
 }

@@ -253,9 +253,47 @@ public class AplikasiServiceImpl implements AplikasiService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AplikasiResponse> getAllForDropdown() {
+        return aplikasiRepository.findAllWithSkpaAndSubKategori()
+                .stream()
+                .map(a -> {
+                    AplikasiResponse.AplikasiResponseBuilder builder = AplikasiResponse.builder()
+                            .id(a.getId())
+                            .kodeAplikasi(a.getKodeAplikasi())
+                            .namaAplikasi(a.getNamaAplikasi())
+                            .statusAplikasi(a.getStatusAplikasi());
+                    if (a.getSkpa() != null) {
+                        builder.skpa(SkpaInfo.builder()
+                                .id(a.getSkpa().getId())
+                                .kodeSkpa(a.getSkpa().getKodeSkpa())
+                                .namaSkpa(a.getSkpa().getNamaSkpa())
+                                .build());
+                    }
+                    if (a.getSubKategori() != null) {
+                        builder.subKategori(SubKategoriInfo.builder()
+                                .id(a.getSubKategori().getId())
+                                .kode(a.getSubKategori().getKode())
+                                .nama(a.getSubKategori().getNama())
+                                .categoryCode(a.getSubKategori().getCategoryCode())
+                                .build());
+                    }
+                    return builder.build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<AplikasiResponse> search(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable) {
         return aplikasiRepository.searchAplikasi(search, bidangId, skpaId, status, pageable)
                 .map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AplikasiListResponse> searchLight(String search, UUID bidangId, UUID skpaId, String status, Pageable pageable) {
+        return aplikasiRepository.searchAplikasi(search, bidangId, skpaId, status, pageable)
+                .map(this::mapToListResponse);
     }
 
     @Override
@@ -556,6 +594,39 @@ public class AplikasiServiceImpl implements AplikasiService {
                     .collect(Collectors.toList()));
         }
 
+        return builder.build();
+    }
+
+    private AplikasiListResponse mapToListResponse(MstAplikasi entity) {
+        AplikasiListResponse.AplikasiListResponseBuilder builder = AplikasiListResponse.builder()
+                .id(entity.getId())
+                .kodeAplikasi(entity.getKodeAplikasi())
+                .namaAplikasi(entity.getNamaAplikasi())
+                .statusAplikasi(entity.getStatusAplikasi());
+
+        if (entity.getBidang() != null) {
+            builder.bidang(BidangInfo.builder()
+                    .id(entity.getBidang().getId())
+                    .kodeBidang(entity.getBidang().getKodeBidang())
+                    .namaBidang(entity.getBidang().getNamaBidang())
+                    .build());
+        }
+        if (entity.getSkpa() != null) {
+            builder.skpa(SkpaInfo.builder()
+                    .id(entity.getSkpa().getId())
+                    .kodeSkpa(entity.getSkpa().getKodeSkpa())
+                    .namaSkpa(entity.getSkpa().getNamaSkpa())
+                    .build());
+        }
+        if (entity.getSubKategori() != null) {
+            builder.subKategori(SubKategoriInfo.builder()
+                    .id(entity.getSubKategori().getId())
+                    .kode(entity.getSubKategori().getKode())
+                    .nama(entity.getSubKategori().getNama())
+                    .categoryCode(entity.getSubKategori().getCategoryCode())
+                    .categoryName(entity.getSubKategori().getCategoryName())
+                    .build());
+        }
         return builder.build();
     }
 

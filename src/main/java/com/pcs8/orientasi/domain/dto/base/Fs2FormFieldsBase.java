@@ -96,6 +96,9 @@ public abstract class Fs2FormFieldsBase {
     private String pertumbuhanDataSesudah;
 
     // Jadwal Pelaksanaan
+    @JsonProperty("target_pemrograman")
+    private LocalDate targetPemrograman;
+
     @JsonProperty("target_pengujian")
     private LocalDate targetPengujian;
 
@@ -144,6 +147,10 @@ public abstract class Fs2FormFieldsBase {
     // Team Structure
     @JsonProperty("team_id")
     private UUID teamId;
+
+    // PKSI Reference (for Desain status - auto-fill jadwal pelaksanaan)
+    @JsonProperty("pksi_id")
+    private UUID pksiId;
 
     @JsonProperty("anggota_tim")
     private String anggotaTim;
@@ -222,4 +229,36 @@ public abstract class Fs2FormFieldsBase {
 
     // Keterangan
     private String keterangan;
+
+    // === Tahapan Status & Tanggal (for Progres Tahapan tracking) ===
+    // NOTE: Pengajuan tahapan fields removed from DTOs (DB columns dropped)
+    
+    @JsonProperty("tahapan_status_asesmen")
+    private String tahapanStatusAsesmen;
+    
+    @JsonProperty("tanggal_asesmen")    private LocalDate tanggalAsesmen;
+
+    @JsonProperty("tahapan_status_pemrograman")
+    private String tahapanStatusPemrograman;
+    
+    @JsonProperty("tanggal_pemrograman")
+    private LocalDate tanggalPemrograman;
+
+    @JsonProperty("tahapan_status_pengujian")
+    private String tahapanStatusPengujian;
+    
+    @JsonProperty("tanggal_pengujian_selesai")
+    private LocalDate tanggalPengujianSelesai;
+
+    @JsonProperty("tahapan_status_deployment")
+    private String tahapanStatusDeployment;
+    
+    @JsonProperty("tanggal_deployment_selesai")
+    private LocalDate tanggalDeploymentSelesai;
+
+    @JsonProperty("tahapan_status_go_live")
+    private String tahapanStatusGoLive;
+    
+    @JsonProperty("tanggal_go_live")
+    private LocalDate tanggalGoLive;
 }

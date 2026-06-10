@@ -16,13 +16,9 @@ import java.util.UUID;
 @NoArgsConstructor
 public class RbsiProgramRequest {
 
-    @JsonProperty("rbsi_id")
-    @NotNull(message = "Rbsi id is required")
-    private UUID rbsiId;
-
-    @JsonProperty("tahun")
-    @NotNull(message = "Tahun is required")
-    private Integer tahun;
+    @JsonProperty("kep_id")
+    @NotNull(message = "Kep id is required")
+    private UUID kepId;
 
     @JsonProperty("nomor_program")
     @NotBlank(message = "Nomor program is required")
@@ -31,6 +27,9 @@ public class RbsiProgramRequest {
     @JsonProperty("nama_program")
     @NotBlank(message = "Nama program is required")
     private String namaProgram;
+
+    @JsonProperty("group_id")
+    private UUID groupId;
 
     @JsonProperty("inisiatifs")
     @Valid

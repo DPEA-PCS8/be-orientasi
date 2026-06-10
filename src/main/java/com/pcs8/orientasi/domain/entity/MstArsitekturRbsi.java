@@ -27,19 +27,20 @@ public class MstArsitekturRbsi extends BaseEntity {
     private Rbsi rbsi;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sub_kategori_id", nullable = false)
+    @JoinColumn(name = "sub_kategori_id")
     @ToString.Exclude
     private MstSubKategori subKategori;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aplikasi_baseline_id")
+    @JoinColumn(name = "aplikasi_id")
     @ToString.Exclude
-    private MstAplikasi aplikasiBaseline;
+    private MstAplikasi aplikasi;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aplikasi_target_id")
-    @ToString.Exclude
-    private MstAplikasi aplikasiTarget;
+    @Column(name = "aplikasi_baseline", length = 255)
+    private String aplikasiBaseline;
+
+    @Column(name = "aplikasi_target", length = 255)
+    private String aplikasiTarget;
 
     @Column(name = "action", length = 50)
     private String action;
@@ -48,12 +49,15 @@ public class MstArsitekturRbsi extends BaseEntity {
     private String yearStatuses;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inisiatif_id")
+    @JoinColumn(name = "inisiatif_group_id")
     @ToString.Exclude
-    private RbsiInisiatif inisiatif;
+    private InisiatifGroup inisiatifGroup;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "skpa_id")
     @ToString.Exclude
     private MstSkpa skpa;
+
+    @Column(name = "keterangan", columnDefinition = "TEXT")
+    private String keterangan;
 }

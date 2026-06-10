@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +59,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
 
     @Override
     @Transactional
-    public List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType) {
+    public List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType, LocalDate tanggalDokumen) {
         Fs2Document fs2Document = fs2DocumentRepository.findById(fs2Id)
                 .orElseThrow(() -> new ResourceNotFoundException("F.S.2 Document not found with id: " + fs2Id));
 
@@ -68,7 +69,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
             checkFs2FileValidity(file);
             
             try {
-                Fs2FileResponse response = uploadSingleFile(fs2Document, file, fileType);
+                Fs2FileResponse response = uploadSingleFile(fs2Document, file, fileType, tanggalDokumen);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload file. Error: {}", e.getMessage(), e);
@@ -81,14 +82,14 @@ public class Fs2FileServiceImpl implements Fs2FileService {
 
     @Override
     @Transactional
-    public List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType) {
+    public List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen) {
         List<Fs2FileResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
             checkFs2FileValidity(file);
             
             try {
-                Fs2FileResponse response = uploadSingleTempFile(sessionId, file, fileType);
+                Fs2FileResponse response = uploadSingleTempFile(sessionId, file, fileType, tanggalDokumen);
                 responses.add(response);
             } catch (IOException e) {
                 log.error("Failed to upload temp file. Error: {}", e.getMessage(), e);
@@ -99,7 +100,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         return responses;
     }
 
-    private Fs2FileResponse uploadSingleTempFile(String sessionId, MultipartFile file, String fileType) throws IOException {
+    private Fs2FileResponse uploadSingleTempFile(String sessionId, MultipartFile file, String fileType, LocalDate tanggalDokumen) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
@@ -136,6 +137,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .blobName(blobName)
                 .sessionId(sessionId) // Store session ID for later association
                 .fileType(fileType) // File type (ND, FS2, CD, FS2A, FS2B, F45, F46, NDBA)
+                .tanggalDokumen(tanggalDokumen)
                 .build();
 
         fs2File = fs2FileRepository.save(fs2File);
@@ -220,7 +222,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
         log.info("Deleted temp files successfully");
     }
 
-    private Fs2FileResponse uploadSingleFile(Fs2Document fs2Document, MultipartFile file, String fileType) throws IOException {
+    private Fs2FileResponse uploadSingleFile(Fs2Document fs2Document, MultipartFile file, String fileType, LocalDate tanggalDokumen) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isEmpty()) {
             throw new IllegalArgumentException("File name is required");
@@ -277,6 +279,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .version(newVersion)
                 .fileGroupId(fileGroupId)
                 .displayName(displayName)
+                .tanggalDokumen(tanggalDokumen)
                 .build();
 
         fs2File = fs2FileRepository.save(fs2File);
@@ -425,6 +428,7 @@ public class Fs2FileServiceImpl implements Fs2FileService {
                 .fileGroupId(file.getFileGroupId())
                 .displayName(file.getDisplayName())
                 .isLatestVersion(isLatest)
+                .tanggalDokumen(file.getTanggalDokumen())
                 .build();
     }
 
@@ -432,14 +436,14 @@ public class Fs2FileServiceImpl implements Fs2FileService {
 
     @Override
     @Transactional
-    public Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType) {
+    public Fs2FileResponse uploadNewVersion(UUID fs2Id, MultipartFile file, String fileType, LocalDate tanggalDokumen) {
         Fs2Document fs2Document = fs2DocumentRepository.findById(fs2Id)
                 .orElseThrow(() -> new ResourceNotFoundException("F.S.2 Document not found with id: " + fs2Id));
         
         checkFs2FileValidity(file);
         
         try {
-            return uploadSingleFile(fs2Document, file, fileType);
+            return uploadSingleFile(fs2Document, file, fileType, tanggalDokumen);
         } catch (IOException e) {
             log.error("Failed to upload new version. Error: {}", e.getMessage(), e);
             throw new IllegalStateException("Failed to upload new version", e);

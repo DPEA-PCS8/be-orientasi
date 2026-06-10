@@ -30,27 +30,29 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
     private static final DateTimeFormatter MONTH_YEAR_FORMATTER = DateTimeFormatter.ofPattern("MMMM yyyy");
 
     @Override
-    public ByteArrayOutputStream exportAllFs2ToExcel(
-            String search, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
+        public ByteArrayOutputStream exportAllFs2ToExcel(
+            String search, UUID bidangId, UUID aplikasiId, String statusTahapan, UUID skpaId, String status,
             Integer year, Integer startMonth, Integer endMonth,
             String userDepartment, boolean canSeeAll) {
         
         // Fetch all data (no pagination for export)
         Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE);
-        List<Fs2DocumentResponse> data = fs2Service.search(search, aplikasiId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll).getContent();
+        List<Fs2DocumentResponse> data = fs2Service.search(search, aplikasiId, bidangId, statusTahapan, skpaId, status, year, startMonth, endMonth, pageable, userDepartment, canSeeAll).getContent();
         
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Semua F.S.2");
             
             // Create styles
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle dataStyle = createDataStyle(workbook);
-            CellStyle dateStyle = createDateStyle(workbook);
-            CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+            Styles styles = createStyles(workbook);
+            CellStyle headerStyle = styles.headerStyle;
+            CellStyle dataStyle = styles.dataStyle;
+            CellStyle dateStyle = styles.dateStyle;
+            CellStyle hyperlinkStyle = styles.hyperlinkStyle;
             
             // Create header row
+            // Move 'Kode Aplikasi' after 'Nama Aplikasi' and place 'Nama FS2' after it
             String[] headers = {
-                "No", "Nama Aplikasi", "Nama FS2", "Kode Aplikasi", "SKPA", 
+                "No", "Nama Aplikasi", "Kode Aplikasi", "Nama FS2", "SKPA", "Bidang",
                 "Status Tahapan", "Target Pengujian", "Target Deployment", "Target Go Live",
                 "Status", "Tanggal Pengajuan", "User Pembuat", "Dokumen FS2"
             };
@@ -64,24 +66,35 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 
                 createCell(row, 0, rowNum, dataStyle);
                 createCell(row, 1, item.getNamaAplikasi(), dataStyle);
-                createCell(row, 2, item.getNamaFs2(), dataStyle);
-                createCell(row, 3, item.getKodeAplikasi(), dataStyle);
-                createCell(row, 4, item.getNamaSkpa(), dataStyle);
-                createCell(row, 5, formatStatusTahapan(item.getStatusTahapan()), dataStyle);
-                createCell(row, 6, formatMonthYear(item.getTargetPengujian()), dateStyle);
-                createCell(row, 7, formatMonthYear(item.getTargetDeployment()), dateStyle);
-                createCell(row, 8, formatMonthYear(item.getTargetGoLive()), dateStyle);
-                createCell(row, 9, formatStatus(item.getStatus()), dataStyle);
-                createCell(row, 10, formatDate(item.getTanggalPengajuan()), dateStyle);
-                createCell(row, 11, item.getUserName(), dataStyle);
-                createHyperlinkCell(workbook, row, 12, item.getDokumenPath(), hyperlinkStyle);
+                // Kode Aplikasi moved to column 2
+                createCell(row, 2, item.getKodeAplikasi(), dataStyle);
+                // Nama FS2 moved to column 3
+                createCell(row, 3, item.getNamaFs2(), dataStyle);
+                // SKPA display
+                createCell(row, 4, buildSkpaDisplay(item), dataStyle);
+                // Bidang
+                createCell(row, 5, item.getNamaBidang(), dataStyle);
+                createCell(row, 6, formatStatusTahapan(item.getStatusTahapan()), dataStyle);
+                createCell(row, 7, formatMonthYear(item.getTargetPengujian()), dateStyle);
+                createCell(row, 8, formatMonthYear(item.getTargetDeployment()), dateStyle);
+                createCell(row, 9, formatMonthYear(item.getTargetGoLive()), dateStyle);
+                createCell(row, 10, formatStatus(item.getStatus()), dataStyle);
+                createCell(row, 11, formatDate(item.getTanggalPengajuan()), dateStyle);
+                createCell(row, 12, item.getUserName(), dataStyle);
+                createHyperlinkCell(workbook, row, 13, item.getDokumenPath(), hyperlinkStyle);
                 
                 rowNum++;
             }
             
             // Auto-size columns
             autoSizeColumns(sheet, headers.length);
-            
+
+            // Ensure 'Nama FS2' column is at least as wide as 'Nama Aplikasi'
+            ensureNamaFs2ColumnWidth(sheet, 1, 3, "Failed to adjust Nama FS2 column width, continuing with auto-sized widths");
+
+            // Apply custom width adjustments for 'Semua F.S.2' export per request
+            applyCustomColumnWidths(sheet, new int[][]{{0,2000},{2,3500},{3,15000}});
+
             return writeWorkbookToStream(workbook);
             
         } catch (IOException e) {
@@ -117,15 +130,17 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             Sheet sheet = workbook.createSheet("Monitoring F.S.2");
             
             // Create styles
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle dataStyle = createDataStyle(workbook);
-            CellStyle dateStyle = createDateStyle(workbook);
-            CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+            Styles styles = createStyles(workbook);
+            CellStyle headerStyle = styles.headerStyle;
+            CellStyle dataStyle = styles.dataStyle;
+            CellStyle dateStyle = styles.dateStyle;
+            CellStyle hyperlinkStyle = styles.hyperlinkStyle;
             
-            // Create header row
+            // Create header row for Monitoring F.S.2
+            // Removed "Bidang" column and moved "Kode Aplikasi" after "Nama Aplikasi"
             String[] headers = {
-                "No", "Nama Aplikasi", "Nama FS2", "Kode Aplikasi", "Bidang", "SKPA",
-                "Progres", "Status Progres", "Tanggal Progres",
+                "No", "Nama Aplikasi", "Kode Aplikasi", "Nama FS2", "SKPA",
+                "Progres", "Status Progres",
                 "Fase Pengajuan", "IKU", "Mekanisme", "Pelaksanaan",
                 "PIC", "Anggota Tim",
                 "Nomor ND", "Nomor CD",
@@ -150,50 +165,58 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
                 
                 createCell(row, 0, rowNum, dataStyle);
                 createCell(row, 1, item.getNamaAplikasi(), dataStyle);
-                createCell(row, 2, item.getNamaFs2(), dataStyle);
-                createCell(row, 3, item.getKodeAplikasi(), dataStyle);
-                createCell(row, 4, item.getNamaBidang(), dataStyle);
-                createCell(row, 5, item.getNamaSkpa(), dataStyle);
-                createCell(row, 6, formatProgres(item.getProgres()), dataStyle);
-                createCell(row, 7, formatProgresStatus(item.getProgresStatus()), dataStyle);
-                createCell(row, 8, formatDate(item.getTanggalProgres()), dateStyle);
-                createCell(row, 9, formatFasePengajuan(item.getFasePengajuan()), dataStyle);
-                createCell(row, 10, formatIku(item.getIku()), dataStyle);
-                createCell(row, 11, formatMekanisme(item.getMekanisme()), dataStyle);
-                createCell(row, 12, formatPelaksanaan(item), dataStyle);
-                createCell(row, 13, item.getPicName(), dataStyle);
-                createCell(row, 14, item.getAnggotaTimNames(), dataStyle);
-                createCell(row, 15, item.getNomorNd(), dataStyle);
-                createCell(row, 16, item.getNomorCd(), dataStyle);
-                createCell(row, 17, formatMonthYear(item.getTargetPengujian()), dateStyle);
-                createCell(row, 18, formatMonthYear(item.getRealisasiPengujian()), dateStyle);
-                createCell(row, 19, formatMonthYear(item.getTargetDeployment()), dateStyle);
-                createCell(row, 20, formatMonthYear(item.getRealisasiDeployment()), dateStyle);
-                createCell(row, 21, formatMonthYear(item.getTargetGoLive()), dateStyle);
-                createCell(row, 22, item.getKeterangan(), dataStyle);
-                createHyperlinkCell(workbook, row, 23, item.getBerkasNd(), hyperlinkStyle);
-                createCell(row, 24, formatDate(item.getTanggalNd()), dateStyle);
-                createHyperlinkCell(workbook, row, 25, item.getBerkasFs2(), hyperlinkStyle);
-                createCell(row, 26, formatDate(item.getTanggalBerkasFs2()), dateStyle);
-                createHyperlinkCell(workbook, row, 27, item.getBerkasCd(), hyperlinkStyle);
-                createCell(row, 28, formatDate(item.getTanggalCd()), dateStyle);
-                createHyperlinkCell(workbook, row, 29, item.getBerkasFs2a(), hyperlinkStyle);
-                createCell(row, 30, formatDate(item.getTanggalBerkasFs2a()), dateStyle);
-                createHyperlinkCell(workbook, row, 31, item.getBerkasFs2b(), hyperlinkStyle);
-                createCell(row, 32, formatDate(item.getTanggalBerkasFs2b()), dateStyle);
-                createHyperlinkCell(workbook, row, 33, item.getBerkasF45(), hyperlinkStyle);
-                createCell(row, 34, formatDate(item.getTanggalBerkasF45()), dateStyle);
-                createHyperlinkCell(workbook, row, 35, item.getBerkasF46(), hyperlinkStyle);
-                createCell(row, 36, formatDate(item.getTanggalBerkasF46()), dateStyle);
-                createHyperlinkCell(workbook, row, 37, item.getBerkasNdBaDeployment(), hyperlinkStyle);
-                createCell(row, 38, formatDate(item.getTanggalBerkasNdBa()), dateStyle);
+                // Move Kode Aplikasi to after Nama Aplikasi (index 2)
+                createCell(row, 2, item.getKodeAplikasi(), dataStyle);
+                // Nama FS2 moves to index 3
+                createCell(row, 3, item.getNamaFs2(), dataStyle);
+                // SKPA display
+                createCell(row, 4, buildSkpaDisplay(item), dataStyle);
+                // Derive progress display: prefer explicit progres field, otherwise infer from tahapan statuses
+                createCell(row, 5, deriveProgresDisplay(item), dataStyle);
+                createCell(row, 6, formatProgresStatus(item.getProgresStatus()), dataStyle);
+                createCell(row, 7, formatFasePengajuan(item.getFasePengajuan()), dataStyle);
+                createCell(row, 8, formatIku(item.getIku()), dataStyle);
+                createCell(row, 9, formatMekanisme(item.getMekanisme()), dataStyle);
+                createCell(row, 10, formatPelaksanaan(item), dataStyle);
+                createCell(row, 11, item.getPicName(), dataStyle);
+                createCell(row, 12, item.getAnggotaTimNames(), dataStyle);
+                createCell(row, 13, item.getNomorNd(), dataStyle);
+                createCell(row, 14, item.getNomorCd(), dataStyle);
+                createCell(row, 15, formatMonthYear(item.getTargetPengujian()), dateStyle);
+                createCell(row, 16, formatMonthYear(item.getRealisasiPengujian()), dateStyle);
+                createCell(row, 17, formatMonthYear(item.getTargetDeployment()), dateStyle);
+                createCell(row, 18, formatMonthYear(item.getRealisasiDeployment()), dateStyle);
+                createCell(row, 19, formatMonthYear(item.getTargetGoLive()), dateStyle);
+                createCell(row, 20, item.getKeterangan(), dataStyle);
+                createHyperlinkCell(workbook, row, 21, item.getBerkasNd(), hyperlinkStyle);
+                createCell(row, 22, formatDate(item.getTanggalNd()), dateStyle);
+                createHyperlinkCell(workbook, row, 23, item.getBerkasFs2(), hyperlinkStyle);
+                createCell(row, 24, formatDate(item.getTanggalBerkasFs2()), dateStyle);
+                createHyperlinkCell(workbook, row, 25, item.getBerkasCd(), hyperlinkStyle);
+                createCell(row, 26, formatDate(item.getTanggalCd()), dateStyle);
+                createHyperlinkCell(workbook, row, 27, item.getBerkasFs2a(), hyperlinkStyle);
+                createCell(row, 28, formatDate(item.getTanggalBerkasFs2a()), dateStyle);
+                createHyperlinkCell(workbook, row, 29, item.getBerkasFs2b(), hyperlinkStyle);
+                createCell(row, 30, formatDate(item.getTanggalBerkasFs2b()), dateStyle);
+                createHyperlinkCell(workbook, row, 31, item.getBerkasF45(), hyperlinkStyle);
+                createCell(row, 32, formatDate(item.getTanggalBerkasF45()), dateStyle);
+                createHyperlinkCell(workbook, row, 33, item.getBerkasF46(), hyperlinkStyle);
+                createCell(row, 34, formatDate(item.getTanggalBerkasF46()), dateStyle);
+                createHyperlinkCell(workbook, row, 35, item.getBerkasNdBaDeployment(), hyperlinkStyle);
+                createCell(row, 36, formatDate(item.getTanggalBerkasNdBa()), dateStyle);
                 
                 rowNum++;
             }
             
             // Auto-size columns
             autoSizeColumns(sheet, headers.length);
-            
+
+            // Ensure 'Nama FS2' column is at least as wide as 'Nama Aplikasi'
+            ensureNamaFs2ColumnWidth(sheet, 1, 2, "Failed to adjust Nama FS2 column width for approved export, continuing with auto-sized widths");
+
+            // Apply custom column width adjustments per request
+            applyCustomColumnWidths(sheet, new int[][]{{0,2000},{2,3500},{3,15000},{26,2000}});
+
             return writeWorkbookToStream(workbook);
             
         } catch (IOException e) {
@@ -241,6 +264,64 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         return outputStream;
+    }
+
+    // Helper holder for styles to avoid creating duplicate style setup code
+    private static class Styles {
+        final CellStyle headerStyle;
+        final CellStyle dataStyle;
+        final CellStyle dateStyle;
+        final CellStyle hyperlinkStyle;
+
+        Styles(CellStyle headerStyle, CellStyle dataStyle, CellStyle dateStyle, CellStyle hyperlinkStyle) {
+            this.headerStyle = headerStyle;
+            this.dataStyle = dataStyle;
+            this.dateStyle = dateStyle;
+            this.hyperlinkStyle = hyperlinkStyle;
+        }
+    }
+
+    private Styles createStyles(Workbook workbook) {
+        CellStyle headerStyle = createHeaderStyle(workbook);
+        CellStyle dataStyle = createDataStyle(workbook);
+        CellStyle dateStyle = createDateStyle(workbook);
+        CellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+        return new Styles(headerStyle, dataStyle, dateStyle, hyperlinkStyle);
+    }
+
+    private String buildSkpaDisplay(Fs2DocumentResponse item) {
+        if (item == null) return "-";
+        if (item.getKodeSkpa() != null && !item.getKodeSkpa().isBlank()) {
+            return item.getKodeSkpa() + (item.getNamaSkpa() != null ? " - " + item.getNamaSkpa() : "");
+        }
+        if (item.getNamaSkpa() != null && !item.getNamaSkpa().isBlank()) {
+            return item.getNamaSkpa();
+        }
+        return "-";
+    }
+
+    private void ensureNamaFs2ColumnWidth(Sheet sheet, int namaAplikasiCol, int namaFs2Col, String warnMessage) {
+        try {
+            int widthAplikasi = sheet.getColumnWidth(namaAplikasiCol);
+            int widthFs2 = sheet.getColumnWidth(namaFs2Col);
+            if (widthFs2 < widthAplikasi) {
+                sheet.setColumnWidth(namaFs2Col, widthAplikasi);
+            }
+        } catch (Exception ex) {
+            log.warn(warnMessage, ex);
+        }
+    }
+
+    private void applyCustomColumnWidths(Sheet sheet, int[][] widths) {
+        try {
+            for (int[] pair : widths) {
+                if (pair != null && pair.length == 2) {
+                    sheet.setColumnWidth(pair[0], pair[1]);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to apply custom column widths", ex);
+        }
     }
     
     private void createCell(Row row, int col, Object value, CellStyle style) {
@@ -325,8 +406,43 @@ public class Fs2ExcelExportServiceImpl implements Fs2ExcelExportService {
             case "CODING" -> "Coding";
             case "PDKK" -> "PDKK";
             case "DEPLOY_SELESAI" -> "Deploy";
+            case "GO_LIVE", "GO-LIVE", "GO LIVE" -> "Go Live";
+            case "PEMROGRAMAN" -> "Pemrograman";
+            case "PENGUJIAN" -> "Pengujian";
+            case "DEPLOYMENT" -> "Deployment";
             default -> progres;
         };
+    }
+
+    /**
+     * Derive a human-friendly progres display value. Prefer explicit `progres` field,
+     * otherwise infer the current tahapan from tahapan status fields.
+     */
+    private String deriveProgresDisplay(Fs2DocumentResponse item) {
+        if (item == null) return "-";
+
+        String progres = item.getProgres();
+        if (progres != null && !progres.isBlank()) {
+            return formatProgres(progres);
+        }
+
+        if (item.getTahapanStatusAsesmen() != null && !item.getTahapanStatusAsesmen().isBlank()) {
+            return "Asesmen";
+        }
+        if (item.getTahapanStatusPemrograman() != null && !item.getTahapanStatusPemrograman().isBlank()) {
+            return "Pemrograman";
+        }
+        if (item.getTahapanStatusPengujian() != null && !item.getTahapanStatusPengujian().isBlank()) {
+            return "Pengujian";
+        }
+        if (item.getTahapanStatusDeployment() != null && !item.getTahapanStatusDeployment().isBlank()) {
+            return "Deployment";
+        }
+        if (item.getTahapanStatusGoLive() != null && !item.getTahapanStatusGoLive().isBlank()) {
+            return "Go Live";
+        }
+
+        return "-";
     }
     
     private String formatProgresStatus(String status) {

@@ -7,6 +7,7 @@ import com.pcs8.orientasi.service.Fs2FileService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,10 +37,11 @@ public class Fs2FileController {
     public ResponseEntity<BaseResponse> uploadFiles(
             @PathVariable UUID fs2Id,
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
+            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType,
+            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
         
         
-        List<Fs2FileResponse> responses = fs2FileService.uploadFiles(fs2Id, files, fileType);
+        List<Fs2FileResponse> responses = fs2FileService.uploadFiles(fs2Id, files, fileType, tanggalDokumen);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Files uploaded successfully", responses));
@@ -51,10 +54,11 @@ public class Fs2FileController {
     public ResponseEntity<BaseResponse> uploadTempFiles(
             @PathVariable String sessionId,
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType) {
+            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType,
+            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
         
         
-        List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files, fileType);
+        List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files, fileType, tanggalDokumen);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));
@@ -162,11 +166,12 @@ public class Fs2FileController {
     public ResponseEntity<BaseResponse> uploadNewVersion(
             @PathVariable UUID fs2Id,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("fileType") String fileType) {
+            @RequestParam("fileType") String fileType,
+            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
         
         log.info("Uploading new version of file F.S.2 document");
         
-        Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType);
+        Fs2FileResponse response = fs2FileService.uploadNewVersion(fs2Id, file, fileType, tanggalDokumen);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new BaseResponse(HttpStatus.CREATED.value(), "New version uploaded successfully", response));

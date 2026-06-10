@@ -46,6 +46,6 @@ public class PksiTimeline extends BaseEntity {
      * Enum for timeline stages
      */
     public enum TimelineStage {
-        USREQ, SIT, UAT, GO_LIVE
+        USREQ, SIT, UAT, GO_LIVE, PENGADAAN, DESAIN, CODING, UNIT_TEST, DEPLOYMENT
     }
 }

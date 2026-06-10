@@ -4,6 +4,7 @@ import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.constant.ConstantVariable;
 import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
+import com.pcs8.orientasi.domain.dto.response.AplikasiListResponse;
 import com.pcs8.orientasi.domain.dto.response.AplikasiResponse;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.service.AplikasiExcelExportService;
@@ -49,6 +50,12 @@ public class AplikasiController {
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
     }
 
+    @GetMapping("/dropdown")
+    public ResponseEntity<BaseResponse> getAllForDropdown() {
+        List<AplikasiResponse> responses = aplikasiService.getAllForDropdown();
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), ConstantVariable.SUCCESS_MESSAGE, responses));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<BaseResponse> search(
             @RequestParam(required = false) String search,
@@ -59,7 +66,7 @@ public class AplikasiController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<AplikasiResponse> pageResult = aplikasiService.search(search, bidangId, skpaId, status, pageable);
+        Page<AplikasiListResponse> pageResult = aplikasiService.searchLight(search, bidangId, skpaId, status, pageable);
         
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("content", pageResult.getContent());

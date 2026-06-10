@@ -225,14 +225,14 @@ public class PksiDashboardServiceImpl implements PksiDashboardService {
     private DashboardSummary calculateSummary(List<PksiDocument> documents) {
         int total = documents.size();
         int disetujui = (int) documents.stream().filter(p -> p.getStatus() == DocumentStatus.DISETUJUI).count();
-        int pending = (int) documents.stream().filter(p -> p.getStatus() == DocumentStatus.PENDING).count();
+        int dikerjakanDenganCaraLain = (int) documents.stream().filter(p -> p.getStatus() == DocumentStatus.DIKERJAKAN_DENGAN_CARA_LAIN).count();
         int ditolak = (int) documents.stream().filter(p -> p.getStatus() == DocumentStatus.DITOLAK).count();
         double percentageDisetujui = total > 0 ? Math.round((disetujui * 100.0 / total) * 10.0) / 10.0 : 0.0;
 
         return DashboardSummary.builder()
                 .totalPksi(total)
                 .totalDisetujui(disetujui)
-                .totalPending(pending)
+                .totalDikerjakanDenganCaraLain(dikerjakanDenganCaraLain)
                 .totalDitolak(ditolak)
                 .percentageDisetujui(percentageDisetujui)
                 .build();

@@ -46,5 +46,8 @@ public class InisiatifGroupResponse {
 
         @JsonProperty("program_nomor")
         private String programNomor;
+
+        @JsonProperty("program_name")
+        private String programName;
     }
 }

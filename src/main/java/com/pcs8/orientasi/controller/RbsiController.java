@@ -3,6 +3,7 @@ package com.pcs8.orientasi.controller;
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.BatchKepProgressRequest;
 import com.pcs8.orientasi.domain.dto.request.KepProgressRequest;
+import com.pcs8.orientasi.domain.dto.request.ProgramGroupRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiAnalyticsRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiDashboardRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiInisiatifRequest;
@@ -11,9 +12,11 @@ import com.pcs8.orientasi.domain.dto.request.RbsiProgramRequest;
 import com.pcs8.orientasi.domain.dto.request.RbsiRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
 import com.pcs8.orientasi.domain.dto.response.BatchKepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.InisiatifGroupDropdownResponse;
 import com.pcs8.orientasi.domain.dto.response.InisiatifGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressFullResponse;
 import com.pcs8.orientasi.domain.dto.response.KepProgressResponse;
+import com.pcs8.orientasi.domain.dto.response.ProgramGroupResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiAnalyticsResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiDashboardResponse;
 import com.pcs8.orientasi.domain.dto.response.RbsiHistoryResponse;
@@ -39,6 +42,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/rbsi")
@@ -133,6 +139,49 @@ public class RbsiController {
     public ResponseEntity<BaseResponse> getInisiatifGroups(@PathVariable UUID rbsiId) {
         List<InisiatifGroupResponse> groups = rbsiService.getInisiatifGroups(rbsiId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", groups));
+    }
+
+    @GetMapping("/{rbsiId}/inisiatif-groups-dropdown")
+    public ResponseEntity<BaseResponse> getInisiatifGroupsDropdown(@PathVariable UUID rbsiId) {
+        List<InisiatifGroupDropdownResponse> groups = rbsiService.getInisiatifGroupsDropdown(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", groups));
+    }
+    
+
+    // ==================== ProgramGroup Endpoints ====================
+    // TODO: review — GET /program-groups returns all groups for an RBSI with tahun_list.
+    //       Decide if this is the right shape for the FE or if it needs flattening.
+    @GetMapping("/{rbsiId}/program-groups")
+    public ResponseEntity<BaseResponse> getProgramGroups(@PathVariable UUID rbsiId) {
+        List<ProgramGroupResponse> groups = rbsiService.getProgramGroups(rbsiId);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", groups));
+    }
+
+    // TODO: review — POST /program-groups creates a standalone group (no programs linked yet).
+    //       The FE then links programs via createOrUpdateProgram with group_id.
+    @PostMapping("/program-groups")
+    public ResponseEntity<BaseResponse> createProgramGroup(@Valid @RequestBody ProgramGroupRequest request) {
+        ProgramGroupResponse response = rbsiService.createProgramGroup(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new BaseResponse(HttpStatus.CREATED.value(), "Program group created", response));
+    }
+
+    // TODO: review — PUT /program-groups/{id} updates name/keterangan only.
+    //       Decide if namaProgram should sync to linked RbsiProgram rows.
+    @PutMapping("/program-groups/{id}")
+    public ResponseEntity<BaseResponse> updateProgramGroup(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProgramGroupRequest request) {
+        ProgramGroupResponse response = rbsiService.updateProgramGroup(id, request);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Program group updated", response));
+    }
+
+    // TODO: review — DELETE /program-groups/{id} is blocked when active programs are still linked.
+    //       Decide if unlink-then-delete should be a single atomic FE flow or two separate calls.
+    @DeleteMapping("/program-groups/{id}")
+    public ResponseEntity<BaseResponse> deleteProgramGroup(@PathVariable UUID id) {
+        rbsiService.deleteProgramGroup(id);
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Program group deleted", null));
     }
 
     @GetMapping("/{rbsiId}/history")

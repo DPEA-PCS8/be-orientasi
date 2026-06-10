@@ -56,6 +56,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
      */
     @Query("SELECT f FROM Fs2Document f WHERE " +
            "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:aplikasiId IS NULL OR f.aplikasi.id = :aplikasiId) " +
            "AND (:statusTahapan IS NULL OR f.statusTahapan = :statusTahapan) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
@@ -66,6 +67,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchFs2DocumentsWithYearAndMonth(
             @Param("search") String search,
+            @Param("bidangId") UUID bidangId,
             @Param("aplikasiId") UUID aplikasiId,
             @Param("statusTahapan") String statusTahapan,
             @Param("skpaId") UUID skpaId,
@@ -95,8 +97,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -122,8 +131,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -150,8 +166,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:skpaId IS NULL OR f.skpa.id = :skpaId) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -247,6 +270,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
      */
     @Query("SELECT f FROM Fs2Document f WHERE " +
            "(:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (:aplikasiId IS NULL OR f.aplikasi.id = :aplikasiId) " +
            "AND (:statusTahapan IS NULL OR f.statusTahapan = :statusTahapan) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
@@ -257,6 +281,7 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "ORDER BY f.createdAt DESC")
     Page<Fs2Document> searchFs2DocumentsByDepartmentWithYearAndMonth(
             @Param("search") String search,
+            @Param("bidangId") UUID bidangId,
             @Param("aplikasiId") UUID aplikasiId,
             @Param("statusTahapan") String statusTahapan,
             @Param("status") String status,
@@ -287,8 +312,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -314,8 +346,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
@@ -342,8 +381,15 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
            "AND (:search IS NULL OR LOWER(f.aplikasi.namaAplikasi) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:bidangId IS NULL OR f.bidang.id = :bidangId) " +
            "AND (f.skpa IS NOT NULL AND UPPER(f.skpa.kodeSkpa) = UPPER(:userDepartment)) " +
-           "AND (:progres IS NULL OR f.progres = :progres) " +
-           "AND (:progresStatus IS NULL OR f.progresStatus = :progresStatus) " +
+           "AND (:progres IS NULL OR (" +
+           "  (CHARINDEX(',PENGAJUAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',ASESMEN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusAsesmen) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PEMROGRAMAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPemrograman) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',PENGUJIAN,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusPengujian) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',DEPLOYMENT,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusDeployment) = 'dalam_proses') OR " +
+           "  (CHARINDEX(',GO_LIVE,', CONCAT(',', :progres, ',')) > 0 AND LOWER(f.tahapanStatusGoLive) IN ('dalam_proses','selesai'))" +
+           ")) " +
+           "AND (:progresStatus IS NULL OR CHARINDEX(CONCAT(',', LOWER(f.progresStatus), ','), CONCAT(',', LOWER(:progresStatus), ',')) > 0) " +
            "AND (:fasePengajuan IS NULL OR f.fasePengajuan = :fasePengajuan) " +
            "AND (:mekanisme IS NULL OR f.mekanisme = :mekanisme) " +
            "AND (:pelaksanaan IS NULL OR f.pelaksanaan = :pelaksanaan) " +
