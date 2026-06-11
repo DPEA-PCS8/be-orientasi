@@ -25,15 +25,11 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-public class CatalogSnapshotClient {
-
-    private final SsoTokenClient ssoTokenClient;
-    private final RestTemplate restTemplate;
+public class CatalogSnapshotClient extends AbstractCatalogClient {
 
     public CatalogSnapshotClient(SsoTokenClient ssoTokenClient,
                                  @Qualifier("ssoRestTemplate") RestTemplate restTemplate) {
-        this.ssoTokenClient = ssoTokenClient;
-        this.restTemplate = restTemplate;
+        super(ssoTokenClient, restTemplate);
     }
 
     @Value("${catalog.base-url}")
@@ -185,22 +181,5 @@ public class CatalogSnapshotClient {
                 HttpMethod.DELETE,
                 new HttpEntity<>(buildAuthHeaders()),
                 Void.class);
-    }
-
-    // ── HELPERS ──────────────────────────────────────────────────────────────
-
-    private HttpHeaders buildAuthHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(ssoTokenClient.getToken());
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
-    }
-
-    private <T> T extractData(ResponseEntity<CatalogBaseResponse<T>> response) {
-        CatalogBaseResponse<T> body = response.getBody();
-        if (body == null || body.getData() == null) {
-            throw new IllegalStateException("Empty response from catalog snapshot service");
-        }
-        return body.getData();
     }
 }

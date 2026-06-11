@@ -3,6 +3,8 @@ package com.pcs8.orientasi.service.impl;
 import com.pcs8.orientasi.client.catalog.dto.aplikasi.CatalogAplikasiRequest;
 import com.pcs8.orientasi.client.catalog.dto.aplikasi.CatalogAplikasiResponse;
 import com.pcs8.orientasi.client.catalog.dto.aplikasi.CatalogStatusRequest;
+import com.pcs8.orientasi.client.catalog.dto.common.CatalogIdleInfo;
+import com.pcs8.orientasi.client.catalog.dto.common.CatalogIdleInfoRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiRequest;
 import com.pcs8.orientasi.domain.dto.request.AplikasiStatusRequest;
 import com.pcs8.orientasi.domain.dto.response.*;
@@ -101,7 +103,7 @@ public class CatalogAplikasiMapper {
                 .tanggalStatus(request.getTanggalStatus());
 
         if (request.getIdleInfo() != null) {
-            builder.idleInfo(CatalogStatusRequest.IdleInfoRequest.builder()
+            builder.idleInfo(CatalogIdleInfoRequest.builder()
                     .kategoriIdle(request.getIdleInfo().getKategoriIdle())
                     .alasanIdle(request.getIdleInfo().getAlasanIdle())
                     .rencanaPengakhiran(request.getIdleInfo().getRencanaPengakhiran())
@@ -226,7 +228,7 @@ public class CatalogAplikasiMapper {
 
     // ── NESTED FIELD MAPPINGS ─────────────────────────────────────────────────
 
-    private void mapIdleInfo(CatalogAplikasiResponse.IdleInfo idle, AplikasiResponse.AplikasiResponseBuilder builder) {
+    private void mapIdleInfo(CatalogIdleInfo idle, AplikasiResponse.AplikasiResponseBuilder builder) {
         if (idle == null) return;
         builder.idleInfo(IdleInfo.builder()
                 .kategoriIdle(idle.getKategoriIdle())

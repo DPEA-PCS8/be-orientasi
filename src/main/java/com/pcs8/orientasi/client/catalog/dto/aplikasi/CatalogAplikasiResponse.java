@@ -2,6 +2,7 @@ package com.pcs8.orientasi.client.catalog.dto.aplikasi;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.pcs8.orientasi.client.catalog.dto.common.CatalogIdleInfo;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -45,7 +46,7 @@ public class CatalogAplikasiResponse {
     private String dataPribadiDiproses;
 
     @JsonProperty("idle_info")
-    private IdleInfo idleInfo;
+    private CatalogIdleInfo idleInfo;
 
     private List<UrlInfo> urls;
 
@@ -66,22 +67,6 @@ public class CatalogAplikasiResponse {
 
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class IdleInfo {
-        @JsonProperty("kategori_idle")
-        private String kategoriIdle;
-
-        @JsonProperty("alasan_idle")
-        private String alasanIdle;
-
-        @JsonProperty("rencana_pengakhiran")
-        private String rencanaPengakhiran;
-
-        @JsonProperty("alasan_belum_diakhiri")
-        private String alasanBelumDiakhiri;
-    }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)

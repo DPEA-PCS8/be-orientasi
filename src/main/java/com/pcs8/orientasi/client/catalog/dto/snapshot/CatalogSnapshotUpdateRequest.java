@@ -2,6 +2,7 @@ package com.pcs8.orientasi.client.catalog.dto.snapshot;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.pcs8.orientasi.client.catalog.dto.common.CatalogIdleInfoRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,24 +40,5 @@ public class CatalogSnapshotUpdateRequest {
     private String keteranganHistoris;
 
     @JsonProperty("idle_info")
-    private IdleInfoRequest idleInfo;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class IdleInfoRequest {
-        @JsonProperty("kategori_idle")
-        private String kategoriIdle;
-
-        @JsonProperty("alasan_idle")
-        private String alasanIdle;
-
-        @JsonProperty("rencana_pengakhiran")
-        private String rencanaPengakhiran;
-
-        @JsonProperty("alasan_belum_diakhiri")
-        private String alasanBelumDiakhiri;
-    }
+    private CatalogIdleInfoRequest idleInfo;
 }
