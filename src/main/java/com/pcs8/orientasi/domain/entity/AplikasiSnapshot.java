@@ -29,10 +29,8 @@ public class AplikasiSnapshot extends BaseEntity {
     @Column(name = ID, updatable = false, nullable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = APLIKASI_ID, nullable = false)
-    @ToString.Exclude
-    private MstAplikasi aplikasi;
+    @Column(name = APLIKASI_ID, nullable = false)
+    private UUID aplikasiId;
 
     @Column(name = TAHUN, nullable = false)
     private Integer tahun;

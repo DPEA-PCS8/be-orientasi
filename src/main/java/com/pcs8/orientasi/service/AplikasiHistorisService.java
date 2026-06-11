@@ -6,8 +6,6 @@ import com.pcs8.orientasi.domain.dto.response.AplikasiHistorisListResponse;
 import com.pcs8.orientasi.domain.dto.response.AplikasiSnapshotResponse;
 import com.pcs8.orientasi.domain.dto.response.AplikasiStatistikResponse;
 import com.pcs8.orientasi.domain.dto.response.ChangelogInfo;
-import com.pcs8.orientasi.domain.entity.MstAplikasi;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -22,11 +20,6 @@ public interface AplikasiHistorisService {
      * Update existing snapshot
      */
     AplikasiSnapshotResponse updateSnapshot(UUID snapshotId, UpdateSnapshotRequest request);
-
-    /**
-     * Create snapshot from existing aplikasi entity
-     */
-    AplikasiSnapshotResponse createSnapshotFromAplikasi(MstAplikasi aplikasi, Integer tahun, String snapshotType);
 
     /**
      * Generate snapshots for all active applications for a specific year
@@ -99,8 +92,8 @@ public interface AplikasiHistorisService {
     List<AplikasiSnapshotResponse> getSnapshotsByAplikasiId(UUID aplikasiId);
 
     /**
-     * Triggers snapshot update when aplikasi is updated
-     * Called internally by AplikasiService
+     * Triggers snapshot update when aplikasi is updated.
+     * Called internally by AplikasiService after CUD operations.
      */
-    void onAplikasiUpdated(MstAplikasi aplikasi, String keterangan);
+    void onAplikasiUpdated(UUID aplikasiId, String keterangan);
 }

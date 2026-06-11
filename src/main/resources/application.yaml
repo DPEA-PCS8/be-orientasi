@@ -63,6 +63,17 @@ logging:
     "[com.pcs8.orientasi]": INFO
     "[org.springframework.security]": DEBUG
 
+# External Catalog Configuration
+catalog:
+  base-url: ${CATALOG_BASE_URL:http://application-catalog-internal-dpea.apps.ocp.ojk.go.id}
+
+# SSO Configuration
+sso:
+  base-url: ${SSO_BASE_URL:http://auth-web.sso-engine-dev.svc.cluster.local}
+  client-id: ${SSO_CLIENT_ID:}
+  client-secret: ${SSO_CLIENT_SECRET:}
+  token-buffer-seconds: ${SSO_TOKEN_BUFFER_SECONDS:50}
+
 # Minio Configuration
 minio:
   endpoint: ${MINIO_ENDPOINT}
