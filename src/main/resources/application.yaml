@@ -18,11 +18,6 @@ spring:
         dialect: org.hibernate.dialect.SQLServerDialect
         "[format_sql]": true 
     
-  # LDAP Configuration
-  ldap:
-    urls: ldap://10.225.60.10:389
-    base: dc=devojk,dc=go,dc=id
-  
   # File Upload Configuration
   servlet:
     multipart:
@@ -40,11 +35,6 @@ jwt:
   secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
 
-# RSA Encryption Configuration
-rsa:
-  encryption:
-    private-key: ${RSA_PRIVATE_KEY:}  # Empty by default - will auto-generate on startup
-    public-key: ${RSA_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApm4C3tMo4URx1/f/BXfGktEHNQYX0Ew3mUbn5nw9Ot734r9epwCp2XN/CDVw26iU66621gQvmMRib9fu+KNuhNTB30HrGAM065Jtvn3/dZ3g1SpquLj5/oQjeVUns6DsG7MhW4uZEXjf28iwZTm5xU9kIg3bsXEsWGRC1rKVYmIRfsM00iHi7A7MvRanbCQ1cgPC9ZZqqLFjZokqb5//5I/kJCilbE3Cn5/Mc/+XhOh5HQvgRn8HJ+zvMiKTytmks+s3/0L5l2fEnDSIxiP/ZchNGzuTOqc7jFA6UpBhLUj1QO76k1KT00V5IPqHsPWb8YzUztjysN6i5IUiMQCE9wIDAQAB}    # Empty by default - will auto-generate on startup
 # API Security Configuration
 app:
   api-key: ${API_KEY:}

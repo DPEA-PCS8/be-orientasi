@@ -23,49 +23,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public MstUser saveOrUpdateFromLdap(UserInfo ldapUserInfo) {
-        String username = ldapUserInfo.getUsername();
-        log.info("Saving/updating user from LDAP: {}", username);
-
-        Optional<MstUser> existingUser = mstUserRepository.findByUsername(username);
-
-        MstUser savedUser;
-        if (existingUser.isPresent()) {
-            MstUser user = existingUser.get();
-            user.setFullName(ldapUserInfo.getDisplayName());
-            user.setEmail(ldapUserInfo.getEmail());
-            user.setDepartment(ldapUserInfo.getDepartment());
-            user.setTitle(ldapUserInfo.getTitle());
-            user.setLastLoginAt(LocalDateTime.now());
-
-            savedUser = mstUserRepository.save(user);
-            savedUser = mstUserRepository.save(user);
-            log.info("Updated existing user: {} with UUID: {}", username, savedUser.getUuid());
-        } else {
-            MstUser newUser = MstUser.builder()
-                    .username(username)
-                    .fullName(ldapUserInfo.getDisplayName())
-                    .email(ldapUserInfo.getEmail())
-                    .department(ldapUserInfo.getDepartment())
-                    .title(ldapUserInfo.getTitle())
-                    .lastLoginAt(LocalDateTime.now())
-                    .build();
-
-            savedUser = mstUserRepository.save(newUser);
-            savedUser = mstUserRepository.save(newUser);
-            log.info("Created new user: {} with UUID: {}", username, savedUser.getUuid());
-        }
-
-
-        // Re-fetch user with roles eagerly loaded
-        MstUser userWithRoles = mstUserRepository.findByUsernameWithRoles(username).orElse(savedUser);
-        log.info("User {} has {} role(s) after re-fetch", username, userWithRoles.getUserRoles().size());
-
-        return userWithRoles;
-    }
-
-    @Override
-    @Transactional
     public MstUser saveOrUpdateFromSso(UserInfo ssoUserInfo) {
         String username = ssoUserInfo.getUsername();
         log.info("Saving/updating user from SSO: {}", username);

@@ -50,7 +50,8 @@ Branch kerja: **`feat/marvel/refactor-login-sso`** (BE & FE, nama sama di dua re
 ### RESUME STATE
 > Agent update baris ini tiap selesai/blocked. Format bebas, ringkas.
 ```
-T10 done; BE T1-T10 COMPLETE. T10 = SKIPPED trust-all (sso.base-url is http, no TLS) — documented in SsoConfig. DEVIATION: catalog SsoTokenClient reuses sso.client-id/secret (protected), so login OIDC client bound from sso.login-client-id/login-client-secret instead of overwriting.
+T1-T15 DONE. BE compile exit 0, FE build green. T10 = SKIPPED trust-all (sso.base-url http). DEVIATION: login OIDC client from sso.login-client-id/secret (catalog client-id dipakai SsoTokenClient client_credentials, dipisah). T14/T15: deleted AuthController, EncryptionController, LdapService(+impl), PasswordEncryptionService(+impl), LoginRequest, EncryptionRequest/Response, orphan saveOrUpdateFromLdap, ldap+rsa yaml blocks.
+SISA: (1) verify end-to-end manual (butuh SSO+BE+FE nyala bareng); (2) secret di commit b2b7539 (yaml lama) MASIH di history — bersihin sebelum push kalau perlu.
 ```
 
 Claims dari `/connect/userinfo`: `sub` (=username), `name`, `email`, `organization`, `jabatan`, `user_type`.
@@ -277,9 +278,9 @@ upsert by `username`, set fullName/email/department/title, update `lastLoginAt`,
 - [x] T8 public access + SsoExchangeRequest
 - [x] T9 CORS / APIKey FE origin
 - [x] T10 dev TLS trust (jika perlu)
-- [ ] T11 vite https:5174
-- [ ] T12 LoginPage tombol + SsoCallback + route
-- [ ] T13 buang RSA/login lama FE
-- [ ] T14 cek referensi legacy BE
-- [ ] T15 hapus legacy BE
-- [ ] Verifikasi end-to-end (8 langkah)
+- [x] T11 vite https:5174 (FE repo)
+- [x] T12 LoginPage tombol + SsoCallback + route (FE repo)
+- [x] T13 buang RSA/login lama FE (FE repo)
+- [x] T14 cek referensi legacy BE
+- [x] T15 hapus legacy BE (+ EncryptionController/DTO RSA, ldap+rsa yaml, orphan saveOrUpdateFromLdap)
+- [ ] Verifikasi end-to-end (8 langkah) — butuh SSO+BE+FE nyala bareng (manual)
