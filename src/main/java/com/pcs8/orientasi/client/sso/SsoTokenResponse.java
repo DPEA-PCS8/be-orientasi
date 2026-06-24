@@ -11,6 +11,12 @@ public class SsoTokenResponse {
     @JsonProperty("access_token")
     private String accessToken;
 
+    @JsonProperty("id_token")
+    private String idToken;
+
+    @JsonProperty("refresh_token")
+    private String refreshToken;
+
     @JsonProperty("expires_in")
     private long expiresIn;
 
