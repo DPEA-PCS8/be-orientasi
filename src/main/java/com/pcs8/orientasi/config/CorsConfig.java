@@ -30,6 +30,8 @@ public class CorsConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",           // Auth endpoints
                         "/api/auth/login",
+                        "/auth/sso/**",          // SSO (OIDC/BFF) login flow
+                        "/api/auth/sso/**",
                         "/crypto/encrypt",       // Crypto endpoints
                         "/crypto/decrypt",
                         "/api/crypto/encrypt",

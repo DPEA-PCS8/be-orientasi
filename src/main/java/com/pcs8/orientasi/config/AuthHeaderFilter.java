@@ -43,7 +43,19 @@ public class AuthHeaderFilter implements Filter {
             "/api/crypto/encrypt",
             "/api/crypto/decrypt",
             "/minio/upload",
-            "/api/minio/upload"
+            "/api/minio/upload",
+            // SSO (OIDC/BFF) login flow — no Bearer yet at this point.
+            "/auth/sso/login",
+            "/api/auth/sso/login",
+            "/auth/sso/exchange",
+            "/api/auth/sso/exchange"
+    ));
+
+    // Endpoints exempt from the APIKey check (browser top-level navigations that
+    // cannot attach custom headers). /auth/sso/login is hit via window.location.
+    private static final Set<String> APIKEY_EXEMPT_ENDPOINTS = new HashSet<>(Arrays.asList(
+            "/auth/sso/login",
+            "/api/auth/sso/login"
     ));
 
     @Value("${app.api-key}")
@@ -62,8 +74,9 @@ public class AuthHeaderFilter implements Filter {
         log.debug("Request: {} {}", method, requestPath);
 
         try {
-            // Validate required headers (APIKey dan Content-Type)
-            if (!isValidRequiredHeaders(httpRequest)) {
+            // Validate required headers (APIKey dan Content-Type), except for
+            // browser-navigation endpoints that cannot send custom headers.
+            if (!isApiKeyExempt(requestPath) && !isValidRequiredHeaders(httpRequest)) {
                 sendErrorResponse(httpResponse, 400, "Missing or invalid required headers");
                 return;
             }
@@ -127,6 +140,16 @@ public class AuthHeaderFilter implements Filter {
             return false;
         }
         return PUBLIC_ENDPOINTS.contains(path);
+    }
+
+    /**
+     * Check apakah endpoint dikecualikan dari validasi APIKey (browser navigation).
+     */
+    private boolean isApiKeyExempt(String path) {
+        if (path == null) {
+            return false;
+        }
+        return APIKEY_EXEMPT_ENDPOINTS.contains(path);
     }
 
     /**
