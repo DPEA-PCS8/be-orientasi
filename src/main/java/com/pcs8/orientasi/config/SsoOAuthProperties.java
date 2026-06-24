@@ -10,12 +10,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>Bound from the {@code sso:} block in application.yaml.
  *
- * <p>NOTE: {@code clientId}/{@code clientSecret} here are the LOGIN (confidential) client
- * used for the authorization-code exchange. The pre-existing {@code SsoTokenClient}
- * (catalog client_credentials) is a different concern and keeps reading
- * {@code sso.client-id}/{@code sso.client-secret} directly via @Value. To avoid breaking it,
- * the login client is bound from dedicated keys {@code sso.login-client-id} /
- * {@code sso.login-client-secret} (see {@code application.yaml}).
+ * <p>NOTE: a single confidential client ({@code sso.client-id}/{@code sso.client-secret})
+ * is used for BOTH the authorization-code login flow (here) AND the catalog
+ * client_credentials flow ({@code SsoTokenClient}). The client is dual-grant on the SSO side.
  */
 @Component
 @Getter
@@ -26,11 +23,11 @@ public class SsoOAuthProperties {
     /** SSO base URL, e.g. http://auth-web.sso-engine-dev.svc.cluster.local */
     private String baseUrl;
 
-    /** Login (confidential) client id used for the authorization-code flow. */
-    private String loginClientId;
+    /** Confidential client id (dual-grant: authorization_code + client_credentials). */
+    private String clientId;
 
-    /** Login (confidential) client secret used for the authorization-code flow. */
-    private String loginClientSecret;
+    /** Confidential client secret. */
+    private String clientSecret;
 
     /** Redirect URI registered with the SSO; this is the FE callback. Must match across authorize/token/registration. */
     private String redirectUri;

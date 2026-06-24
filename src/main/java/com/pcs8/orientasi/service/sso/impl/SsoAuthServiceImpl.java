@@ -40,7 +40,7 @@ public class SsoAuthServiceImpl implements SsoAuthService {
         return UriComponentsBuilder.fromHttpUrl(props.getBaseUrl())
                 .path(AUTHORIZE_PATH)
                 .queryParam("response_type", "code")
-                .queryParam("client_id", props.getLoginClientId())
+                .queryParam("client_id", props.getClientId())
                 .queryParam("redirect_uri", props.getRedirectUri())
                 .queryParam("scope", props.getScopes())
                 .queryParam("state", state)
@@ -62,8 +62,8 @@ public class SsoAuthServiceImpl implements SsoAuthService {
         body.add("grant_type", "authorization_code");
         body.add("code", code);
         body.add("redirect_uri", props.getRedirectUri());
-        body.add("client_id", props.getLoginClientId());
-        body.add("client_secret", props.getLoginClientSecret());
+        body.add("client_id", props.getClientId());
+        body.add("client_secret", props.getClientSecret());
         body.add("code_verifier", codeVerifier);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);

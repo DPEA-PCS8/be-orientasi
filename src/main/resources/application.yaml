@@ -50,16 +50,12 @@ catalog:
   base-url: ${CATALOG_BASE_URL:http://application-catalog-internal-dpea.apps.ocp.ojk.go.id}
 
 # SSO Configuration
-# NOTE: client-id / client-secret below are the CATALOG client_credentials client
-# (consumed by SsoTokenClient — separate concern, do not repurpose).
-# login-client-id / login-client-secret are the OIDC LOGIN (BFF) client used by
-# SsoOAuthProperties / SsoAuthService for the authorization-code + PKCE flow.
+# Single confidential client (dual-grant on the SSO side): used BOTH by SsoTokenClient
+# (catalog client_credentials) and by SsoAuthService (OIDC login authorization_code + PKCE).
 sso:
-  base-url: ${SSO_BASE_URL:http://auth-web.sso-engine-dev.svc.cluster.local}
-  client-id: ${SSO_CLIENT_ID:MGRFFQ75DGU6KPQR4GJD}
+  base-url: ${SSO_BASE_URL:https://auth-web-sso-engine-dev.apps.ocp.ojk.go.id}
+  client-id: ${SSO_CLIENT_ID:P1VHAIF287355UAN2UTG}
   client-secret: ${SSO_CLIENT_SECRET:}
-  login-client-id: ${SSO_LOGIN_CLIENT_ID:P1VHAIF287355UAN2UTG}
-  login-client-secret: ${SSO_LOGIN_CLIENT_SECRET:}
   redirect-uri: ${SSO_REDIRECT_URI:https://localhost:5174/signin-oidc}
   frontend-callback-url: ${SSO_FE_CALLBACK:https://localhost:5174/signin-oidc}
   scopes: ${SSO_SCOPES:openid email profile roles}
