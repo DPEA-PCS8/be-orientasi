@@ -73,6 +73,13 @@ public class AuthHeaderFilter implements Filter {
 
         log.debug("Request: {} {}", method, requestPath);
 
+        // CORS preflight requests carry no APIKey/Bearer headers; let them through
+        // so Spring's CORS handling can respond. They are never dispatched to a controller.
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         try {
             // Validate required headers (APIKey dan Content-Type), except for
             // browser-navigation endpoints that cannot send custom headers.

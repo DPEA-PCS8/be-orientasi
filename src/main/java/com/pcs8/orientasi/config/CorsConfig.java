@@ -15,8 +15,10 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // "*" already covers the FE origin (https://localhost:5174). Using origin
+        // patterns keeps the wildcard while documenting the SSO FE origin explicitly.
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOriginPatterns("*", "https://localhost:5174")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .exposedHeaders("Authorization", "Content-Type", "APIKey")
