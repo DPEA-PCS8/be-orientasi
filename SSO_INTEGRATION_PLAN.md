@@ -50,7 +50,7 @@ Branch kerja: **`feat/marvel/refactor-login-sso`** (BE & FE, nama sama di dua re
 ### RESUME STATE
 > Agent update baris ini tiap selesai/blocked. Format bebas, ringkas.
 ```
-T1 done; next T2. DEVIATION: catalog SsoTokenClient reuses sso.client-id/secret (protected), so login OIDC client bound from sso.login-client-id/login-client-secret instead of overwriting.
+T2 done; next T3. DEVIATION: catalog SsoTokenClient reuses sso.client-id/secret (protected), so login OIDC client bound from sso.login-client-id/login-client-secret instead of overwriting.
 ```
 
 Claims dari `/connect/userinfo`: `sub` (=username), `name`, `email`, `organization`, `jabatan`, `user_type`.
@@ -268,7 +268,7 @@ upsert by `username`, set fullName/email/department/title, update `lastLoginAt`,
 ## CHECKLIST
 
 - [x] T1 SsoOAuthProperties + yaml
-- [ ] T2 PkceUtil
+- [x] T2 PkceUtil
 - [ ] T3 PkceStateStore
 - [ ] T4 SSO DTOs (token + userinfo)
 - [ ] T5 SsoAuthService (authorize/token/userinfo)
