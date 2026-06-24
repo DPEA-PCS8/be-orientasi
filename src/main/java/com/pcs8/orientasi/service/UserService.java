@@ -13,6 +13,13 @@ public interface UserService {
     MstUser saveOrUpdateFromLdap(UserInfo ldapUserInfo);
 
     /**
+     * Save atau update user dari SSO userinfo.
+     * Upsert by username; set fullName/email/department/title dan update lastLoginAt.
+     * Role TIDAK di-set dari SSO (tetap dari DB existing).
+     */
+    MstUser saveOrUpdateFromSso(UserInfo ssoUserInfo);
+
+    /**
      * Get user by username.
      */
     MstUser getByUsername(String username);
