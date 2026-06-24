@@ -4,22 +4,15 @@ spring:
     
   # Database Configuration
   datasource:
-    url: jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=true;trustServerCertificate=true
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:sqlserver://${DB_HOST:10.226.60.31}:${DB_PORT:49705};databaseName=${DB_NAME:pcs8_orientasi};encrypt=true;trustServerCertificate=true
+    username: ${DB_USERNAME:admin.pcs8}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    
-  # Run SQL scripts on startup
-  sql:
-    init:
-      mode: always
-      continue-on-error: true
     
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
-    defer-datasource-initialization: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
@@ -27,8 +20,8 @@ spring:
     
   # LDAP Configuration
   ldap:
-    urls: ${LDAP_URL}
-    base: ${LDAP_BASE}
+    urls: ldap://10.225.60.10:389
+    base: dc=devojk,dc=go,dc=id
   
   # File Upload Configuration
   servlet:
@@ -44,18 +37,17 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
 
 # RSA Encryption Configuration
 rsa:
   encryption:
-    private-key: ${RSA_PRIVATE_KEY}
-    public-key: ${RSA_PUBLIC_KEY}
-    
+    private-key: ${RSA_PRIVATE_KEY:}  # Empty by default - will auto-generate on startup
+    public-key: ${RSA_PUBLIC_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApm4C3tMo4URx1/f/BXfGktEHNQYX0Ew3mUbn5nw9Ot734r9epwCp2XN/CDVw26iU66621gQvmMRib9fu+KNuhNTB30HrGAM065Jtvn3/dZ3g1SpquLj5/oQjeVUns6DsG7MhW4uZEXjf28iwZTm5xU9kIg3bsXEsWGRC1rKVYmIRfsM00iHi7A7MvRanbCQ1cgPC9ZZqqLFjZokqb5//5I/kJCilbE3Cn5/Mc/+XhOh5HQvgRn8HJ+zvMiKTytmks+s3/0L5l2fEnDSIxiP/ZchNGzuTOqc7jFA6UpBhLUj1QO76k1KT00V5IPqHsPWb8YzUztjysN6i5IUiMQCE9wIDAQAB}    # Empty by default - will auto-generate on startup
 # API Security Configuration
 app:
-  api-key: ${API_KEY}
+  api-key: ${API_KEY:}
 
 # Logging
 logging:
@@ -68,15 +60,24 @@ catalog:
   base-url: ${CATALOG_BASE_URL:http://application-catalog-internal-dpea.apps.ocp.ojk.go.id}
 
 # SSO Configuration
+# NOTE: client-id / client-secret below are the CATALOG client_credentials client
+# (consumed by SsoTokenClient — separate concern, do not repurpose).
+# login-client-id / login-client-secret are the OIDC LOGIN (BFF) client used by
+# SsoOAuthProperties / SsoAuthService for the authorization-code + PKCE flow.
 sso:
   base-url: ${SSO_BASE_URL:http://auth-web.sso-engine-dev.svc.cluster.local}
-  client-id: ${SSO_CLIENT_ID:}
+  client-id: ${SSO_CLIENT_ID:MGRFFQ75DGU6KPQR4GJD}
   client-secret: ${SSO_CLIENT_SECRET:}
+  login-client-id: ${SSO_LOGIN_CLIENT_ID:P1VHAIF287355UAN2UTG}
+  login-client-secret: ${SSO_LOGIN_CLIENT_SECRET:}
+  redirect-uri: ${SSO_REDIRECT_URI:https://localhost:5174/signin-oidc}
+  frontend-callback-url: ${SSO_FE_CALLBACK:https://localhost:5174/signin-oidc}
+  scopes: ${SSO_SCOPES:openid email profile roles}
   token-buffer-seconds: ${SSO_TOKEN_BUFFER_SECONDS:50}
 
 # Minio Configuration
 minio:
-  endpoint: ${MINIO_ENDPOINT}
-  access-key: ${MINIO_ACCESS_KEY}
-  secret-key: ${MINIO_SECRET_KEY}
+  endpoint: ${MINIO_ENDPOINT:http://miniodev.ojk.go.id:9000}
+  access-key: ${MINIO_ACCESS_KEY:}
+  secret-key: ${MINIO_SECRET_KEY:}
   bucket-name: ${MINIO_BUCKET:kkad}
