@@ -57,9 +57,13 @@ sso:
   client-id: ${SSO_CLIENT_ID:P1VHAIF287355UAN2UTG}
   client-secret: ${SSO_CLIENT_SECRET:}
   redirect-uri: ${SSO_REDIRECT_URI:https://localhost:5174/signin-oidc}
-  frontend-callback-url: ${SSO_FE_CALLBACK:https://localhost:5174/signin-oidc}
-  scopes: ${SSO_SCOPES:openid email profile roles}
+  # Must be registered as a PostLogoutRedirectUri on the SSO client.
+  post-logout-redirect-uri: ${SSO_POST_LOGOUT_URI:https://localhost:5174/signout-callback-oidc}
+  scopes: ${SSO_SCOPES:openid email profile}
   token-buffer-seconds: ${SSO_TOKEN_BUFFER_SECONDS:50}
+  # DEV ONLY: trust SSO server's internal-CA cert (fixes "PKIX path building failed").
+  # NEVER true in prod — import the SSO CA into the JVM truststore instead.
+  trust-all-certs: ${SSO_TRUST_ALL_CERTS:true}
 
 # Minio Configuration
 minio:

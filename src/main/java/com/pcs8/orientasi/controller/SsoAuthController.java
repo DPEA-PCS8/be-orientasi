@@ -71,6 +71,19 @@ public class SsoAuthController {
     }
 
     /**
+     * RP-initiated logout: terminate the SSO session via end_session, then the SSO redirects
+     * the browser back to the configured post-logout URI (FE login). The FE must also clear its
+     * local App JWT. Without this, the still-valid SSO cookie logs the user straight back in.
+     */
+    @PublicAccess
+    @GetMapping("/logout")
+    public void logout(HttpServletResponse response) throws IOException {
+        String logoutUrl = ssoAuthService.buildLogoutUrl();
+        log.info("Redirecting to SSO end_session endpoint");
+        response.sendRedirect(logoutUrl);
+    }
+
+    /**
      * Exchange the relayed {code,state} for the App JWT.
      */
     @PublicAccess

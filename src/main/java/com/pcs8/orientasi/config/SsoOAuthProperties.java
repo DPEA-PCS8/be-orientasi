@@ -32,8 +32,8 @@ public class SsoOAuthProperties {
     /** Redirect URI registered with the SSO; this is the FE callback. Must match across authorize/token/registration. */
     private String redirectUri;
 
-    /** Frontend callback URL (same as redirectUri in this BFF setup). */
-    private String frontendCallbackUrl;
+    /** Where the SSO sends the browser after end_session. Must be registered as a PostLogoutRedirectUri on the client. */
+    private String postLogoutRedirectUri;
 
     /** Space-delimited OIDC scopes, e.g. "openid email profile roles". */
     private String scopes;

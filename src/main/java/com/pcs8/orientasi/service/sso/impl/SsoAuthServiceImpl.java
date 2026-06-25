@@ -25,6 +25,7 @@ public class SsoAuthServiceImpl implements SsoAuthService {
     private static final String AUTHORIZE_PATH = "/connect/authorize";
     private static final String TOKEN_PATH = "/connect/token";
     private static final String USERINFO_PATH = "/connect/userinfo";
+    private static final String LOGOUT_PATH = "/connect/logout";
 
     private final RestTemplate ssoRestTemplate;
     private final SsoOAuthProperties props;
@@ -46,6 +47,16 @@ public class SsoAuthServiceImpl implements SsoAuthService {
                 .queryParam("state", state)
                 .queryParam("code_challenge", codeChallenge)
                 .queryParam("code_challenge_method", "S256")
+                .encode()
+                .toUriString();
+    }
+
+    @Override
+    public String buildLogoutUrl() {
+        return UriComponentsBuilder.fromHttpUrl(props.getBaseUrl())
+                .path(LOGOUT_PATH)
+                .queryParam("client_id", props.getClientId())
+                .queryParam("post_logout_redirect_uri", props.getPostLogoutRedirectUri())
                 .encode()
                 .toUriString();
     }

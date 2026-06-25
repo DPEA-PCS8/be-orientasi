@@ -22,4 +22,10 @@ public interface SsoAuthService {
      * Fetch user info from {@code /connect/userinfo} using the access token and map it to the app UserInfo.
      */
     UserInfo fetchUserInfo(String accessToken);
+
+    /**
+     * Build the {@code /connect/logout} (end_session) redirect URL that terminates the SSO session
+     * and returns the browser to the configured post-logout redirect URI.
+     */
+    String buildLogoutUrl();
 }

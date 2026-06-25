@@ -25,9 +25,8 @@ import java.util.Set;
  * 3. Authorization header (Bearer token) diperlukan untuk semua endpoint kecuali public endpoints
  * 
  * Public endpoints yang tidak memerlukan Bearer token:
- * - /api/auth/login
- * - /api/crypto/encrypt
- * - /api/crypto/decrypt
+ * - /api/auth/sso/login, /api/auth/sso/exchange, /api/auth/sso/logout
+ * - /api/minio/upload
  */
 @Component
 public class AuthHeaderFilter implements Filter {
@@ -36,26 +35,24 @@ public class AuthHeaderFilter implements Filter {
 
     // Endpoints yang tidak butuh Bearer token
     private static final Set<String> PUBLIC_ENDPOINTS = new HashSet<>(Arrays.asList(
-            "/auth/login",
-            "/crypto/encrypt",
-            "/crypto/decrypt",
-            "/api/auth/login",
-            "/api/crypto/encrypt",
-            "/api/crypto/decrypt",
             "/minio/upload",
             "/api/minio/upload",
             // SSO (OIDC/BFF) login flow — no Bearer yet at this point.
             "/auth/sso/login",
             "/api/auth/sso/login",
             "/auth/sso/exchange",
-            "/api/auth/sso/exchange"
+            "/api/auth/sso/exchange",
+            "/auth/sso/logout",
+            "/api/auth/sso/logout"
     ));
 
     // Endpoints exempt from the APIKey check (browser top-level navigations that
-    // cannot attach custom headers). /auth/sso/login is hit via window.location.
+    // cannot attach custom headers). /auth/sso/login and /logout are hit via window.location.
     private static final Set<String> APIKEY_EXEMPT_ENDPOINTS = new HashSet<>(Arrays.asList(
             "/auth/sso/login",
-            "/api/auth/sso/login"
+            "/api/auth/sso/login",
+            "/auth/sso/logout",
+            "/api/auth/sso/logout"
     ));
 
     @Value("${app.api-key}")
