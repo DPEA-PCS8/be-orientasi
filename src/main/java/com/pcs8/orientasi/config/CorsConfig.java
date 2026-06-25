@@ -2,6 +2,7 @@
 package com.pcs8.orientasi.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -13,12 +14,14 @@ public class CorsConfig implements WebMvcConfigurer {
 
     private final AuthorizationInterceptor authorizationInterceptor;
 
+    /** Explicit allowed origins (comma-separated). No wildcard — set FE origins per environment. */
+    @Value("${cors.allowed-origins:https://localhost:5174}")
+    private String[] allowedOrigins;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // "*" already covers the FE origin (https://localhost:5174). Using origin
-        // patterns keeps the wildcard while documenting the SSO FE origin explicitly.
         registry.addMapping("/**")
-                .allowedOriginPatterns("*", "https://localhost:5174")
+                .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .exposedHeaders("Authorization", "Content-Type", "APIKey")
@@ -30,14 +33,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addInterceptor(authorizationInterceptor)
                 .addPathPatterns("/**")  // Intercept all paths
                 .excludePathPatterns(
-                        "/auth/login",           // Auth endpoints
-                        "/api/auth/login",
                         "/auth/sso/**",          // SSO (OIDC/BFF) login flow
-                        "/api/auth/sso/**",
-                        "/crypto/encrypt",       // Crypto endpoints
-                        "/crypto/decrypt",
-                        "/api/crypto/encrypt",
-                        "/api/crypto/decrypt"
+                        "/api/auth/sso/**"
                 );
     }
 }

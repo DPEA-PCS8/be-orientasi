@@ -42,6 +42,11 @@ public class SsoConfig {
         return new RestTemplate(trustAllRequestFactory());
     }
 
+    // Sonar S4830 / S5527: server cert validation is intentionally disabled here, but ONLY when
+    // sso.trust-all-certs=true (default false → this code path never runs in prod). It exists solely
+    // so local dev can reach the internal-CA SSO without importing its cert. Prod must keep the flag
+    // false and import the SSO CA into the JVM truststore instead.
+    @SuppressWarnings({"java:S4830", "java:S5527"})
     private SimpleClientHttpRequestFactory trustAllRequestFactory() throws Exception {
         TrustManager[] trustAll = new TrustManager[]{
                 new X509TrustManager() {
