@@ -1,6 +1,7 @@
 package com.pcs8.orientasi.service.impl;
 
 import com.pcs8.orientasi.config.UserContext;
+import com.pcs8.orientasi.domain.dto.kafka.SubKategoriKafkaMessage;
 import com.pcs8.orientasi.domain.dto.request.SubKategoriRequest;
 import com.pcs8.orientasi.domain.dto.response.SubKategoriResponse;
 import com.pcs8.orientasi.domain.dto.response.SubKategoriSnapshotResponse;
@@ -11,9 +12,11 @@ import com.pcs8.orientasi.exception.ResourceNotFoundException;
 import com.pcs8.orientasi.repository.MstSubKategoriRepository;
 import com.pcs8.orientasi.repository.MstSubKategoriSnapshotRepository;
 import com.pcs8.orientasi.service.SubKategoriService;
+import com.pcs8.orientasi.service.kafka.SubKategoriChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class SubKategoriServiceImpl implements SubKategoriService {
     private final MstSubKategoriRepository subKategoriRepository;
     private final MstSubKategoriSnapshotRepository snapshotRepository;
     private final UserContext userContext;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -56,6 +60,9 @@ public class SubKategoriServiceImpl implements SubKategoriService {
 
         // Auto-create snapshot for current year
         createSnapshot(saved, "CREATED");
+
+        // Publish to Kafka after commit
+        eventPublisher.publishEvent(SubKategoriChangedEvent.upsert(SubKategoriKafkaMessage.from(saved)));
 
         return mapToResponse(saved);
     }
@@ -89,7 +96,10 @@ public class SubKategoriServiceImpl implements SubKategoriService {
             
             // Auto-create snapshot for current year
             createSnapshot(saved, "CREATED");
-            
+
+            // Publish to Kafka after commit
+            eventPublisher.publishEvent(SubKategoriChangedEvent.upsert(SubKategoriKafkaMessage.from(saved)));
+
             responses.add(mapToResponse(saved));
         }
 
@@ -167,6 +177,9 @@ public class SubKategoriServiceImpl implements SubKategoriService {
         // Auto-create snapshot for current year
         createSnapshot(updated, "UPDATED");
 
+        // Publish to Kafka after commit
+        eventPublisher.publishEvent(SubKategoriChangedEvent.upsert(SubKategoriKafkaMessage.from(updated)));
+
         return mapToResponse(updated);
     }
 
@@ -188,7 +201,10 @@ public class SubKategoriServiceImpl implements SubKategoriService {
         
         // Create snapshot after delete with null reference
         createSnapshotAfterDelete(kode, nama, categoryCode, categoryName);
-        
+
+        // Publish tombstone to Kafka after commit
+        eventPublisher.publishEvent(SubKategoriChangedEvent.delete(kode));
+
         log.info("SubKategori deleted: {}", kode);
     }
 
@@ -237,6 +253,17 @@ public class SubKategoriServiceImpl implements SubKategoriService {
                 .stream()
                 .map(this::mapSnapshotToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public int resyncToKafka() {
+        List<MstSubKategori> all = subKategoriRepository.findAllByOrderByKodeAsc();
+        for (MstSubKategori sk : all) {
+            eventPublisher.publishEvent(SubKategoriChangedEvent.upsert(SubKategoriKafkaMessage.from(sk)));
+        }
+        log.info("Resync to Kafka queued for {} sub kategori (publishes after commit)", all.size());
+        return all.size();
     }
 
     private void createSnapshot(MstSubKategori subKategori, String changeType) {

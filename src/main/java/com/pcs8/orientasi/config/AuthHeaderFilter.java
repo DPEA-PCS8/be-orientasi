@@ -43,7 +43,10 @@ public class AuthHeaderFilter implements Filter {
             "/auth/sso/exchange",
             "/api/auth/sso/exchange",
             "/auth/sso/logout",
-            "/api/auth/sso/logout"
+            "/api/auth/sso/logout",
+            // Kafka resync — ops/bootstrap action, gated by APIKey only (no user JWT needed).
+            "/arsitektur/sub-kategori/kafka/resync",
+            "/api/arsitektur/sub-kategori/kafka/resync"
     ));
 
     // Endpoints exempt from the APIKey check (browser top-level navigations that

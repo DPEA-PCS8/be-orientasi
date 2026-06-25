@@ -1,5 +1,6 @@
 package com.pcs8.orientasi.controller;
 
+import com.pcs8.orientasi.config.annotation.PublicAccess;
 import com.pcs8.orientasi.config.annotation.RequiresRole;
 import com.pcs8.orientasi.domain.dto.request.SubKategoriRequest;
 import com.pcs8.orientasi.domain.dto.response.BaseResponse;
@@ -104,5 +105,14 @@ public class SubKategoriController {
     public ResponseEntity<BaseResponse> getSnapshotHistory(@PathVariable UUID subKategoriId) {
         List<SubKategoriSnapshotResponse> history = subKategoriService.getSnapshotHistoryBySubKategoriId(subKategoriId);
         return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Success", history));
+    }
+
+    // Republish all sub kategori to Kafka (bootstrap a consumer / recover missed events).
+    // @PublicAccess: ops/bootstrap action gated by APIKey only — no user JWT/role needed.
+    @PublicAccess
+    @PostMapping("/kafka/resync")
+    public ResponseEntity<BaseResponse> resyncToKafka() {
+        int count = subKategoriService.resyncToKafka();
+        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), count + " Sub Kategori dipublish ke Kafka", count));
     }
 }
