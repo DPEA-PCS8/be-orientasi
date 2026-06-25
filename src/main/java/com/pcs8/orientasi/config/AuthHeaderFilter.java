@@ -25,9 +25,8 @@ import java.util.Set;
  * 3. Authorization header (Bearer token) diperlukan untuk semua endpoint kecuali public endpoints
  * 
  * Public endpoints yang tidak memerlukan Bearer token:
- * - /api/auth/login
- * - /api/crypto/encrypt
- * - /api/crypto/decrypt
+ * - /api/auth/sso/login, /api/auth/sso/exchange, /api/auth/sso/logout
+ * - /api/minio/upload
  */
 @Component
 public class AuthHeaderFilter implements Filter {
@@ -36,14 +35,24 @@ public class AuthHeaderFilter implements Filter {
 
     // Endpoints yang tidak butuh Bearer token
     private static final Set<String> PUBLIC_ENDPOINTS = new HashSet<>(Arrays.asList(
-            "/auth/login",
-            "/crypto/encrypt",
-            "/crypto/decrypt",
-            "/api/auth/login",
-            "/api/crypto/encrypt",
-            "/api/crypto/decrypt",
             "/minio/upload",
-            "/api/minio/upload"
+            "/api/minio/upload",
+            // SSO (OIDC/BFF) login flow — no Bearer yet at this point.
+            "/auth/sso/login",
+            "/api/auth/sso/login",
+            "/auth/sso/exchange",
+            "/api/auth/sso/exchange",
+            "/auth/sso/logout",
+            "/api/auth/sso/logout"
+    ));
+
+    // Endpoints exempt from the APIKey check (browser top-level navigations that
+    // cannot attach custom headers). /auth/sso/login and /logout are hit via window.location.
+    private static final Set<String> APIKEY_EXEMPT_ENDPOINTS = new HashSet<>(Arrays.asList(
+            "/auth/sso/login",
+            "/api/auth/sso/login",
+            "/auth/sso/logout",
+            "/api/auth/sso/logout"
     ));
 
     @Value("${app.api-key}")
@@ -61,9 +70,17 @@ public class AuthHeaderFilter implements Filter {
 
         log.debug("Request: {} {}", method, requestPath);
 
+        // CORS preflight requests carry no APIKey/Bearer headers; let them through
+        // so Spring's CORS handling can respond. They are never dispatched to a controller.
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         try {
-            // Validate required headers (APIKey dan Content-Type)
-            if (!isValidRequiredHeaders(httpRequest)) {
+            // Validate required headers (APIKey dan Content-Type), except for
+            // browser-navigation endpoints that cannot send custom headers.
+            if (!isApiKeyExempt(requestPath) && !isValidRequiredHeaders(httpRequest)) {
                 sendErrorResponse(httpResponse, 400, "Missing or invalid required headers");
                 return;
             }
@@ -127,6 +144,16 @@ public class AuthHeaderFilter implements Filter {
             return false;
         }
         return PUBLIC_ENDPOINTS.contains(path);
+    }
+
+    /**
+     * Check apakah endpoint dikecualikan dari validasi APIKey (browser navigation).
+     */
+    private boolean isApiKeyExempt(String path) {
+        if (path == null) {
+            return false;
+        }
+        return APIKEY_EXEMPT_ENDPOINTS.contains(path);
     }
 
     /**

@@ -6,11 +6,11 @@ import com.pcs8.orientasi.domain.dto.response.LoginResponse.UserInfo;
 public interface UserService {
 
     /**
-     * Save atau update user dari LDAP info.
-     * Jika user sudah ada (by username), update info-nya.
-     * Jika belum ada, create baru.
+     * Save atau update user dari SSO userinfo.
+     * Upsert by username; set fullName/email/department/title dan update lastLoginAt.
+     * Role TIDAK di-set dari SSO (tetap dari DB existing).
      */
-    MstUser saveOrUpdateFromLdap(UserInfo ldapUserInfo);
+    MstUser saveOrUpdateFromSso(UserInfo ssoUserInfo);
 
     /**
      * Get user by username.
