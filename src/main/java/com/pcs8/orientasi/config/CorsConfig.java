@@ -14,17 +14,14 @@ public class CorsConfig implements WebMvcConfigurer {
 
     private final AuthorizationInterceptor authorizationInterceptor;
 
-    /**
-     * Allowed origin patterns (comma-separated). Supports scoped wildcards so one entry can cover
-     * many envs, e.g. {@code https://*.ojk.go.id}. Avoid the bare "*". Default = FE dev origin.
-     */
+    /** Explicit allowed origins (comma-separated). No wildcard — set FE origins per environment. */
     @Value("${cors.allowed-origins:https://localhost:5174}")
     private String[] allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns(allowedOrigins)
+                .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .exposedHeaders("Authorization", "Content-Type", "APIKey")
