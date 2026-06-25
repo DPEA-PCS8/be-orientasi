@@ -56,4 +56,11 @@ public interface SubKategoriService {
      * Get snapshot history for a specific sub kategori
      */
     List<SubKategoriSnapshotResponse> getSnapshotHistoryBySubKategoriId(UUID subKategoriId);
+
+    /**
+     * Republish every sub kategori to Kafka. Used to bootstrap a new consumer or
+     * recover any change missed while the broker was unavailable.
+     * Returns the number of records published.
+     */
+    int resyncToKafka();
 }

@@ -29,4 +29,11 @@ public final class ConstantVariable {
     public static final String AUDIT_LOG_CREATION_FAILED = "Failed to create audit log for {} {}: {}";
 
     public static final String SNAPSHOT_NOT_FOUND = "Snapshot tidak ditemukan";
+
+    // ==================== KAFKA ====================
+    /**
+     * Topik Kafka untuk publikasi master data mst_sub_kategori (compacted, key = kode).
+     * Nama topik fix, dipakai bersama oleh consumer (application-catalog).
+     */
+    public static final String KAFKA_SUBKATEGORI_TOPIC = "kategori";
 }
