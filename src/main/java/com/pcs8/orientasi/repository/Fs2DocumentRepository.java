@@ -16,6 +16,14 @@ public interface Fs2DocumentRepository extends JpaRepository<Fs2Document, UUID> 
 
     List<Fs2Document> findAllByOrderByCreatedAtDesc();
 
+    /**
+     * Find active FS2s (DISETUJUI) for given team IDs.
+     */
+    @Query("SELECT f FROM Fs2Document f LEFT JOIN FETCH f.aplikasi LEFT JOIN FETCH f.team " +
+           "WHERE f.team.id IN :teamIds AND f.status = 'DISETUJUI' " +
+           "ORDER BY f.createdAt DESC")
+    List<Fs2Document> findActiveByTeamIds(@Param("teamIds") List<UUID> teamIds);
+
     List<Fs2Document> findByStatusOrderByCreatedAtDesc(String status);
 
     @Query("SELECT f FROM Fs2Document f WHERE " +

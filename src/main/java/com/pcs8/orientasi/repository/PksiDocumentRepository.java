@@ -300,6 +300,15 @@ public interface PksiDocumentRepository extends JpaRepository<PksiDocument, UUID
             @Param("excludeId") UUID excludeId);
 
     /**
+     * Find active PKSIs (DISETUJUI / DIKERJAKAN_DENGAN_CARA_LAIN) for given team IDs.
+     */
+    @Query("SELECT DISTINCT p FROM PksiDocument p LEFT JOIN FETCH p.aplikasi LEFT JOIN FETCH p.team " +
+           "WHERE p.team.id IN :teamIds " +
+           "AND p.status IN ('DISETUJUI', 'DIKERJAKAN_DENGAN_CARA_LAIN') " +
+           "ORDER BY p.createdAt DESC")
+    List<PksiDocument> findActiveByTeamIds(@Param("teamIds") List<UUID> teamIds);
+
+    /**
      * Find all child PKSI documents for a given parent PKSI.
      */
     @Query("SELECT p FROM PksiDocument p LEFT JOIN FETCH p.user WHERE p.parentPksi.id = :parentId")
