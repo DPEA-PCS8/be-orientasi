@@ -3,17 +3,14 @@ package com.pcs8.orientasi.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.HttpURLConnection;
+import java.net.http.HttpClient;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 
@@ -37,7 +34,7 @@ public class SsoConfig {
     @Bean("ssoRestTemplate")
     public RestTemplate ssoRestTemplate() throws Exception {
         if (!trustAllCerts) {
-            return new RestTemplate();
+            return new RestTemplate(new JdkClientHttpRequestFactory());
         }
         return new RestTemplate(trustAllRequestFactory());
     }
@@ -47,7 +44,7 @@ public class SsoConfig {
     // so local dev can reach the internal-CA SSO without importing its cert. Prod must keep the flag
     // false and import the SSO CA into the JVM truststore instead.
     @SuppressWarnings({"java:S4830", "java:S5527"})
-    private SimpleClientHttpRequestFactory trustAllRequestFactory() throws Exception {
+    private JdkClientHttpRequestFactory trustAllRequestFactory() throws Exception {
         TrustManager[] trustAll = new TrustManager[]{
                 new X509TrustManager() {
                     @Override
@@ -69,18 +66,15 @@ public class SsoConfig {
 
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, trustAll, new SecureRandom());
-        final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
-        final HostnameVerifier allowAllHosts = (hostname, session) -> true;
 
-        return new SimpleClientHttpRequestFactory() {
-            @Override
-            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
-                if (connection instanceof HttpsURLConnection httpsConnection) {
-                    httpsConnection.setSSLSocketFactory(socketFactory);
-                    httpsConnection.setHostnameVerifier(allowAllHosts);
-                }
-                super.prepareConnection(connection, httpMethod);
-            }
-        };
+        SSLParameters sslParameters = new SSLParameters();
+        sslParameters.setEndpointIdentificationAlgorithm("");
+
+        HttpClient httpClient = HttpClient.newBuilder()
+                .sslContext(sslContext)
+                .sslParameters(sslParameters)
+                .build();
+
+        return new JdkClientHttpRequestFactory(httpClient);
     }
 }
