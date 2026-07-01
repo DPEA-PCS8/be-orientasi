@@ -15,21 +15,6 @@ public interface PksiFileService {
     List<PksiFileResponse> uploadFiles(UUID pksiId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
-     * Upload files to temporary storage (before PKSI is created)
-     */
-    List<PksiFileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
-    
-    /**
-     * Move temporary files to permanent storage after PKSI is created
-     */
-    List<PksiFileResponse> moveTempFilesToPermanent(UUID pksiId, String sessionId);
-    
-    /**
-     * Delete temporary files by session ID
-     */
-    void deleteTempFiles(String sessionId);
-    
-    /**
      * Get all files for a PKSI document
      */
     List<PksiFileResponse> getFilesByPksiId(UUID pksiId);

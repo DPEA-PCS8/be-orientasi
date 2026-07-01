@@ -28,7 +28,7 @@ import com.pcs8.orientasi.service.AuditService;
 import com.pcs8.orientasi.service.Fs2ChangelogService;
 import com.pcs8.orientasi.service.Fs2FileService;
 import com.pcs8.orientasi.service.Fs2Service;
-import com.pcs8.orientasi.service.MinioService;
+import com.pcs8.orientasi.client.objectstorage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public class Fs2ServiceImpl implements Fs2Service {
     private final UserContext userContext;
     private final Fs2ChangelogService fs2ChangelogService;
     private final Fs2FileService fs2FileService;
-    private final MinioService minioService;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -903,7 +903,7 @@ public class Fs2ServiceImpl implements Fs2Service {
                     // Generate fresh presigned URL using blobName
                     String blobName = file.getBlobName();
                     if (blobName != null && !blobName.isEmpty()) {
-                        return minioService.getFileUrl(blobName);
+                        return fileStorageService.getFileUrl(blobName);
                     }
                     return null;
                 })

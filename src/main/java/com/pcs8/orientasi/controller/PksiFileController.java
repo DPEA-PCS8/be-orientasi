@@ -49,51 +49,6 @@ public class PksiFileController {
     }
 
     /**
-     * Upload files to temporary storage (before PKSI is created)
-     */
-    @PostMapping("/temp/upload/{sessionId}")
-    public ResponseEntity<BaseResponse> uploadTempFiles(
-            @PathVariable String sessionId,
-            @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "fileType", required = false, defaultValue = "T01") String fileType,
-            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
-        
-        log.info("Uploading temp files for session");
-        
-        List<PksiFileResponse> responses = pksiFileService.uploadTempFiles(sessionId, files, fileType, tanggalDokumen);
-        
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));
-    }
-
-    /**
-     * Move temporary files to permanent storage after PKSI is created
-     */
-    @PostMapping("/temp/move/{pksiId}/{sessionId}")
-    public ResponseEntity<BaseResponse> moveTempFiles(
-            @PathVariable UUID pksiId,
-            @PathVariable String sessionId) {
-        
-        log.info("Moving temp files to permanent storage");
-        
-        List<PksiFileResponse> responses = pksiFileService.moveTempFilesToPermanent(pksiId, sessionId);
-        
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Files moved successfully", responses));
-    }
-
-    /**
-     * Delete temporary files by session ID
-     */
-    @DeleteMapping("/temp/{sessionId}")
-    public ResponseEntity<BaseResponse> deleteTempFiles(@PathVariable String sessionId) {
-        log.info("Deleting temp files");
-        
-        pksiFileService.deleteTempFiles(sessionId);
-        
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Temp files deleted successfully", null));
-    }
-
-    /**
      * Get all files for a PKSI document
      */
     @GetMapping("/pksi/{pksiId}")

@@ -48,50 +48,6 @@ public class Fs2FileController {
     }
 
     /**
-     * Upload files to temporary storage (before F.S.2 is created)
-     */
-    @PostMapping("/temp/upload/{sessionId}")
-    public ResponseEntity<BaseResponse> uploadTempFiles(
-            @PathVariable String sessionId,
-            @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "fileType", required = false, defaultValue = "FS2") String fileType,
-            @RequestParam(value = "tanggal_dokumen", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalDokumen) {
-        
-        
-        List<Fs2FileResponse> responses = fs2FileService.uploadTempFiles(sessionId, files, fileType, tanggalDokumen);
-        
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new BaseResponse(HttpStatus.CREATED.value(), "Temp files uploaded successfully", responses));
-    }
-
-    /**
-     * Move temporary files to permanent storage after F.S.2 is created
-     */
-    @PostMapping("/temp/move/{fs2Id}/{sessionId}")
-    public ResponseEntity<BaseResponse> moveTempFiles(
-            @PathVariable UUID fs2Id,
-            @PathVariable String sessionId) {
-        
-        log.info("Moving temp files to permanent storage for F.S.2");
-        
-        List<Fs2FileResponse> responses = fs2FileService.moveTempFilesToPermanent(fs2Id, sessionId);
-        
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Files moved successfully", responses));
-    }
-
-    /**
-     * Delete temporary files by session ID
-     */
-    @DeleteMapping("/temp/{sessionId}")
-    public ResponseEntity<BaseResponse> deleteTempFiles(@PathVariable String sessionId) {
-        log.info("Deleting temp files for F.S.2");
-        
-        fs2FileService.deleteTempFiles(sessionId);
-        
-        return ResponseEntity.ok(new BaseResponse(HttpStatus.OK.value(), "Temp files deleted successfully", null));
-    }
-
-    /**
      * Get all files for a F.S.2 document
      */
     @GetMapping("/fs2/{fs2Id}")

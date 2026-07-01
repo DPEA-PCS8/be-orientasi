@@ -15,21 +15,6 @@ public interface Fs2FileService {
     List<Fs2FileResponse> uploadFiles(UUID fs2Id, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
     
     /**
-     * Upload files to temporary storage (before F.S.2 is created)
-     */
-    List<Fs2FileResponse> uploadTempFiles(String sessionId, MultipartFile[] files, String fileType, LocalDate tanggalDokumen);
-    
-    /**
-     * Move temporary files to permanent storage after F.S.2 is created
-     */
-    List<Fs2FileResponse> moveTempFilesToPermanent(UUID fs2Id, String sessionId);
-    
-    /**
-     * Delete temporary files by session ID
-     */
-    void deleteTempFiles(String sessionId);
-    
-    /**
      * Get all files for a F.S.2 document
      */
     List<Fs2FileResponse> getFilesByFs2Id(UUID fs2Id);
