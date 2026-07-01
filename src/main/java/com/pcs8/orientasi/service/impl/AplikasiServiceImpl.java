@@ -93,7 +93,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
     @Override
     public List<AplikasiResponse> getAll() {
-        return catalogClient.search(null, null, null, null, null, null, 0, FETCH_ALL_SIZE)
+        return catalogClient.search(null, null, null, null, null, null, 1, FETCH_ALL_SIZE)
                 .getContent().stream()
                 .map(mapper::toAplikasiResponse)
                 .collect(Collectors.toList());
@@ -101,7 +101,7 @@ public class AplikasiServiceImpl implements AplikasiService {
 
     @Override
     public List<AplikasiResponse> getAllForDropdown() {
-        return catalogClient.search(null, null, null, null, null, null, 0, FETCH_ALL_SIZE)
+        return catalogClient.search(null, null, null, null, null, null, 1, FETCH_ALL_SIZE)
                 .getContent().stream()
                 .map(mapper::toAplikasiResponse)
                 .collect(Collectors.toList());
